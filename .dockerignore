@@ -1,0 +1,39 @@
+# Development files
+dev/
+tests/
+.git/
+.github/
+.claude/
+openspec/
+
+# renv library (rebuilt in container)
+renv/library/
+renv/staging/
+renv/sandbox/
+
+# Pipeline cache
+_targets/
+
+# Data raw (curated CSVs needed, but not migration scripts)
+data-raw/migrate_notion.R
+
+# Spec documents
+SPEC.md
+REQUIREMENTS.md
+ANALYST.md
+ARCHITECT.md
+DEVELOPER.md
+REVIEWER.md
+CLAUDE.md
+
+# IDE and OS files
+.vscode/
+*.Rproj.user
+.Rhistory
+.RData
+.DS_Store
+Thumbs.db
+
+# R build artefacts
+*.Rcheck/
+*.tar.gz

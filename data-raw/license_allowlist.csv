@@ -1,0 +1,18 @@
+license_pattern,allowed
+MIT,TRUE
+GPL-2,TRUE
+GPL-3,TRUE
+GPL (>= 2),TRUE
+GPL (>= 3),TRUE
+Apache License (== 2.0),TRUE
+Apache-2.0,TRUE
+BSD_2_clause,TRUE
+BSD_3_clause,TRUE
+Artistic-2.0,TRUE
+LGPL (>= 2),TRUE
+LGPL (>= 2.1),TRUE
+LGPL (>= 3),TRUE
+MPL-2.0,TRUE
+CC0,TRUE
+CC BY 4.0,TRUE
+Unlimited,TRUE
