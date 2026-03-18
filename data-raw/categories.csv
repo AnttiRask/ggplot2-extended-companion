@@ -12,7 +12,7 @@ interactive_plots,"Interactive Plots","Packages for creating interactive visuali
 interactive_tools,"Interactive Tools","Packages that contain interactive tools like apps"
 maps,"Maps","Packages for geographic/spatial visualisation"
 networks,"Networks","Packages for network and graph visualisation"
-python,"Python","Python packages that still are extentions to ggplot2"
+python,"Python","Python packages that still are extensions to ggplot2"
 scales_and_guides,"Scales & Guides","Custom scales, axes, legends, and guides"
 sports,"Sports","Sports-specific visualisation packages"
 stats,"Stats","Statistical layers and transformations"
