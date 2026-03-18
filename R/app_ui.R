@@ -100,7 +100,7 @@ app_theme <- function() {
       "monospace"
     ),
 
-    # Base font size
+    # Base font size: 1.0 = 16px Bootstrap default (SPEC section 7)
     font_scale = 1.0
   )
 }

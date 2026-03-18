@@ -24,9 +24,14 @@
  * ---------------------------------------------------------------------------
  * Gotham loaded from CDN (matching BiblioStatus), with Inter as fallback.
  * Fira Code for monospace/code blocks.
- * Note: Gotham font licensing is an open question (SPEC section 14, Q4).
+ *
+ * WARNING: Gotham font licensing is pending verification (SPEC section 14, Q4).
+ * If Gotham cannot be used, switch the @import below to use Montserrat instead,
+ * and update the heading_font in app_theme() (R/app_ui.R) accordingly.
+ * Montserrat is imported as a ready fallback.
  * --------------------------------------------------------------------------- */
 @import url("https://fonts.cdnfonts.com/css/gotham");
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap");
 
