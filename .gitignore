@@ -40,5 +40,8 @@ inst/app/www/data/packages.json
 .DS_Store
 Thumbs.db
 
+# Notion export files (one-time migration input, not version-controlled)
+data-raw/notion_export_*.csv
+
 # Environment files
 .env

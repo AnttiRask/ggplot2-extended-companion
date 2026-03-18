@@ -96,10 +96,12 @@ converted_categories <- vapply(
   USE.NAMES = FALSE
 )
 
-# Report any warnings (unknown categories)
-unknown <- converted_categories[grepl(" ", converted_categories)]
+# Report any unknown categories (compare against canonical list, not spaces)
+all_converted <- unlist(strsplit(converted_categories, "\\|"))
+unknown <- unique(all_converted[!all_converted %in% cats_ref$category])
 if (length(unknown) > 0) {
-  cat(sprintf("  WARNING: %d packages had unknown categories\n", length(unknown)))
+  cat(sprintf("  WARNING: %d unknown categories found: %s\n",
+              length(unknown), paste(unknown, collapse = ", ")))
 }
 
 # -----------------------------------------------------------------------------
@@ -113,15 +115,23 @@ curated <- data.frame(
   categories   = converted_categories,
   is_essential = FALSE,
   website_url  = ifelse(
-    is.na(notion$Website) | notion$Website == "" | notion$Website == "NA",
+    is.na(notion$Website) | notion$Website == "" | notion$Website == "NA" |
+      grepl("^\\[", notion$Website),
     NA_character_,
     notion$Website
   ),
   repo_url     = ifelse(
-    is.na(notion$GitHub.GitLab) | notion$GitHub.GitLab == "" | notion$GitHub.GitLab == "NA",
+    is.na(notion$GitHub.GitLab) | notion$GitHub.GitLab == "" | notion$GitHub.GitLab == "NA" |
+      grepl("^\\[", notion$GitHub.GitLab),
     NA_character_,
     notion$GitHub.GitLab
   ),
+  # NOTE: All existing packages get today's date because the Notion export does
+
+  # not include an original "date added" field. The "Recently Added" feature (M7)
+  # will only be meaningful for packages added AFTER this initial migration.
+  # The Last.Checked column in Notion reflects when metadata was last verified,
+  # not when the package was first added to the database.
   date_added   = as.character(Sys.Date()),
   notes        = "",
   stringsAsFactors = FALSE
@@ -132,6 +142,21 @@ no_cat_rows <- which(is.na(notion$Category) | trimws(notion$Category) == "")
 if (length(no_cat_rows) > 0) {
   curated$notes[no_cat_rows] <- "No category in Notion export"
   cat(sprintf("  %d packages had no category (mapped to 'na')\n", length(no_cat_rows)))
+}
+
+# Mark packages tagged as [UNMAINTAINED] in Notion
+unmaint_rows <- which(
+  grepl("^\\[", notion$Website) | grepl("^\\[", notion$GitHub.GitLab)
+)
+if (length(unmaint_rows) > 0) {
+  # Append to existing notes (some may already have category notes)
+  existing <- curated$notes[unmaint_rows]
+  curated$notes[unmaint_rows] <- ifelse(
+    existing == "",
+    "Package appears unmaintained (marked [UNMAINTAINED] in Notion)",
+    paste(existing, "Package appears unmaintained", sep = "; ")
+  )
+  cat(sprintf("  %d packages marked as unmaintained (URLs set to NA)\n", length(unmaint_rows)))
 }
 
 # Sort by package name for consistency

@@ -304,3 +304,21 @@ test_that("validate_curated_csv collects errors from all checks", {
   # Should have errors from multiple checks (duplicate + trailing pipe + invalid cat)
   expect_true(length(result$errors) >= 2)
 })
+
+# --- Integration test: real packages_curated.csv ----------------------------
+
+test_that("packages_curated.csv passes all validation checks", {
+  # Skip if the CSV doesn't exist (e.g., in CI before migration runs)
+  csv_path <- file.path(testthat::test_path(), "..", "..", "data-raw", "packages_curated.csv")
+  skip_if_not(file.exists(csv_path), "packages_curated.csv not found")
+
+  cats_path <- file.path(testthat::test_path(), "..", "..", "data-raw", "categories.csv")
+  skip_if_not(file.exists(cats_path), "categories.csv not found")
+
+  df <- read.csv(csv_path, stringsAsFactors = FALSE)
+  cats <- read.csv(cats_path, stringsAsFactors = FALSE)
+
+  result <- validate_curated_csv(df, cats$category)
+
+  expect_true(result$valid, info = paste(result$errors, collapse = "\n"))
+})
