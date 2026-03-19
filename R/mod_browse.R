@@ -22,16 +22,6 @@ mod_browse_ui <- function(id) {
   ns <- shiny::NS(id)
 
   htmltools::tagList(
-    # Loading message shown while table data is being prepared
-    shiny::conditionalPanel(
-      condition = sprintf("!output['%s']", ns("table_ready")),
-      ns = NULL,
-      htmltools::tags$div(
-        class = "text-center py-5",
-        htmltools::tags$div(class = "spinner-border text-primary", role = "status"),
-        htmltools::tags$p(class = "text-muted mt-2", "Loading packages...")
-      )
-    ),
     reactable::reactableOutput(ns("package_table"))
   )
 }
@@ -56,10 +46,6 @@ mod_browse_server <- function(id, app_data) {
 
     # Reactive value to track the selected package (for detail view in M5)
     selected_package <- shiny::reactiveVal(NULL)
-
-    # Flag to hide loading spinner once data is available
-    output$table_ready <- shiny::reactive({ !is.null(app_data()) })
-    shiny::outputOptions(output, "table_ready", suspendWhenHidden = FALSE)
 
     # Render the reactable table
     output$package_table <- reactable::renderReactable({
