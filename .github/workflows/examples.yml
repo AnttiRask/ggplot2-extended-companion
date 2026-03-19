@@ -61,7 +61,31 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Build and deploy
+      - name: Configure Docker for Artifact Registry
+        if: env.HAS_GCP == 'true'
+        env:
+          REGION: ${{ env.GCP_REGION }}
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev"
+
+      - name: Set up Docker Buildx
+        if: env.HAS_GCP == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        if: env.HAS_GCP == 'true'
+        uses: docker/build-push-action@v5
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ env.GCP_REGION }}
+          SERVICE: ${{ env.GCP_SERVICE_NAME }}
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Cloud Run
         if: env.HAS_GCP == 'true'
         env:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -69,10 +93,7 @@ jobs:
           SERVICE: ${{ env.GCP_SERVICE_NAME }}
           SHA: ${{ github.sha }}
         run: |
-          gcloud auth configure-docker "${REGION}-docker.pkg.dev"
           IMAGE_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${SERVICE}/${SERVICE}:${SHA}"
-          docker build -t "${IMAGE_TAG}" .
-          docker push "${IMAGE_TAG}"
           gcloud run deploy "${SERVICE}" \
             --image "${IMAGE_TAG}" \
             --region "${REGION}" \
