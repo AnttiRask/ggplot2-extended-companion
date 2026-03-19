@@ -1,0 +1,114 @@
+# =============================================================================
+# pipeline.yml
+#
+# Daily data pipeline: fetches CRAN metadata, download stats, and GitHub
+# metadata via targets, then builds and deploys the Docker image to
+# Google Cloud Run.
+#
+# Schedule: Daily at 06:00 UTC
+# Manual trigger: workflow_dispatch
+#
+# Part of Milestone 10: Docker & Cloud Run Deployment
+# =============================================================================
+
+name: Daily Pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      refresh_examples:
+        description: 'Also re-render code examples'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+env:
+  GCP_REGION: europe-north1
+  GCP_SERVICE_NAME: ggplot2-companion
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.3'
+          use-public-rspm: true
+
+      - name: Setup R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::targets
+
+      - name: Cache targets
+        uses: actions/cache@v4
+        with:
+          path: _targets/
+          key: targets-${{ hashFiles('data-raw/packages_curated.csv') }}-${{ github.run_id }}
+          restore-keys: |
+            targets-${{ hashFiles('data-raw/packages_curated.csv') }}-
+
+      - name: Run targets pipeline
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: Rscript -e 'targets::tar_make()'
+
+      - name: Authenticate to Google Cloud
+        if: secrets.GCP_PROJECT_ID != ''
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        if: secrets.GCP_PROJECT_ID != ''
+        env:
+          REGION: ${{ env.GCP_REGION }}
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev"
+
+      - name: Build and push Docker image
+        if: secrets.GCP_PROJECT_ID != ''
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ env.GCP_REGION }}
+          SERVICE: ${{ env.GCP_SERVICE_NAME }}
+          SHA: ${{ github.sha }}
+        run: |
+          IMAGE_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${SERVICE}/${SERVICE}:${SHA}"
+          docker build -t "${IMAGE_TAG}" .
+          docker push "${IMAGE_TAG}"
+
+      - name: Deploy to Cloud Run
+        if: secrets.GCP_PROJECT_ID != ''
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ env.GCP_REGION }}
+          SERVICE: ${{ env.GCP_SERVICE_NAME }}
+          SHA: ${{ github.sha }}
+        run: |
+          IMAGE_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${SERVICE}/${SERVICE}:${SHA}"
+          gcloud run deploy "${SERVICE}" \
+            --image "${IMAGE_TAG}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 3 \
+            --concurrency 80 \
+            --port 3838

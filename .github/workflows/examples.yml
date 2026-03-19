@@ -1,0 +1,80 @@
+# =============================================================================
+# examples.yml
+#
+# Weekly code example rendering pipeline. Same as daily pipeline but also
+# renders code examples. Produces examples.parquet and PNG files.
+#
+# Schedule: Sundays at 04:00 UTC
+# Manual trigger: workflow_dispatch
+#
+# Part of Milestone 10: Docker & Cloud Run Deployment
+# =============================================================================
+
+name: Weekly Examples
+
+on:
+  schedule:
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+
+env:
+  GCP_REGION: europe-north1
+  GCP_SERVICE_NAME: ggplot2-companion
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.3'
+          use-public-rspm: true
+
+      - name: Setup R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::targets
+
+      - name: Run targets pipeline with examples
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+          RENDER_EXAMPLES: 'true'
+        run: Rscript -e 'targets::tar_make()'
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Build and deploy
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ env.GCP_REGION }}
+          SERVICE: ${{ env.GCP_SERVICE_NAME }}
+          SHA: ${{ github.sha }}
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev"
+          IMAGE_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/${SERVICE}/${SERVICE}:${SHA}"
+          docker build -t "${IMAGE_TAG}" .
+          docker push "${IMAGE_TAG}"
+          gcloud run deploy "${SERVICE}" \
+            --image "${IMAGE_TAG}" \
+            --region "${REGION}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 3 \
+            --port 3838
