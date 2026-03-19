@@ -85,3 +85,69 @@ load_app_data <- function(
   packages |>
     dplyr::left_join(downloads, by = "package_name")
 }
+
+#' Get recently added packages
+#'
+#' Returns the last `n` packages sorted by `date_added` descending.
+#' Used by the "Recently Added" card in mod_recent.
+#'
+#' @param data A tibble with at least `package_name` and `date_added` columns.
+#' @param n Number of packages to return.
+#'
+#' @return A tibble with `n` rows sorted by date_added descending.
+#'
+#' @noRd
+get_recently_added <- function(data, n = 10) {
+  data |>
+    dplyr::arrange(dplyr::desc(.data$date_added)) |>
+    utils::head(n)
+}
+
+#' Get recently updated packages
+#'
+#' Returns the last `n` packages sorted by the most recent of `cran_published`
+#' and `github_updated`. Adds `update_date` and `update_source` columns to
+#' indicate when and where the update came from.
+#'
+#' @param data A tibble with `package_name`, `cran_published`, `github_updated`.
+#' @param n Number of packages to return.
+#'
+#' @return A tibble with `n` rows, plus `update_date` and `update_source` columns.
+#'
+#' @noRd
+get_recently_updated <- function(data, n = 10) {
+  data |>
+    dplyr::mutate(
+      # Pick the more recent of CRAN published and GitHub updated
+      update_date = pmax(.data$cran_published, .data$github_updated, na.rm = TRUE),
+      # Label the source based on which date was used
+      update_source = dplyr::case_when(
+        is.na(.data$cran_published) & is.na(.data$github_updated) ~ NA_character_,
+        is.na(.data$cran_published) ~ "GitHub",
+        is.na(.data$github_updated) ~ "CRAN",
+        .data$github_updated >= .data$cran_published ~ "GitHub",
+        TRUE ~ "CRAN"
+      )
+    ) |>
+    dplyr::arrange(dplyr::desc(.data$update_date)) |>
+    utils::head(n)
+}
+
+#' Load pipeline metadata from Parquet
+#'
+#' Reads `data/metadata.parquet` for the footer "Data last updated" display.
+#'
+#' @param path Path to the metadata Parquet file.
+#'
+#' @return A tibble with metadata, or NULL if the file doesn't exist.
+#'
+#' @noRd
+load_metadata <- function(path = "data/metadata.parquet") {
+  if (!file.exists(path)) {
+    logger::log_warn("Metadata file not found: {path}")
+    return(NULL)
+  }
+
+  arrow::read_parquet(path) |>
+    tibble::as_tibble()
+}

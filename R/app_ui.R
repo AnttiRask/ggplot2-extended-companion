@@ -46,19 +46,31 @@ app_ui <- function(request) {
         shiny::uiOutput("sidebar_controls")
       ),
 
-      # Main content area — toggles between browse table and detail view
+      # Main content area
       tags$div(
         class = "container-fluid",
-        # Browse view: searchable, sortable package table (M3)
+
+        # Header: collapsible intro accordion (M7)
+        mod_header_ui("header"),
+
+        # Browse view: recent lists + package table (M3, M7)
         shiny::conditionalPanel(
           condition = "!output.show_detail",
+          # Recently added/updated cards above the table
+          mod_recent_ui("recent"),
+          htmltools::tags$div(class = "mt-3"),
+          # Package table
           mod_browse_ui("browse")
         ),
+
         # Detail view: full package info (M5)
         shiny::conditionalPanel(
           condition = "output.show_detail",
           mod_detail_ui("detail")
-        )
+        ),
+
+        # Footer: disclaimer, credits, links (M7)
+        mod_footer_ui("footer")
       )
     )
   )

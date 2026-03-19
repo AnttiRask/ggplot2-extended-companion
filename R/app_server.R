@@ -110,6 +110,19 @@ app_server <- function(input, output, session) {
   # Allow conditionalPanel to access this output
   outputOptions(output, "show_detail", suspendWhenHidden = FALSE)
 
-  # Future modules:
-  # M7: Recent packages, header, footer modules
+  # Recent packages module (M7) — shows recently added/updated lists
+  mod_recent_server(
+    "recent",
+    app_data = reactive({ app_data_raw }),
+    on_select = function(pkg_name) {
+      # Navigate to detail view when a recent package is clicked
+      selected_package(pkg_name)
+    }
+  )
+
+  # Header module (M7) — static intro content, no server logic needed
+  mod_header_server("header")
+
+  # Footer module (M7) — loads metadata for data freshness timestamp
+  mod_footer_server("footer")
 }
