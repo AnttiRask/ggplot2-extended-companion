@@ -88,11 +88,15 @@ app_server <- function(input, output, session) {
   # Browse table module (M3) — receives filtered/sorted data
   selected_package <- mod_browse_server("browse", filtered_data)
 
-  # Detail view module (M5) — receives selected package and full data
+  # Load examples data (M6) — may be NULL if examples haven't been rendered
+  examples_data_raw <- load_examples()
+
+  # Detail view module (M5+M6) — receives selected package, full data, examples
   mod_detail_server(
     "detail",
     selected_package = selected_package,
     app_data = reactive({ app_data_raw }),
+    examples_data = reactive({ examples_data_raw }),
     on_back = function() {
       # Clear selected package to return to browse view
       selected_package(NULL)

@@ -86,6 +86,26 @@ load_app_data <- function(
     dplyr::left_join(downloads, by = "package_name")
 }
 
+#' Load code examples data from Parquet
+#'
+#' Reads `data/examples.parquet` and returns it as a tibble. Contains
+#' code snippets, image paths, and render status (SPEC §3.3).
+#'
+#' @param path Path to the examples Parquet file.
+#'
+#' @return A tibble with example data, or NULL if the file doesn't exist.
+#'
+#' @noRd
+load_examples <- function(path = "data/examples.parquet") {
+  if (!file.exists(path)) {
+    logger::log_info("Examples data file not found: {path}")
+    return(NULL)
+  }
+
+  arrow::read_parquet(path) |>
+    tibble::as_tibble()
+}
+
 #' Get recently added packages
 #'
 #' Returns the last `n` packages sorted by `date_added` descending.

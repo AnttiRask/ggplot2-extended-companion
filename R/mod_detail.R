@@ -36,11 +36,12 @@ mod_detail_ui <- function(id) {
 #' @param selected_package Reactive value holding the selected package name
 #'   (or NULL for browse view).
 #' @param app_data Reactive containing the full package dataset.
+#' @param examples_data Reactive containing examples data (tibble or NULL).
 #' @param on_back Callback function to execute when the back button is clicked
 #'   (clears selected_package to return to browse view).
 #'
 #' @noRd
-mod_detail_server <- function(id, selected_package, app_data, on_back) {
+mod_detail_server <- function(id, selected_package, app_data, examples_data = reactive(NULL), on_back) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -61,6 +62,13 @@ mod_detail_server <- function(id, selected_package, app_data, on_back) {
         ))
       }
 
+      # Look up example data for this package (if available)
+      examples <- examples_data()
+      example_row <- if (!is.null(examples)) {
+        ex <- examples[examples$package_name == pkg_name, ]
+        if (nrow(ex) > 0) ex else NULL
+      }
+
       # Build the detail view as a stack of cards
       htmltools::tagList(
         # Back button
@@ -76,7 +84,10 @@ mod_detail_server <- function(id, selected_package, app_data, on_back) {
         build_downloads_card(pkg),
 
         # Version info card
-        build_version_card(pkg)
+        build_version_card(pkg),
+
+        # Code example card (M6)
+        build_example_card(example_row)
       )
     })
 
@@ -285,6 +296,104 @@ build_version_card <- function(pkg) {
           format(as.Date(pkg$github_updated), "%Y-%m-%d")
         )
       }
+    )
+  )
+}
+
+#' Build the code example card
+#'
+#' Shows syntax-highlighted code, copy-to-clipboard button, rendered PNG image,
+#' and timestamp. Handles three states: successful render, failed render
+#' (code only), and license not allowed (message only).
+#'
+#' @param example A one-row data frame with example data, or NULL if no data.
+#' @return A bslib card, or NULL if no example data available.
+#' @noRd
+build_example_card <- function(example) {
+  if (is.null(example)) return(NULL)
+
+  # License not allowed — show message, no code
+
+  if (!isTRUE(example$license_allowed)) {
+    return(bslib::card(
+      bslib::card_header("Code Example"),
+      bslib::card_body(
+        htmltools::tags$p(
+          class = "text-muted",
+          "Code example not available \u2014 package license could not be verified."
+        )
+      )
+    ))
+  }
+
+  # No example code available
+  if (is.na(example$example_code)) {
+    return(bslib::card(
+      bslib::card_header("Code Example"),
+      bslib::card_body(
+        htmltools::tags$p(
+          class = "text-muted",
+          "No code example available for this package."
+        )
+      )
+    ))
+  }
+
+  # Build the code block with copy button
+  code_id <- paste0("code-", example$package_name)
+  btn_id <- paste0("copy-btn-", example$package_name)
+
+  code_block <- htmltools::tagList(
+    # Copy to clipboard button
+    htmltools::tags$button(
+      id = btn_id,
+      class = "btn btn-outline-secondary btn-sm mb-2",
+      onclick = sprintf("copyCodeToClipboard('%s', '%s')", code_id, btn_id),
+      "\U0001F4CB Copy to clipboard"
+    ),
+
+    # Syntax-highlighted code block
+    htmltools::tags$pre(
+      htmltools::tags$code(
+        id = code_id,
+        class = "language-r",
+        example$example_code
+      )
+    )
+  )
+
+  # Image (if render succeeded)
+  image_block <- if (isTRUE(example$example_success) && !is.na(example$example_image)) {
+    htmltools::tags$div(
+      class = "mt-3",
+      htmltools::tags$img(
+        src = paste0("www/examples/", example$example_image),
+        alt = paste("Example output for", example$package_name),
+        class = "img-fluid rounded",
+        style = "max-width: 100%;"
+      )
+    )
+  } else {
+    htmltools::tags$p(
+      class = "text-muted mt-2",
+      "Output preview not available for this package."
+    )
+  }
+
+  # Timestamp
+  timestamp <- if (!is.na(example$example_rendered_at)) {
+    htmltools::tags$p(
+      class = "text-muted small mt-2",
+      paste("Example last rendered:", example$example_rendered_at)
+    )
+  }
+
+  bslib::card(
+    bslib::card_header("Code Example"),
+    bslib::card_body(
+      code_block,
+      image_block,
+      timestamp
     )
   )
 }
