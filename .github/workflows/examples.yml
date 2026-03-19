@@ -26,6 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 240
 
+    env:
+      HAS_GCP: ${{ secrets.GCP_PROJECT_ID != '' }}
+
     permissions:
       contents: read
       id-token: write
@@ -52,12 +55,14 @@ jobs:
         run: Rscript -e 'targets::tar_make()'
 
       - name: Authenticate to Google Cloud
+        if: env.HAS_GCP == 'true'
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Build and deploy
+        if: env.HAS_GCP == 'true'
         env:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           REGION: ${{ env.GCP_REGION }}
