@@ -139,3 +139,65 @@ pre code {
 [data-bs-theme="light"] .package-link {
   color: #C1272D;
 }
+
+/* ---------------------------------------------------------------------------
+ * Loading spinner — Bootstrap spinner with primary colour
+ * --------------------------------------------------------------------------- */
+.spinner-border.text-primary {
+  color: #C1272D !important;
+  width: 2rem;
+  height: 2rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Code example block styling — dark background for contrast
+ * --------------------------------------------------------------------------- */
+[data-bs-theme="dark"] pre {
+  background-color: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+[data-bs-theme="light"] pre {
+  background-color: #f8f9fa;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Footer styling — consistent with BiblioStatus
+ * --------------------------------------------------------------------------- */
+footer {
+  border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-bs-theme="light"] footer {
+  border-top-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Reactable search input — dark mode compatible
+ * --------------------------------------------------------------------------- */
+[data-bs-theme="dark"] .rt-search {
+  background-color: #2a2a2e;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ---------------------------------------------------------------------------
+ * Accordion header styling — subtle for collapsed state
+ * --------------------------------------------------------------------------- */
+.accordion-button {
+  font-size: 0.95rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Sidebar — ensure consistent dark mode
+ * --------------------------------------------------------------------------- */
+[data-bs-theme="dark"] .bslib-sidebar-layout > .sidebar {
+  border-right-color: rgba(255, 255, 255, 0.1);
+}

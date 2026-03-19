@@ -23,7 +23,14 @@ app_server <- function(input, output, session) {
   # Data loading (once at startup)
   # -------------------------------------------------------------------------
 
+  logger::log_info("Starting ggplot2 Extended Companion app")
   app_data_raw <- load_app_data()
+
+  if (!is.null(app_data_raw)) {
+    logger::log_info("Loaded {nrow(app_data_raw)} packages")
+  } else {
+    logger::log_error("No package data available — app will show empty state")
+  }
 
   # -------------------------------------------------------------------------
   # Sidebar controls (data-driven choices)
