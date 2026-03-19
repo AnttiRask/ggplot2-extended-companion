@@ -58,6 +58,19 @@ test_that("check_license_allowed returns FALSE for NA license", {
   expect_false(check_license_allowed(NA_character_, allowlist))
 })
 
+test_that("check_license_allowed returns FALSE when pattern matches but allowed is FALSE", {
+  allowlist <- data.frame(
+    license_pattern = c("GPL-3", "MIT"),
+    allowed = c(FALSE, TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  # GPL-3 matches but is not allowed
+  expect_false(check_license_allowed("GPL-3", allowlist))
+  # MIT matches and is allowed
+  expect_true(check_license_allowed("MIT + file LICENSE", allowlist))
+})
+
 # --- extract_example() ------------------------------------------------------
 
 test_that("extract_example returns code string for installed package", {

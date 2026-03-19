@@ -26,8 +26,11 @@ check_license_allowed <- function(license, allowlist) {
     return(FALSE)
   }
 
-  # Check if any allowlist pattern matches the license string
-  any(vapply(allowlist$license_pattern, function(pattern) {
+  # Only consider patterns where allowed == TRUE
+  allowed_patterns <- allowlist$license_pattern[allowlist$allowed == TRUE]
+
+  # Check if any allowed pattern matches the license string
+  any(vapply(allowed_patterns, function(pattern) {
     grepl(pattern, license, fixed = TRUE)
   }, logical(1)))
 }
