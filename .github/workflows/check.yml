@@ -1,8 +1,8 @@
 # =============================================================================
 # check.yml
 #
-# PR checks workflow: runs R CMD check, testthat tests, and CSV validation
-# on pull requests. Ensures code quality before merging.
+# PR checks workflow: runs R CMD check (which includes testthat tests)
+# and CSV validation on pull requests.
 #
 # Part of Milestone 10: Docker & Cloud Run Deployment
 # =============================================================================
@@ -36,16 +36,13 @@ jobs:
       - name: Setup R dependencies
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: any::rcmdcheck, any::pkgload
           needs: check
 
       - name: R CMD check
         uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual", "--as-cran")'
-
-      - name: Run testthat tests
-        run: Rscript -e 'devtools::test()'
 
       - name: Validate packages_curated.csv
         run: |
