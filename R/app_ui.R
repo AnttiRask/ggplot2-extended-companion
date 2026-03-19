@@ -48,18 +48,11 @@ app_ui <- function(request) {
         )
       ),
 
-      # Main content area with placeholder
+      # Main content area — browse table (M3)
       tags$div(
         class = "container-fluid",
-        tags$h2("Welcome to the ggplot2 Extended Companion"),
-        tags$p(
-          class = "lead text-muted",
-          "A searchable, filterable directory of ggplot2 extension packages."
-        ),
-        tags$p(
-          class = "text-muted",
-          "The package table and detail views will be added in upcoming milestones."
-        )
+        # Browse module: searchable, sortable package table
+        mod_browse_ui("browse")
       )
     )
   )
