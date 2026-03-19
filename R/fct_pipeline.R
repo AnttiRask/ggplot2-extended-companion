@@ -416,3 +416,64 @@ write_metadata <- function(output_path, cran_status, downloads_status, github_st
 
   invisible(output_path)
 }
+
+#' Export package data as JSON for AI agent consumption
+#'
+#' Produces a machine-readable JSON file matching the structure defined in
+#' SPEC section 8. Combines package metadata with download statistics.
+#' Categories are converted from pipe-separated strings to JSON arrays.
+#'
+#' @param packages Tibble with package data (from packages.parquet).
+#' @param downloads Tibble with download data (from downloads.parquet).
+#' @param output_path Path to write the JSON file.
+#'
+#' @return The output path (invisibly).
+#'
+#' @noRd
+export_json <- function(packages, downloads, output_path = "inst/app/www/data/packages.json") {
+  # Join packages with downloads for the export
+  combined <- packages |>
+    dplyr::left_join(downloads, by = "package_name")
+
+  # Build the package list matching spec §8 structure
+  pkg_list <- lapply(seq_len(nrow(combined)), function(i) {
+    row <- combined[i, ]
+    list(
+      name           = row$package_name,
+      description    = if (is.na(row$description)) NULL else row$description,
+      categories     = strsplit(row$categories, "\\|")[[1]],
+      is_essential   = row$is_essential,
+      on_cran        = row$on_cran,
+      license        = if (is.na(row$license)) NULL else row$license,
+      cran_version   = if (is.na(row$cran_version)) NULL else row$cran_version,
+      cran_published = if (is.na(row$cran_published)) NULL else as.character(row$cran_published),
+      github_updated = if (is.na(row$github_updated)) NULL else as.character(row$github_updated),
+      downloads_30d  = if (is.na(row$downloads_30d)) NULL else row$downloads_30d,
+      downloads_all  = if (is.na(row$downloads_all)) NULL else row$downloads_all,
+      cran_url       = if (is.na(row$cran_url)) NULL else row$cran_url,
+      website_url    = if (is.na(row$website_url)) NULL else row$website_url,
+      repo_url       = if (is.na(row$repo_url)) NULL else row$repo_url
+    )
+  })
+
+  # Build the top-level JSON structure
+  json_data <- list(
+    generated_at  = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    package_count = nrow(combined),
+    packages      = pkg_list
+  )
+
+  # Ensure output directory exists
+  dir.create(dirname(output_path), showWarnings = FALSE, recursive = TRUE)
+
+  # Write JSON with pretty formatting
+  jsonlite::write_json(
+    json_data,
+    output_path,
+    pretty = TRUE,
+    auto_unbox = TRUE,
+    null = "null"
+  )
+
+  invisible(output_path)
+}

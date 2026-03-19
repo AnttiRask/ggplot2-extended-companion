@@ -63,6 +63,17 @@ mod_footer_ui <- function(id) {
         )
       ),
 
+      # Machine-readable data link (SPEC §8)
+      htmltools::tags$p(
+        class = "text-muted small",
+        "Machine-readable data: ",
+        htmltools::tags$a(
+          href = "data/packages.json",
+          target = "_blank",
+          "packages.json"
+        )
+      ),
+
       # Credits
       htmltools::tags$p(
         class = "text-muted small",

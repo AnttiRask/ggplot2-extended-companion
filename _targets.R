@@ -97,6 +97,13 @@ list(
     format = "file"
   ),
 
+  # Step 12: Export JSON for AI agent consumption
+  tar_target(
+    packages_json,
+    export_json(packages_combined, download_stats_fixed, "inst/app/www/data/packages.json"),
+    format = "file"
+  ),
+
   # Step 13: Write pipeline metadata
   tar_target(
     pipeline_metadata,
