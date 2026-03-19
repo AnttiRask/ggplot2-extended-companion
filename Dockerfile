@@ -12,7 +12,7 @@
 # =============================================================================
 
 # ---------------------------------------------------------------------------
-# Stage 1: Build — install system deps and R packages
+# Stage 1: Build -- install system deps and R packages
 # ---------------------------------------------------------------------------
 FROM rocker/r-ver:4.5.3 AS builder
 
@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /build
 
 # Copy renv infrastructure first (for caching)
 COPY renv.lock renv.lock
@@ -41,13 +41,17 @@ COPY renv/activate.R renv/activate.R
 COPY renv/settings.json renv/settings.json
 COPY .Rprofile .Rprofile
 
-# Restore R packages from lockfile
+# Restore R packages from lockfile into a known library path
 # Set MAKEFLAGS for parallel compilation (duckdb needs significant resources)
 # NOT_CRAN allows duckdb to use its own build configuration
-RUN MAKEFLAGS="-j$(nproc)" NOT_CRAN=true Rscript -e 'renv::restore(prompt = FALSE)'
+ENV RENV_PATHS_LIBRARY=/build/renv_lib
+RUN mkdir -p /build/renv_lib && \
+    MAKEFLAGS="-j$(nproc)" NOT_CRAN=true Rscript -e ' \
+      renv::restore(prompt = FALSE, library = "/build/renv_lib") \
+    '
 
 # ---------------------------------------------------------------------------
-# Stage 2: Runtime — lean image with app code and data
+# Stage 2: Runtime -- lean image with app code and data
 # ---------------------------------------------------------------------------
 FROM rocker/r-ver:4.5.3
 
@@ -63,13 +67,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy renv library from builder
-COPY --from=builder /app/renv /app/renv
-COPY --from=builder /usr/local/lib/R/site-library /usr/local/lib/R/site-library
-
-# Copy renv infrastructure
-COPY renv.lock renv.lock
-COPY .Rprofile .Rprofile
+# Copy the renv library from builder into the system library
+COPY --from=builder /build/renv_lib /usr/local/lib/R/site-library
 
 # Copy R package files
 COPY DESCRIPTION DESCRIPTION
@@ -87,9 +86,12 @@ COPY data-raw/packages_curated.csv data-raw/packages_curated.csv
 COPY data-raw/categories.csv data-raw/categories.csv
 COPY data-raw/license_allowlist.csv data-raw/license_allowlist.csv
 
+# Install the app package itself
+RUN Rscript -e 'install.packages(".", repos = NULL, type = "source")'
+
 # Expose the Shiny port
 ENV SHINY_PORT=3838
 EXPOSE ${SHINY_PORT}
 
-# Run the app
-CMD ["Rscript", "-e", "pkgload::load_all(export_all = FALSE, helpers = FALSE, attach_testthat = FALSE); options(shiny.port = as.integer(Sys.getenv('PORT', Sys.getenv('SHINY_PORT', '3838'))), shiny.host = '0.0.0.0'); run_app()"]
+# Run the app using the installed package
+CMD ["Rscript", "-e", "options(shiny.port = as.integer(Sys.getenv('PORT', Sys.getenv('SHINY_PORT', '3838'))), shiny.host = '0.0.0.0'); ggplot2.extended.companion::run_app()"]
