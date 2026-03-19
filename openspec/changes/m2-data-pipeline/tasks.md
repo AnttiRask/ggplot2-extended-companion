@@ -28,5 +28,5 @@
 ## 4. Verification
 
 - [x] 4.1 Run full test suite — all tests pass (109 total)
-- [ ] 4.2 Run targets::tar_make() — produces valid Parquet files
-- [ ] 4.3 Verify packages.parquet has ~455 rows with expected columns
+- [x] 4.2 Run targets::tar_make() — produces valid Parquet files (9 targets, 12m55s)
+- [x] 4.3 Verify packages.parquet has 455 rows with 22 columns, 333 on CRAN
