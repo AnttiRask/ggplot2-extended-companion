@@ -37,15 +37,13 @@ app_ui <- function(request) {
       # Dark/light mode toggle in the navbar
       bslib::input_dark_mode(id = "colour_mode", mode = "dark"),
 
-      # Sidebar with placeholder content
+      # Sidebar with filter controls (M4)
       sidebar = bslib::sidebar(
         title = "Filters",
         width = 300,
-        # Placeholder — filter controls will be added in M4
-        tags$p(
-          class = "text-muted",
-          "Filter controls coming soon."
-        )
+        # Dynamic sidebar content — populated with data-driven choices
+        # by the server via mod_sidebar_ui
+        shiny::uiOutput("sidebar_controls")
       ),
 
       # Main content area — browse table (M3)
