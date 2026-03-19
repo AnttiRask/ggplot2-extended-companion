@@ -46,11 +46,19 @@ app_ui <- function(request) {
         shiny::uiOutput("sidebar_controls")
       ),
 
-      # Main content area — browse table (M3)
+      # Main content area — toggles between browse table and detail view
       tags$div(
         class = "container-fluid",
-        # Browse module: searchable, sortable package table
-        mod_browse_ui("browse")
+        # Browse view: searchable, sortable package table (M3)
+        shiny::conditionalPanel(
+          condition = "!output.show_detail",
+          mod_browse_ui("browse")
+        ),
+        # Detail view: full package info (M5)
+        shiny::conditionalPanel(
+          condition = "output.show_detail",
+          mod_detail_ui("detail")
+        )
       )
     )
   )

@@ -88,7 +88,28 @@ app_server <- function(input, output, session) {
   # Browse table module (M3) — receives filtered/sorted data
   selected_package <- mod_browse_server("browse", filtered_data)
 
+  # Detail view module (M5) — receives selected package and full data
+  mod_detail_server(
+    "detail",
+    selected_package = selected_package,
+    app_data = reactive({ app_data_raw }),
+    on_back = function() {
+      # Clear selected package to return to browse view
+      selected_package(NULL)
+    }
+  )
+
+  # -------------------------------------------------------------------------
+  # Browse/Detail toggle (M5)
+  # -------------------------------------------------------------------------
+
+  # Output flag for conditionalPanel — TRUE when a package is selected
+  output$show_detail <- reactive({
+    !is.null(selected_package())
+  })
+  # Allow conditionalPanel to access this output
+  outputOptions(output, "show_detail", suspendWhenHidden = FALSE)
+
   # Future modules:
-  # M5: Detail view module (will use selected_package reactive)
   # M7: Recent packages, header, footer modules
 }
