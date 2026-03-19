@@ -41,7 +41,9 @@ COPY renv/settings.json renv/settings.json
 COPY .Rprofile .Rprofile
 
 # Restore R packages from lockfile
-RUN Rscript -e 'renv::restore(prompt = FALSE)'
+# Set MAKEFLAGS for parallel compilation (duckdb needs significant resources)
+# NOT_CRAN allows duckdb to use its own build configuration
+RUN MAKEFLAGS="-j$(nproc)" NOT_CRAN=true Rscript -e 'renv::restore(prompt = FALSE)'
 
 # ---------------------------------------------------------------------------
 # Stage 2: Runtime — lean image with app code and data
