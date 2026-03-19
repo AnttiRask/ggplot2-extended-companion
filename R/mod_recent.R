@@ -7,7 +7,7 @@
 # Part of Milestone 7: Recently Added / Updated & Header
 # =============================================================================
 
-#' Recent Module — UI
+#' Recent Module -- UI
 #'
 #' @param id Module namespace ID.
 #' @return A tagList with two horizontally arranged cards.
@@ -32,7 +32,7 @@ mod_recent_ui <- function(id) {
   )
 }
 
-#' Recent Module — Server
+#' Recent Module -- Server
 #'
 #' @param id Module namespace ID.
 #' @param app_data Reactive containing the full package dataset.

@@ -8,9 +8,9 @@
 # Part of Milestone 4: Sidebar Filters & Sorting
 # =============================================================================
 
-#' Sidebar Module — UI
+#' Sidebar Module -- UI
 #'
-#' Renders all sidebar filter and sort controls as defined in SPEC §5.3.
+#' Renders all sidebar filter and sort controls as defined in SPEC section 5.3.
 #'
 #' @param id Module namespace ID.
 #' @param categories Character vector of available category identifiers.
@@ -28,7 +28,7 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
   # Build license choices: "All" + sorted unique licenses
   license_choices <- c("All", sort(licenses))
 
-  # Sort options from SPEC §5.3
+  # Sort options from SPEC section 5.3
 
   sort_choices <- c(
     "Name (A\u2013Z)",
@@ -96,7 +96,7 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
   )
 }
 
-#' Sidebar Module — Server
+#' Sidebar Module -- Server
 #'
 #' Returns a list of reactive values representing the current state of all
 #' sidebar filter and sort controls. The parent server uses these to filter

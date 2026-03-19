@@ -7,7 +7,7 @@
 # Part of Milestone 7: Recently Added / Updated & Header
 # =============================================================================
 
-#' Footer Module — UI
+#' Footer Module -- UI
 #'
 #' Renders the full-width footer with disclaimer, credits, and links
 #' as defined in SPEC section 5.7.
@@ -63,7 +63,7 @@ mod_footer_ui <- function(id) {
         )
       ),
 
-      # Machine-readable data link (SPEC §8)
+      # Machine-readable data link (SPEC section 8)
       htmltools::tags$p(
         class = "text-muted small",
         "Machine-readable data: ",
@@ -89,7 +89,7 @@ mod_footer_ui <- function(id) {
   )
 }
 
-#' Footer Module — Server
+#' Footer Module -- Server
 #'
 #' Loads pipeline metadata and displays the "Data last updated" timestamp.
 #'

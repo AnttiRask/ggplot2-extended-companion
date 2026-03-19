@@ -9,7 +9,7 @@
 # Part of Milestone 5: Package Detail View
 # =============================================================================
 
-#' Detail Module — UI
+#' Detail Module -- UI
 #'
 #' Placeholder UI for the detail view. Content is rendered dynamically
 #' by the server based on the selected package.
@@ -27,7 +27,7 @@ mod_detail_ui <- function(id) {
   )
 }
 
-#' Detail Module — Server
+#' Detail Module -- Server
 #'
 #' Renders the full detail view for the selected package. Looks up package
 #' data from the full dataset by package_name and builds all detail cards.
@@ -175,10 +175,10 @@ build_header_card <- function(pkg) {
 #' Build the links card
 #'
 #' Shows links for Website, GitHub/GitLab, CRAN, Reference Manual, Vignettes.
-#' Links that are NA are hidden (not greyed out), per SPEC §5.4.
+#' Links that are NA are hidden (not greyed out), per SPEC section 5.4.
 #' @noRd
 build_links_card <- function(pkg) {
-  # Build link list — only include non-NA links
+  # Build link list -- only include non-NA links
   links <- list()
 
   if (!is.na(pkg$website_url)) {
@@ -312,7 +312,7 @@ build_version_card <- function(pkg) {
 build_example_card <- function(example) {
   if (is.null(example)) return(NULL)
 
-  # License not allowed — show message, no code
+  # License not allowed -- show message, no code
 
   if (!isTRUE(example$license_allowed)) {
     return(bslib::card(

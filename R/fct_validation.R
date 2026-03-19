@@ -195,7 +195,7 @@ validate_categories <- function(df, valid_categories) {
 #' Validate a curated CSV data frame (all checks)
 #'
 #' Runs all individual validation checks on a packages_curated.csv data frame
-#' and returns a combined result. Does NOT stop at the first failure — collects
+#' and returns a combined result. Does NOT stop at the first failure -- collects
 #' all errors from all checks so they can be fixed in one pass.
 #'
 #' @param df A data frame representing the curated CSV.

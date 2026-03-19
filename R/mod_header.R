@@ -7,7 +7,7 @@
 # Part of Milestone 7: Recently Added / Updated & Header
 # =============================================================================
 
-#' Header Module — UI
+#' Header Module -- UI
 #'
 #' Renders a collapsible accordion with introductory text about ggplot2
 #' extensions. Collapsed by default so returning users can skip it.
@@ -27,8 +27,8 @@ mod_header_ui <- function(id) {
         htmltools::tags$p(
           "ggplot2 extensions are R packages that build on top of ggplot2 to add",
           "new geoms, stats, scales, themes, and other capabilities. They let you",
-          "create specialised visualisations — from animated plots to network",
-          "diagrams to maps — while staying within the familiar ggplot2 grammar."
+          "create specialised visualisations -- from animated plots to network",
+          "diagrams to maps -- while staying within the familiar ggplot2 grammar."
         ),
         htmltools::tags$p(
           "This directory catalogues over 450 extension packages with download",
@@ -53,14 +53,14 @@ mod_header_ui <- function(id) {
   )
 }
 
-#' Header Module — Server
+#' Header Module -- Server
 #'
-#' No server logic needed for the header — it's purely static content.
+#' No server logic needed for the header -- it's purely static content.
 #'
 #' @param id Module namespace ID.
 #' @noRd
 mod_header_server <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
-    # Static content — no server logic required
+    # Static content -- no server logic required
   })
 }

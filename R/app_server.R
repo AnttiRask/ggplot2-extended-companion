@@ -29,7 +29,7 @@ app_server <- function(input, output, session) {
   if (!is.null(app_data_raw)) {
     logger::log_info("Loaded {nrow(app_data_raw)} packages")
   } else {
-    logger::log_error("No package data available — app will show empty state")
+    logger::log_error("No package data available -- app will show empty state")
   }
 
   # -------------------------------------------------------------------------
@@ -54,7 +54,7 @@ app_server <- function(input, output, session) {
     mod_sidebar_ui("sidebar", categories = all_categories, licenses = all_licenses)
   })
 
-  # Sidebar module server — returns reactive filter/sort values
+  # Sidebar module server -- returns reactive filter/sort values
   sidebar_values <- mod_sidebar_server("sidebar")
 
   # -------------------------------------------------------------------------
@@ -92,13 +92,13 @@ app_server <- function(input, output, session) {
   # Module server calls
   # -------------------------------------------------------------------------
 
-  # Browse table module (M3) — receives filtered/sorted data
+  # Browse table module (M3) -- receives filtered/sorted data
   selected_package <- mod_browse_server("browse", filtered_data)
 
-  # Load examples data (M6) — may be NULL if examples haven't been rendered
+  # Load examples data (M6) -- may be NULL if examples haven't been rendered
   examples_data_raw <- load_examples()
 
-  # Detail view module (M5+M6) — receives selected package, full data, examples
+  # Detail view module (M5+M6) -- receives selected package, full data, examples
   mod_detail_server(
     "detail",
     selected_package = selected_package,
@@ -114,14 +114,14 @@ app_server <- function(input, output, session) {
   # Browse/Detail toggle (M5)
   # -------------------------------------------------------------------------
 
-  # Output flag for conditionalPanel — TRUE when a package is selected
+  # Output flag for conditionalPanel -- TRUE when a package is selected
   output$show_detail <- reactive({
     !is.null(selected_package())
   })
   # Allow conditionalPanel to access this output
   outputOptions(output, "show_detail", suspendWhenHidden = FALSE)
 
-  # Recent packages module (M7) — shows recently added/updated lists
+  # Recent packages module (M7) -- shows recently added/updated lists
   mod_recent_server(
     "recent",
     app_data = reactive({ app_data_raw }),
@@ -131,9 +131,9 @@ app_server <- function(input, output, session) {
     }
   )
 
-  # Header module (M7) — static intro content, no server logic needed
+  # Header module (M7) -- static intro content, no server logic needed
   mod_header_server("header")
 
-  # Footer module (M7) — loads metadata for data freshness timestamp
+  # Footer module (M7) -- loads metadata for data freshness timestamp
   mod_footer_server("footer")
 }

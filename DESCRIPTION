@@ -30,6 +30,7 @@ Imports:
     shiny (>= 1.9.0),
     tibble
 Suggests:
+    ggplot2,
     targets (>= 1.7.0),
     testthat (>= 3.0.0),
     withr

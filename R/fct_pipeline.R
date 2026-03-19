@@ -3,7 +3,7 @@
 #
 # Data pipeline functions for fetching, merging, and writing package data.
 # Fetches metadata from CRAN (pkgsearch), download counts (cranlogs), and
-# GitHub activity (gh). Handles per-package errors gracefully — logs warnings
+# GitHub activity (gh). Handles per-package errors gracefully -- logs warnings
 # and continues with NA values.
 #
 # Part of Milestone 2: Data Pipeline (Core)
@@ -157,7 +157,7 @@ aggregate_downloads <- function(package_name, daily_data) {
 fetch_download_stats <- function(package_names) {
   tryCatch(
     {
-      # cranlogs API accepts batches — split into groups of 30 for reliability
+      # cranlogs API accepts batches -- split into groups of 30 for reliability
       batch_size <- 30
       batches <- split(package_names, ceiling(seq_along(package_names) / batch_size))
 
@@ -327,7 +327,7 @@ fetch_github_metadata <- function(package_names, repo_urls) {
 #' @param urls Tibble from `construct_urls()`.
 #'
 #' @return A tibble with one row per package and all merged fields (excluding
-#'   download stats, which go in downloads.parquet separately per SPEC §3.6).
+#'   download stats, which go in downloads.parquet separately per SPEC section 3.6).
 #'
 #' @noRd
 merge_package_data <- function(curated, cran_meta, github_meta, urls) {
@@ -435,7 +435,7 @@ export_json <- function(packages, downloads, output_path = "inst/app/www/data/pa
   combined <- packages |>
     dplyr::left_join(downloads, by = "package_name")
 
-  # Build the package list matching spec §8 structure
+  # Build the package list matching spec section 8 structure
   pkg_list <- lapply(seq_len(nrow(combined)), function(i) {
     row <- combined[i, ]
     list(

@@ -41,7 +41,7 @@ app_ui <- function(request) {
       sidebar = bslib::sidebar(
         title = "Filters",
         width = 300,
-        # Dynamic sidebar content — populated with data-driven choices
+        # Dynamic sidebar content -- populated with data-driven choices
         # by the server via mod_sidebar_ui
         shiny::uiOutput("sidebar_controls")
       ),

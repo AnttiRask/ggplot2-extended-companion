@@ -12,7 +12,7 @@
 #' Load package data from Parquet
 #'
 #' Reads `data/packages.parquet` and returns it as a tibble. Contains all
-#' core package metadata from SPEC §3.1 (name, description, maintainer,
+#' core package metadata from SPEC section 3.1 (name, description, maintainer,
 #' categories, license, versions, dates, URLs).
 #'
 #' @param path Path to the packages Parquet file.
@@ -33,7 +33,7 @@ load_packages <- function(path = "data/packages.parquet") {
 #' Load download statistics from Parquet
 #'
 #' Reads `data/downloads.parquet` and returns it as a tibble. Contains
-#' download counts for 7d, 30d, 365d, and all-time windows (SPEC §3.2).
+#' download counts for 7d, 30d, 365d, and all-time windows (SPEC section 3.2).
 #'
 #' @param path Path to the downloads Parquet file.
 #'
@@ -71,13 +71,13 @@ load_app_data <- function(
   downloads <- load_downloads(downloads_path)
 
   if (is.null(packages)) {
-    logger::log_error("Cannot load app data — packages.parquet missing")
+    logger::log_error("Cannot load app data -- packages.parquet missing")
     return(NULL)
   }
 
   if (is.null(downloads)) {
-    # Downloads are optional — app can work without them
-    logger::log_warn("Downloads data missing — proceeding without download counts")
+    # Downloads are optional -- app can work without them
+    logger::log_warn("Downloads data missing -- proceeding without download counts")
     return(packages)
   }
 
@@ -89,7 +89,7 @@ load_app_data <- function(
 #' Load code examples data from Parquet
 #'
 #' Reads `data/examples.parquet` and returns it as a tibble. Contains
-#' code snippets, image paths, and render status (SPEC §3.3).
+#' code snippets, image paths, and render status (SPEC section 3.3).
 #'
 #' @param path Path to the examples Parquet file.
 #'

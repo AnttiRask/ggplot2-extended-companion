@@ -8,7 +8,7 @@
 # Part of Milestone 3: Data Loading & Browse Table
 # =============================================================================
 
-#' Browse Module — UI
+#' Browse Module -- UI
 #'
 #' Renders the main package browsing table using reactable. Includes
 #' client-side search and column sorting.
@@ -36,7 +36,7 @@ mod_browse_ui <- function(id) {
   )
 }
 
-#' Browse Module — Server
+#' Browse Module -- Server
 #'
 #' Builds and renders the reactable package table. Receives the dataset
 #' as a reactive value from the parent server, enabling external filtering
@@ -102,7 +102,7 @@ build_package_table <- function(data, ns) {
   reactable::reactable(
     data,
     columns = list(
-      # Name — clickable, bold, 150px
+      # Name -- clickable, bold, 150px
       package_name = reactable::colDef(
         name = "Name",
         minWidth = 150,
@@ -131,7 +131,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # Description — flex width, truncated, not sortable
+      # Description -- flex width, truncated, not sortable
       description = reactable::colDef(
         name = "Description",
         minWidth = 200,
@@ -147,7 +147,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # Category — badges, 140px, not sortable
+      # Category -- badges, 140px, not sortable
       categories = reactable::colDef(
         name = "Category",
         minWidth = 140,
@@ -175,7 +175,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # License — plain text, 100px, not sortable
+      # License -- plain text, 100px, not sortable
       license = reactable::colDef(
         name = "License",
         minWidth = 100,
@@ -185,7 +185,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # Downloads (30d) — numeric, comma-formatted, 100px
+      # Downloads (30d) -- numeric, comma-formatted, 100px
       downloads_30d = reactable::colDef(
         name = "Downloads (30d)",
         minWidth = 100,
@@ -194,7 +194,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # Downloads (All) — numeric, comma-formatted, 100px
+      # Downloads (All) -- numeric, comma-formatted, 100px
       downloads_all = reactable::colDef(
         name = "Downloads (All)",
         minWidth = 100,
@@ -203,7 +203,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # CRAN Version — 90px, not sortable
+      # CRAN Version -- 90px, not sortable
       cran_version = reactable::colDef(
         name = "CRAN Version",
         minWidth = 90,
@@ -213,7 +213,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # CRAN Published — date, 110px
+      # CRAN Published -- date, 110px
       cran_published = reactable::colDef(
         name = "CRAN Published",
         minWidth = 110,
@@ -222,7 +222,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # GitHub Updated — date, 110px
+      # GitHub Updated -- date, 110px
       github_updated = reactable::colDef(
         name = "GitHub Updated",
         minWidth = 110,
@@ -231,7 +231,7 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # Hidden columns — present in data but not displayed in table
+      # Hidden columns -- present in data but not displayed in table
       is_essential = reactable::colDef(show = FALSE),
       on_cran = reactable::colDef(show = FALSE),
       maintainer = reactable::colDef(show = FALSE),

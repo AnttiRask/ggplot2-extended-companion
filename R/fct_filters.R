@@ -12,7 +12,7 @@
 #'
 #' Applies category, CRAN status, license, and essential-only filters to the
 #' package dataset. All filters default to "show everything" so they compose
-#' cleanly — any combination of filters can be applied.
+#' cleanly -- any combination of filters can be applied.
 #'
 #' @param data A tibble of package data.
 #' @param category Category to filter by, or "All" for no category filter.
