@@ -323,17 +323,16 @@ fetch_github_metadata <- function(package_names, repo_urls) {
 #'
 #' @param curated Tibble from `read_curated_csv()`.
 #' @param cran_meta Tibble from `fetch_cran_metadata()`.
-#' @param downloads Tibble from `fetch_download_stats()`.
 #' @param github_meta Tibble from `fetch_github_metadata()`.
 #' @param urls Tibble from `construct_urls()`.
 #'
-#' @return A tibble with one row per package and all merged fields.
+#' @return A tibble with one row per package and all merged fields (excluding
+#'   download stats, which go in downloads.parquet separately per SPEC §3.6).
 #'
 #' @noRd
-merge_package_data <- function(curated, cran_meta, downloads, github_meta, urls) {
+merge_package_data <- function(curated, cran_meta, github_meta, urls) {
   result <- curated |>
     dplyr::left_join(cran_meta, by = "package_name") |>
-    dplyr::left_join(downloads, by = "package_name") |>
     dplyr::left_join(github_meta, by = "package_name") |>
     dplyr::left_join(urls, by = "package_name") |>
     dplyr::mutate(
@@ -341,6 +340,34 @@ merge_package_data <- function(curated, cran_meta, downloads, github_meta, urls)
     )
 
   result
+}
+
+#' Post-process download stats: set non-CRAN packages to NA
+#'
+#' cranlogs returns 0 for packages not on CRAN, but NA is the correct
+#' semantic value ("not applicable" vs "zero downloads"). This function
+#' cross-references download stats with CRAN status and replaces 0s with NAs
+#' for non-CRAN packages.
+#'
+#' @param downloads Tibble from `fetch_download_stats()`.
+#' @param cran_meta Tibble from `fetch_cran_metadata()` (needs `on_cran` column).
+#'
+#' @return The downloads tibble with NA counts for non-CRAN packages.
+#'
+#' @noRd
+fix_non_cran_downloads <- function(downloads, cran_meta) {
+  downloads |>
+    dplyr::left_join(
+      dplyr::select(cran_meta, "package_name", "on_cran"),
+      by = "package_name"
+    ) |>
+    dplyr::mutate(
+      downloads_7d   = ifelse(.data$on_cran, .data$downloads_7d,   NA_integer_),
+      downloads_30d  = ifelse(.data$on_cran, .data$downloads_30d,  NA_integer_),
+      downloads_365d = ifelse(.data$on_cran, .data$downloads_365d, NA_integer_),
+      downloads_all  = ifelse(.data$on_cran, .data$downloads_all,  NA_integer_)
+    ) |>
+    dplyr::select(-"on_cran")
 }
 
 #' Write a data frame to Parquet format
@@ -380,7 +407,8 @@ write_parquet_output <- function(df, path) {
 write_metadata <- function(output_path, cran_status, downloads_status, github_status) {
   metadata <- tibble::tibble(
     source   = c("cran", "cranlogs", "github"),
-    last_run = rep(as.character(Sys.time()), 3),
+    # ISO 8601 UTC format for consistent parsing across environments
+    last_run = rep(format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), 3),
     status   = c(cran_status, downloads_status, github_status)
   )
 

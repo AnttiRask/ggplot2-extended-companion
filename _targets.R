@@ -63,30 +63,37 @@ list(
     format = "rds"
   ),
 
-  # Step 6: Merge all data sources
+  # Step 5b: Fix non-CRAN downloads (set 0 -> NA for packages not on CRAN)
+  tar_target(
+    download_stats_fixed,
+    fix_non_cran_downloads(download_stats, cran_metadata),
+    format = "rds"
+  ),
+
+  # Step 6: Merge all data sources (excluding downloads — those go in
+  # downloads.parquet only, per SPEC §3.6)
   tar_target(
     packages_combined,
     merge_package_data(
       curated_packages,
       cran_metadata,
-      download_stats,
       github_metadata,
       constructed_urls
     ),
     format = "rds"
   ),
 
-  # Step 7: Write packages.parquet
+  # Step 7: Write packages.parquet (no download columns — SPEC §3.6)
   tar_target(
     packages_parquet,
     write_parquet_output(packages_combined, "data/packages.parquet"),
     format = "file"
   ),
 
-  # Step 8: Write downloads.parquet
+  # Step 8: Write downloads.parquet (with NA for non-CRAN packages)
   tar_target(
     downloads_parquet,
-    write_parquet_output(download_stats, "data/downloads.parquet"),
+    write_parquet_output(download_stats_fixed, "data/downloads.parquet"),
     format = "file"
   ),
 
