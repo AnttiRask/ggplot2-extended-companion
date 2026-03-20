@@ -417,6 +417,20 @@ write_metadata <- function(output_path, cran_status, downloads_status, github_st
   invisible(output_path)
 }
 
+#' Check whether code examples should be rendered
+#'
+#' Reads the `RENDER_EXAMPLES` environment variable to determine whether the
+#' pipeline should run the code example rendering step. The weekly pipeline
+#' (`examples.yml`) sets this to `"true"`; the daily pipeline does not set it.
+#' This allows the same `_targets.R` to serve both schedules.
+#'
+#' @return Logical. `TRUE` if `RENDER_EXAMPLES` is set to `"true"` (case-insensitive).
+#'
+#' @noRd
+should_render_examples <- function() {
+  tolower(Sys.getenv("RENDER_EXAMPLES", unset = "")) == "true"
+}
+
 #' Export package data as JSON for AI agent consumption
 #'
 #' Produces a machine-readable JSON file matching the structure defined in
