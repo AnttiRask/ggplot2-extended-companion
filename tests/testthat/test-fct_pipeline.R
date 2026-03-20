@@ -292,3 +292,37 @@ test_that("should_render_examples returns FALSE when RENDER_EXAMPLES is 'false'"
 
   expect_false(should_render_examples())
 })
+
+# --- write_metadata with examples_status -------------------------------------
+
+test_that("write_metadata includes examples row when examples_status is provided", {
+  tmp_file <- withr::local_tempfile(fileext = ".parquet")
+
+  write_metadata(
+    output_path = tmp_file,
+    cran_status = "success",
+    downloads_status = "success",
+    github_status = "success",
+    examples_status = "success"
+  )
+
+  result <- arrow::read_parquet(tmp_file)
+  expect_equal(nrow(result), 4)
+  expect_true("examples" %in% result$source)
+})
+
+test_that("write_metadata omits examples row when examples_status is NULL", {
+  tmp_file <- withr::local_tempfile(fileext = ".parquet")
+
+  write_metadata(
+    output_path = tmp_file,
+    cran_status = "success",
+    downloads_status = "success",
+    github_status = "success",
+    examples_status = NULL
+  )
+
+  result <- arrow::read_parquet(tmp_file)
+  expect_equal(nrow(result), 3)
+  expect_false("examples" %in% result$source)
+})
