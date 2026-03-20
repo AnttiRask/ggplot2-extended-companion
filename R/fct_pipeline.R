@@ -394,22 +394,34 @@ write_parquet_output <- function(df, path) {
 #'
 #' Records the status and timestamp of each pipeline data source in a
 #' Parquet file. Used for the footer "Data last updated" display and
-#' internal monitoring.
+#' internal monitoring. When the weekly pipeline renders code examples,
+#' `examples_status` is included as a fourth row.
 #'
 #' @param output_path Path to write the metadata Parquet file.
 #' @param cran_status Status of the CRAN metadata fetch ("success" or "failed").
 #' @param downloads_status Status of the cranlogs fetch.
 #' @param github_status Status of the GitHub metadata fetch.
+#' @param examples_status Status of the code example rendering (NULL to omit).
 #'
 #' @return The output path (invisibly).
 #'
 #' @noRd
-write_metadata <- function(output_path, cran_status, downloads_status, github_status) {
+write_metadata <- function(output_path, cran_status, downloads_status, github_status,
+                           examples_status = NULL) {
+  sources <- c("cran", "cranlogs", "github")
+  statuses <- c(cran_status, downloads_status, github_status)
+
+  # Include examples status only when the weekly pipeline renders examples
+  if (!is.null(examples_status)) {
+    sources <- c(sources, "examples")
+    statuses <- c(statuses, examples_status)
+  }
+
   metadata <- tibble::tibble(
-    source   = c("cran", "cranlogs", "github"),
+    source   = sources,
     # ISO 8601 UTC format for consistent parsing across environments
-    last_run = rep(format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), 3),
-    status   = c(cran_status, downloads_status, github_status)
+    last_run = rep(format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), length(sources)),
+    status   = statuses
   )
 
   write_parquet_output(metadata, output_path)
