@@ -260,3 +260,35 @@ test_that("write_metadata produces valid Parquet with expected columns", {
   expect_true(all(c("source", "last_run", "status") %in% names(result)))
   expect_true(nrow(result) >= 3)
 })
+
+# --- should_render_examples() ------------------------------------------------
+
+test_that("should_render_examples returns TRUE when RENDER_EXAMPLES is 'true'", {
+  withr::local_envvar(RENDER_EXAMPLES = "true")
+
+  expect_true(should_render_examples())
+})
+
+test_that("should_render_examples returns TRUE when RENDER_EXAMPLES is 'TRUE'", {
+  withr::local_envvar(RENDER_EXAMPLES = "TRUE")
+
+  expect_true(should_render_examples())
+})
+
+test_that("should_render_examples returns FALSE when RENDER_EXAMPLES is unset", {
+  withr::local_envvar(RENDER_EXAMPLES = NA)
+
+  expect_false(should_render_examples())
+})
+
+test_that("should_render_examples returns FALSE when RENDER_EXAMPLES is empty", {
+  withr::local_envvar(RENDER_EXAMPLES = "")
+
+  expect_false(should_render_examples())
+})
+
+test_that("should_render_examples returns FALSE when RENDER_EXAMPLES is 'false'", {
+  withr::local_envvar(RENDER_EXAMPLES = "false")
+
+  expect_false(should_render_examples())
+})
