@@ -5,11 +5,17 @@
 # Orchestrates data fetching from CRAN, cranlogs, and GitHub APIs, merging
 # with curated package data, and writing Parquet output files.
 #
-# Usage:
-#   targets::tar_make()        # Run the full pipeline
-#   targets::tar_visnetwork()  # Visualise the DAG
+# The pipeline has two modes controlled by the RENDER_EXAMPLES env var:
+#   - Daily (default): Steps 1-8, 12-13. Skips code example rendering.
+#   - Weekly (RENDER_EXAMPLES=true): All steps including 10-11 which render
+#     code examples and produce examples.parquet + PNG files.
 #
-# Part of Milestone 2: Data Pipeline (Core)
+# Usage:
+#   targets::tar_make()                              # Daily pipeline
+#   RENDER_EXAMPLES=true Rscript -e 'targets::tar_make()'  # Weekly pipeline
+#   targets::tar_visnetwork()                        # Visualise the DAG
+#
+# Part of Milestone 2: Data Pipeline (Core) / Milestone 6: Code Examples
 # =============================================================================
 
 library(targets)
@@ -97,6 +103,34 @@ list(
     format = "file"
   ),
 
+  # Step 10: Render code examples (weekly pipeline only)
+  # Only runs when RENDER_EXAMPLES env var is "true" (set by examples.yml).
+  # The daily pipeline skips this and reuses existing examples.parquet + PNGs.
+  if (should_render_examples()) {
+    tar_target(
+      code_examples,
+      render_examples(
+        packages_combined,
+        allowlist_path = "data-raw/license_allowlist.csv",
+        output_dir = "inst/app/www/examples"
+      ),
+      format = "rds"
+    )
+  } else {
+    NULL
+  },
+
+  # Step 11: Write examples.parquet (weekly pipeline only)
+  if (should_render_examples()) {
+    tar_target(
+      examples_parquet,
+      write_parquet_output(code_examples, "data/examples.parquet"),
+      format = "file"
+    )
+  } else {
+    NULL
+  },
+
   # Step 12: Export JSON for AI agent consumption
   tar_target(
     packages_json,
@@ -105,13 +139,19 @@ list(
   ),
 
   # Step 13: Write pipeline metadata
+  # Includes examples status when the weekly pipeline renders examples
   tar_target(
     pipeline_metadata,
     write_metadata(
       output_path = "data/metadata.parquet",
       cran_status = if (is.data.frame(cran_metadata)) "success" else "failed",
       downloads_status = if (is.data.frame(download_stats)) "success" else "failed",
-      github_status = if (is.data.frame(github_metadata)) "success" else "failed"
+      github_status = if (is.data.frame(github_metadata)) "success" else "failed",
+      examples_status = if (should_render_examples()) {
+        if (is.data.frame(code_examples)) "success" else "failed"
+      } else {
+        NULL
+      }
     ),
     format = "file"
   )
