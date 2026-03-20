@@ -6,7 +6,7 @@
 # GitHub activity (gh). Handles per-package errors gracefully -- logs warnings
 # and continues with NA values.
 #
-# Part of Milestone 2: Data Pipeline (Core)
+# Part of Milestone 2: Data Pipeline (Core) / Milestone 6: Code Examples
 # =============================================================================
 
 #' Read the curated package list

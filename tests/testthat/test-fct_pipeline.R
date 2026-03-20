@@ -261,6 +261,45 @@ test_that("write_metadata produces valid Parquet with expected columns", {
   expect_true(nrow(result) >= 3)
 })
 
+# --- targets pipeline integration ---------------------------------------------
+
+test_that("weekly pipeline includes code_examples -> pipeline_metadata dependency", {
+  # Temporarily set RENDER_EXAMPLES to simulate weekly mode
+  withr::local_envvar(RENDER_EXAMPLES = "true")
+
+  # tar_network() needs to find _targets.R — run from project root
+  project_root <- file.path(test_path(), "..", "..")
+  skip_if_not(file.exists(file.path(project_root, "_targets.R")), "_targets.R not found")
+  withr::local_dir(project_root)
+
+  # Use tar_network to inspect the DAG edges in weekly mode
+  net <- targets::tar_network()
+  edges <- net$edges
+
+  # code_examples should feed into both examples_parquet and pipeline_metadata
+  expect_true(
+    any(edges$from == "code_examples" & edges$to == "examples_parquet"),
+    info = "code_examples -> examples_parquet edge missing"
+  )
+  expect_true(
+    any(edges$from == "code_examples" & edges$to == "pipeline_metadata"),
+    info = "code_examples -> pipeline_metadata edge missing"
+  )
+})
+
+test_that("daily pipeline excludes code_examples and examples_parquet targets", {
+  withr::local_envvar(RENDER_EXAMPLES = NA)
+
+  project_root <- file.path(test_path(), "..", "..")
+  skip_if_not(file.exists(file.path(project_root, "_targets.R")), "_targets.R not found")
+  withr::local_dir(project_root)
+
+  m <- targets::tar_manifest()
+
+  expect_false("code_examples" %in% m$name)
+  expect_false("examples_parquet" %in% m$name)
+})
+
 # --- should_render_examples() ------------------------------------------------
 
 test_that("should_render_examples returns TRUE when RENDER_EXAMPLES is 'true'", {
@@ -293,9 +332,22 @@ test_that("should_render_examples returns FALSE when RENDER_EXAMPLES is 'false'"
   expect_false(should_render_examples())
 })
 
+test_that("should_render_examples returns FALSE for 'yes' (strict contract)", {
+  # Only "true" (case-insensitive) is accepted, not "yes", "1", etc.
+  withr::local_envvar(RENDER_EXAMPLES = "yes")
+
+  expect_false(should_render_examples())
+})
+
+test_that("should_render_examples returns FALSE for '1' (strict contract)", {
+  withr::local_envvar(RENDER_EXAMPLES = "1")
+
+  expect_false(should_render_examples())
+})
+
 # --- write_metadata with examples_status -------------------------------------
 
-test_that("write_metadata includes examples row when examples_status is provided", {
+test_that("write_metadata includes examples row with correct status value", {
   tmp_file <- withr::local_tempfile(fileext = ".parquet")
 
   write_metadata(
@@ -309,6 +361,28 @@ test_that("write_metadata includes examples row when examples_status is provided
   result <- arrow::read_parquet(tmp_file)
   expect_equal(nrow(result), 4)
   expect_true("examples" %in% result$source)
+
+  # Assert actual status values, not just row count
+  examples_row <- result[result$source == "examples", ]
+  expect_equal(examples_row$status, "success")
+  expect_equal(result$status[result$source == "cran"], "success")
+})
+
+test_that("write_metadata records failed examples status correctly", {
+  tmp_file <- withr::local_tempfile(fileext = ".parquet")
+
+  write_metadata(
+    output_path = tmp_file,
+    cran_status = "success",
+    downloads_status = "failed",
+    github_status = "success",
+    examples_status = "failed"
+  )
+
+  result <- arrow::read_parquet(tmp_file)
+  expect_equal(nrow(result), 4)
+  expect_equal(result$status[result$source == "examples"], "failed")
+  expect_equal(result$status[result$source == "cranlogs"], "failed")
 })
 
 test_that("write_metadata omits examples row when examples_status is NULL", {
