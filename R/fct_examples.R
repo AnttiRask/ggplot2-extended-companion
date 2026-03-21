@@ -89,15 +89,17 @@ install_package_temp <- function(package_name, lib_path) {
 #' not installed or has no examples.
 #'
 #' @param package_name Name of the package.
+#' @param lib.loc Library path(s) to search for the package. If NULL, uses
+#'   the default `.libPaths()`.
 #'
 #' @return A character string of example code, or NA if none found.
 #'
 #' @noRd
-extract_example <- function(package_name) {
+extract_example <- function(package_name, lib.loc = NULL) {
   tryCatch(
     {
-      # Get the Rd database for the package
-      rd_db <- tools::Rd_db(package_name)
+      # Get the Rd database for the package, searching the specified library
+      rd_db <- tools::Rd_db(package_name, lib.loc = lib.loc)
 
       if (length(rd_db) == 0) {
         return(NA_character_)
@@ -141,12 +143,15 @@ extract_example <- function(package_name) {
 #' @param code Character string of R code to execute (from package \examples).
 #' @param png_path Path where the PNG output should be saved.
 #' @param timeout Timeout in seconds for the subprocess (default: 30).
+#' @param lib_paths Additional library paths to make available in the subprocess.
+#'   Used to find packages installed in the temporary pipeline library.
 #'
 #' @return A list with `package_name`, `example_code`, `example_image`,
 #'   `example_success`, and `example_rendered_at`.
 #'
 #' @noRd
-render_example <- function(package_name, code, png_path, timeout = 30) {
+render_example <- function(package_name, code, png_path, timeout = 30,
+                           lib_paths = NULL) {
   rendered_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 
   tryCatch(
@@ -154,7 +159,13 @@ render_example <- function(package_name, code, png_path, timeout = 30) {
       # Run code in an isolated subprocess via callr
       # Code originates from trusted package documentation (\examples sections)
       callr::r(
-        function(code_text, output_path) {
+        function(code_text, output_path, extra_lib_paths) {
+          # Add temporary library paths so the subprocess can find
+          # packages installed during the pipeline run
+          if (!is.null(extra_lib_paths)) {
+            .libPaths(c(extra_lib_paths, .libPaths()))
+          }
+
           # Parse and evaluate the example code from package documentation
           parsed <- parse(text = code_text)
           for (expr in parsed) {
@@ -177,7 +188,7 @@ render_example <- function(package_name, code, png_path, timeout = 30) {
             )
           }
         },
-        args = list(code_text = code, output_path = png_path),
+        args = list(code_text = code, output_path = png_path, extra_lib_paths = lib_paths),
         timeout = timeout
       )
 
@@ -229,6 +240,20 @@ render_examples <- function(
   # Ensure output directory exists
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
+  # Create a shared temporary library for installing packages.
+  # All packages are installed here so dependencies can be shared across
+  # packages and we avoid polluting the system library.
+  temp_lib <- tempfile("examples_lib_")
+  dir.create(temp_lib, recursive = TRUE)
+  on.exit(unlink(temp_lib, recursive = TRUE), add = TRUE)
+
+  # Combine the temp library with existing library paths so both
+  # newly-installed and already-available packages can be found
+  lib_paths <- c(temp_lib, .libPaths())
+
+  logger::log_info("Example rendering: temp library at {temp_lib}")
+  logger::log_info("Processing {nrow(packages_combined)} packages for examples")
+
   results <- lapply(seq_len(nrow(packages_combined)), function(i) {
     pkg_name <- packages_combined$package_name[i]
     pkg_license <- packages_combined$license[i]
@@ -247,8 +272,24 @@ render_examples <- function(
       ))
     }
 
-    # Extract example code
-    code <- extract_example(pkg_name)
+    # Install the package into the temp library if not already available
+    if (!requireNamespace(pkg_name, lib.loc = lib_paths, quietly = TRUE)) {
+      installed <- install_package_temp(pkg_name, lib_path = temp_lib)
+      if (!installed) {
+        logger::log_warn("Skipping '{pkg_name}': could not install")
+        return(tibble::tibble(
+          package_name        = pkg_name,
+          example_code        = NA_character_,
+          example_image       = NA_character_,
+          example_success     = FALSE,
+          example_rendered_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+          license_allowed     = TRUE
+        ))
+      }
+    }
+
+    # Extract example code using the temp library
+    code <- extract_example(pkg_name, lib.loc = lib_paths)
 
     if (is.na(code)) {
       return(tibble::tibble(
@@ -261,9 +302,10 @@ render_examples <- function(
       ))
     }
 
-    # Render the example
+    # Render the example with access to the temp library
     png_path <- file.path(output_dir, paste0(pkg_name, ".png"))
-    result <- render_example(pkg_name, code, png_path, timeout = 30)
+    result <- render_example(pkg_name, code, png_path, timeout = 30,
+                             lib_paths = lib_paths)
 
     tibble::tibble(
       package_name        = result$package_name,
