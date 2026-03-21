@@ -61,9 +61,10 @@ extract_example_from_cran <- function(package_name, download_dir) {
     return(NA_character_)
   }
 
-  tryCatch(
+  # Download the source tarball from CRAN — tryCatch with warning handler
+  # scoped to the download step only, so parse_Rd() warnings don't bail out
+  tarball_path <- tryCatch(
     {
-      # Download the source tarball from CRAN (no installation needed)
       result <- utils::download.packages(
         package_name,
         destdir = download_dir,
@@ -77,9 +78,26 @@ extract_example_from_cran <- function(package_name, download_dir) {
         return(NA_character_)
       }
 
-      tarball_path <- result[1, 2]
+      result[1, 2]
+    },
+    warning = function(w) {
+      # download.packages() warns when a package is not available on CRAN
+      logger::log_warn("Download warning for '{package_name}': {w$message}")
+      NULL
+    },
+    error = function(e) {
+      logger::log_warn("Download failed for '{package_name}': {e$message}")
+      NULL
+    }
+  )
 
-      # List files in the tarball and find Rd documentation files
+  if (is.null(tarball_path)) {
+    return(NA_character_)
+  }
+
+  # List files in the tarball and find Rd documentation files
+  tryCatch(
+    {
       all_files <- utils::untar(tarball_path, list = TRUE)
       rd_files <- all_files[grepl("/man/.*\\.Rd$", all_files)]
 
@@ -87,18 +105,27 @@ extract_example_from_cran <- function(package_name, download_dir) {
         return(NA_character_)
       }
 
+      # Prioritize {package_name}.Rd to match SPEC's "primary function
+      # documentation" — the package-level Rd file often has the best example
+      primary_rd <- paste0(package_name, "/man/", package_name, ".Rd")
+      if (primary_rd %in% rd_files) {
+        rd_files <- c(primary_rd, setdiff(rd_files, primary_rd))
+      }
+
       # Extract the Rd files to a temporary directory
       extract_dir <- file.path(download_dir, "extract", package_name)
       dir.create(extract_dir, showWarnings = FALSE, recursive = TRUE)
       utils::untar(tarball_path, files = rd_files, exdir = extract_dir)
 
-      # Parse each Rd file and look for \examples sections
+      # Parse each Rd file and look for \examples sections.
+      # parse_Rd() warnings (minor formatting issues) are suppressed so we
+      # don't skip valid packages — only errors cause a file to be skipped.
       for (rd_file in rd_files) {
         rd_path <- file.path(extract_dir, rd_file)
         if (!file.exists(rd_path)) next
 
         rd <- tryCatch(
-          tools::parse_Rd(rd_path),
+          suppressWarnings(tools::parse_Rd(rd_path)),
           error = function(e) NULL
         )
         if (is.null(rd)) next
@@ -120,11 +147,6 @@ extract_example_from_cran <- function(package_name, download_dir) {
 
       NA_character_
     },
-    warning = function(w) {
-      # download.packages() warns when a package is not available on CRAN
-      logger::log_warn("Download warning for '{package_name}': {w$message}")
-      NA_character_
-    },
     error = function(e) {
       logger::log_warn("Failed to extract example from tarball for '{package_name}': {e$message}")
       NA_character_
@@ -132,24 +154,23 @@ extract_example_from_cran <- function(package_name, download_dir) {
   )
 }
 
-#' Extract a code example from a package
+#' Extract a code example from a locally-installed package
 #'
-#' Attempts to extract the first example from the package's primary function
-#' documentation using `tools::Rd_db()`. Falls back to NA if the package is
-#' not installed or has no examples.
+#' Fallback method that extracts examples from an installed package using
+#' `tools::Rd_db()`. Used when the package is already available locally
+#' (e.g. in the development environment). The pipeline uses
+#' `extract_example_from_cran()` instead, which works without installation.
 #'
 #' @param package_name Name of the package.
-#' @param lib.loc Library path(s) to search for the package. If NULL, uses
-#'   the default `.libPaths()`.
 #'
 #' @return A character string of example code, or NA if none found.
 #'
 #' @noRd
-extract_example <- function(package_name, lib.loc = NULL) {
+extract_example <- function(package_name) {
   tryCatch(
     {
-      # Get the Rd database for the package, searching the specified library
-      rd_db <- tools::Rd_db(package_name, lib.loc = lib.loc)
+      # Get the Rd database for the package from installed libraries
+      rd_db <- tools::Rd_db(package_name)
 
       if (length(rd_db) == 0) {
         return(NA_character_)
@@ -193,15 +214,12 @@ extract_example <- function(package_name, lib.loc = NULL) {
 #' @param code Character string of R code to execute (from package \examples).
 #' @param png_path Path where the PNG output should be saved.
 #' @param timeout Timeout in seconds for the subprocess (default: 30).
-#' @param lib_paths Additional library paths to make available in the subprocess.
-#'   Used to find packages installed in the temporary pipeline library.
 #'
 #' @return A list with `package_name`, `example_code`, `example_image`,
 #'   `example_success`, and `example_rendered_at`.
 #'
 #' @noRd
-render_example <- function(package_name, code, png_path, timeout = 30,
-                           lib_paths = NULL) {
+render_example <- function(package_name, code, png_path, timeout = 30) {
   rendered_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 
   tryCatch(
@@ -209,13 +227,7 @@ render_example <- function(package_name, code, png_path, timeout = 30,
       # Run code in an isolated subprocess via callr
       # Code originates from trusted package documentation (\examples sections)
       callr::r(
-        function(code_text, output_path, extra_lib_paths) {
-          # Add temporary library paths so the subprocess can find
-          # packages installed during the pipeline run
-          if (!is.null(extra_lib_paths)) {
-            .libPaths(c(extra_lib_paths, .libPaths()))
-          }
-
+        function(code_text, output_path) {
           # Parse and evaluate the example code from package documentation
           parsed <- parse(text = code_text)
           for (expr in parsed) {
@@ -238,7 +250,7 @@ render_example <- function(package_name, code, png_path, timeout = 30,
             )
           }
         },
-        args = list(code_text = code, output_path = png_path, extra_lib_paths = lib_paths),
+        args = list(code_text = code, output_path = png_path),
         timeout = timeout
       )
 
