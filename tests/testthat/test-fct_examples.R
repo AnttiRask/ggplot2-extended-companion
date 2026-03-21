@@ -132,6 +132,67 @@ test_that("render_example handles failing code gracefully", {
   expect_equal(result$example_code, code)
 })
 
+# --- prioritize_rd_files() ---------------------------------------------------
+
+test_that("prioritize_rd_files puts primary Rd first", {
+  rd_files <- c("pkg/man/aes.Rd", "pkg/man/pkg.Rd", "pkg/man/geom_point.Rd")
+  result <- prioritize_rd_files(rd_files, "pkg")
+
+  expect_equal(result[1], "pkg/man/pkg.Rd")
+})
+
+test_that("prioritize_rd_files puts package-name-containing files before generic ones", {
+  rd_files <- c(
+    "animint2/man/lims.Rd",
+    "animint2/man/geom_point.Rd",
+    "animint2/man/animint2dir.Rd",
+    "animint2/man/theme_animint.Rd",
+    "animint2/man/aes.Rd"
+  )
+  result <- prioritize_rd_files(rd_files, "animint2")
+
+  # Files containing "animint" in the basename should come first
+  basenames <- basename(result)
+  animint_positions <- which(grepl("animint", basenames, ignore.case = TRUE))
+  other_positions <- which(!grepl("animint", basenames, ignore.case = TRUE))
+
+  # All animint-named files should appear before all generic files
+  if (length(animint_positions) > 0 && length(other_positions) > 0) {
+    expect_true(max(animint_positions) < min(other_positions))
+  }
+})
+
+test_that("prioritize_rd_files deprioritizes common ggplot2 re-export names", {
+
+  rd_files <- c(
+    "mypkg/man/geom_point.Rd",
+    "mypkg/man/aes.Rd",
+    "mypkg/man/mypkg_special.Rd",
+    "mypkg/man/scale_colour_continuous.Rd",
+    "mypkg/man/some_unique_function.Rd"
+  )
+  result <- prioritize_rd_files(rd_files, "mypkg")
+
+  basenames <- basename(result)
+  # mypkg_special should be near the top (contains package name)
+  pkg_pos <- which(basenames == "mypkg_special.Rd")
+  # Common ggplot2 names should be near the bottom
+  geom_pos <- which(basenames == "geom_point.Rd")
+
+  expect_true(pkg_pos < geom_pos)
+})
+
+test_that("prioritize_rd_files handles empty input", {
+  result <- prioritize_rd_files(character(0), "pkg")
+  expect_length(result, 0)
+})
+
+test_that("prioritize_rd_files handles single file", {
+  rd_files <- c("pkg/man/foo.Rd")
+  result <- prioritize_rd_files(rd_files, "pkg")
+  expect_equal(result, rd_files)
+})
+
 # --- extract_example_from_cran() ---------------------------------------------
 
 test_that("extract_example_from_cran downloads tarball and extracts example code", {

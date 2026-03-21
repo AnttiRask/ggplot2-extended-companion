@@ -35,6 +35,69 @@ check_license_allowed <- function(license, allowlist) {
   }, logical(1)))
 }
 
+#' Prioritize Rd files to find package-specific examples
+#'
+#' Reorders a vector of Rd file paths so that files most likely to contain
+#' package-specific examples come first. This avoids extracting re-exported
+#' examples (e.g., ggplot2's `xlim.Rd` from animint2) when a package wraps
+#' or re-exports functions from its dependencies.
+#'
+#' Priority tiers (highest to lowest):
+#' 1. `{package_name}.Rd` — the package-level documentation file
+#' 2. Rd files whose basename contains the package name (e.g., `animint2dir.Rd`)
+#' 3. Rd files with unique-sounding names (not matching common ggplot2/tidyverse
+#'    patterns like `geom_*.Rd`, `scale_*.Rd`, `aes*.Rd`, etc.)
+#' 4. Everything else (likely re-exports)
+#'
+#' @param rd_files Character vector of Rd file paths (e.g., "pkg/man/foo.Rd").
+#' @param package_name Name of the package being processed.
+#'
+#' @return Character vector of the same Rd file paths, reordered by priority.
+#'
+#' @noRd
+prioritize_rd_files <- function(rd_files, package_name) {
+  if (length(rd_files) == 0) return(character(0))
+
+  basenames <- basename(rd_files)
+
+  # Strip the package name prefix (e.g., "animint2" from "animint2") to get
+  # a root for matching — handle packages with digits/dots in names
+  pkg_pattern <- gsub("([.+*?^${}()|\\[\\]])", "\\\\\\1", package_name)
+
+  # Tier 1: exact primary Rd file ({package_name}.Rd)
+  is_primary <- basenames == paste0(package_name, ".Rd")
+
+  # Tier 2: basename contains the package name (case-insensitive)
+  # e.g., "animint2dir.Rd", "theme_animint.Rd", "scale_size_animint.Rd"
+  # Also match without trailing digits: "animint" matches "animint2dir.Rd"
+  pkg_root <- gsub("[0-9]+$", "", package_name)
+  pkg_root_pattern <- gsub("([.+*?^${}()|\\[\\]])", "\\\\\\1", pkg_root)
+  is_pkg_named <- grepl(pkg_root_pattern, basenames, ignore.case = TRUE) & !is_primary
+
+  # Tier 3: NOT a common ggplot2/tidyverse re-export pattern
+  # These patterns match functions commonly re-exported by ggplot2 wrapper packages
+  reexport_patterns <- paste0(
+    "^(geom_|stat_|scale_|coord_|facet_|position_|theme_|guide_|",
+    "annotation_|element_|aes|labs|lims|borders|qplot|ggplot|",
+    "fortify|autoplot|margin|waiver|resolution|last_plot|",
+    "draw_key|sec_axis|dup_axis|expansion|after_stat|after_scale|",
+    "stage|cut_interval|cut_number|cut_width)\\.Rd$"
+  )
+  is_reexport <- grepl(reexport_patterns, basenames)
+  is_unique <- !is_primary & !is_pkg_named & !is_reexport
+
+  # Tier 4: everything else (likely re-exports)
+  is_other <- !is_primary & !is_pkg_named & !is_unique
+
+  # Combine tiers in priority order
+  c(
+    rd_files[is_primary],
+    rd_files[is_pkg_named],
+    rd_files[is_unique],
+    rd_files[is_other]
+  )
+}
+
 #' Extract a code example by downloading a CRAN source tarball
 #'
 #' Downloads the source tarball from CRAN, extracts the `man/*.Rd` files,
@@ -105,12 +168,9 @@ extract_example_from_cran <- function(package_name, download_dir) {
         return(NA_character_)
       }
 
-      # Prioritize {package_name}.Rd to match SPEC's "primary function
-      # documentation" — the package-level Rd file often has the best example
-      primary_rd <- paste0(package_name, "/man/", package_name, ".Rd")
-      if (primary_rd %in% rd_files) {
-        rd_files <- c(primary_rd, setdiff(rd_files, primary_rd))
-      }
+      # Reorder Rd files so package-specific examples come first,
+      # avoiding re-exported function docs (e.g., ggplot2's xlim from animint2)
+      rd_files <- prioritize_rd_files(rd_files, package_name)
 
       # Extract the Rd files to a temporary directory
       extract_dir <- file.path(download_dir, "extract", package_name)
