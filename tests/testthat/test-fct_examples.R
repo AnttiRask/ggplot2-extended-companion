@@ -193,6 +193,51 @@ test_that("prioritize_rd_files handles single file", {
   expect_equal(result, rd_files)
 })
 
+# --- clean_rd2ex_output() ----------------------------------------------------
+
+test_that("clean_rd2ex_output strips header lines", {
+  lines <- c("### Name: test", "### Title: Test", "", "### ** Examples",
+             "", "  x <- 1 + 1", "  print(x)")
+  result <- clean_rd2ex_output(lines)
+  expect_false(any(grepl("^###", result)))
+  expect_true(any(grepl("x <- 1", result)))
+})
+
+test_that("clean_rd2ex_output removes dontrun blocks", {
+  lines <- c("  x <- 1", "  ## Not run: ", "##D   slow_fn()",
+             "## End(Not run)", "  print(x)")
+  result <- clean_rd2ex_output(lines)
+  code <- trimws(paste(result, collapse = "\n"))
+  expect_false(grepl("slow_fn", code))
+  expect_true(grepl("print\\(x\\)", code))
+})
+
+test_that("clean_rd2ex_output removes dontshow blocks", {
+  lines <- c("  x <- 1", "  ## Don't show: ", "    stopifnot(TRUE)",
+             "  ", "## End(Don't show)", "  print(x)")
+  result <- clean_rd2ex_output(lines)
+  code <- trimws(paste(result, collapse = "\n"))
+  expect_false(grepl("stopifnot", code))
+  expect_true(grepl("print\\(x\\)", code))
+})
+
+test_that("clean_rd2ex_output preserves normal code and donttest code", {
+  lines <- c("### Name: test", "### ** Examples", "",
+             "  library(ggplot2)", "  ## No test: ",
+             "    ggplot(mtcars) + geom_point()", "  ",
+             "## End(No test)", "  print('done')")
+  result <- clean_rd2ex_output(lines)
+  code <- trimws(paste(result, collapse = "\n"))
+  # donttest code should be kept (it's runnable, just slow)
+  expect_true(grepl("geom_point", code))
+  expect_true(grepl("print", code))
+})
+
+test_that("clean_rd2ex_output handles empty input", {
+  result <- clean_rd2ex_output(character(0))
+  expect_length(result, 0)
+})
+
 # --- extract_example_from_cran() ---------------------------------------------
 
 test_that("extract_example_from_cran downloads tarball and extracts example code", {

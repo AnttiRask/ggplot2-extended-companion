@@ -60,16 +60,14 @@ prioritize_rd_files <- function(rd_files, package_name) {
 
   basenames <- basename(rd_files)
 
-  # Strip the package name prefix (e.g., "animint2" from "animint2") to get
-  # a root for matching — handle packages with digits/dots in names
-  pkg_pattern <- gsub("([.+*?^${}()|\\[\\]])", "\\\\\\1", package_name)
-
   # Tier 1: exact primary Rd file ({package_name}.Rd)
   is_primary <- basenames == paste0(package_name, ".Rd")
 
   # Tier 2: basename contains the package name (case-insensitive)
   # e.g., "animint2dir.Rd", "theme_animint.Rd", "scale_size_animint.Rd"
-  # Also match without trailing digits: "animint" matches "animint2dir.Rd"
+  # Strip trailing digits from the package name so that e.g. "animint2" matches
+  # files containing "animint" — many packages append version numbers but their
+  # function names use the root (animint2dir, theme_animint, etc.)
   pkg_root <- gsub("[0-9]+$", "", package_name)
   pkg_root_pattern <- gsub("([.+*?^${}()|\\[\\]])", "\\\\\\1", pkg_root)
   is_pkg_named <- grepl(pkg_root_pattern, basenames, ignore.case = TRUE) & !is_primary
@@ -96,6 +94,60 @@ prioritize_rd_files <- function(rd_files, package_name) {
     rd_files[is_unique],
     rd_files[is_other]
   )
+}
+
+#' Clean Rd2ex output into runnable example code
+#'
+#' Post-processes the output of `tools::Rd2ex()` to produce clean, runnable
+#' code suitable for display and rendering. Removes:
+#' - Header lines (`### Name:`, `### Title:`, `### ** Examples`)
+#' - `\dontrun{}` blocks (code that should not be executed)
+#' - `\dontshow{}` blocks (test-only code not meant for users)
+#'
+#' Preserves `\donttest{}` code because it is valid runnable code, just slow
+#' for CRAN checks. See https://blog.r-hub.io/2020/01/27/examples/ for
+#' details on these Rd tags.
+#'
+#' @param lines Character vector of lines from `readLines()` on Rd2ex output.
+#'
+#' @return Character vector of cleaned lines (may be empty).
+#'
+#' @noRd
+clean_rd2ex_output <- function(lines) {
+  if (length(lines) == 0) return(character(0))
+
+  # Strip Rd2ex header lines (### Name:, ### Title:, ### ** Examples)
+  lines <- lines[!grepl("^###", lines)]
+
+  # Remove \dontrun blocks: start marker, ##D-prefixed content, end marker
+  lines <- lines[!grepl("## Not run:", lines)]
+  lines <- lines[!grepl("^##D", lines)]
+  lines <- lines[!grepl("## End\\(Not run\\)", lines)]
+
+  # Remove \dontshow blocks: everything between markers (inclusive)
+  # These contain test assertions not meant for users to see
+  in_dontshow <- FALSE
+  keep <- rep(TRUE, length(lines))
+  for (i in seq_along(lines)) {
+    if (grepl("## Don't show:", lines[i], fixed = TRUE)) {
+      in_dontshow <- TRUE
+      keep[i] <- FALSE
+      next
+    }
+    if (grepl("## End(Don't show)", lines[i], fixed = TRUE)) {
+      in_dontshow <- FALSE
+      keep[i] <- FALSE
+      next
+    }
+    if (in_dontshow) keep[i] <- FALSE
+  }
+  lines <- lines[keep]
+
+  # Remove \donttest markers (but keep the code inside)
+  lines <- lines[!grepl("## No test:", lines)]
+  lines <- lines[!grepl("## End\\(No test\\)", lines)]
+
+  lines
 }
 
 #' Extract a code example by downloading a CRAN source tarball
@@ -177,31 +229,37 @@ extract_example_from_cran <- function(package_name, download_dir) {
       dir.create(extract_dir, showWarnings = FALSE, recursive = TRUE)
       utils::untar(tarball_path, files = rd_files, exdir = extract_dir)
 
-      # Parse each Rd file and look for \examples sections.
-      # parse_Rd() warnings (minor formatting issues) are suppressed so we
-      # don't skip valid packages — only errors cause a file to be skipped.
+      # Use tools::Rd2ex() to extract examples from each Rd file.
+      # Rd2ex properly handles \dontrun{}, \donttest{}, and \dontshow{} tags,
+      # unlike raw parse_Rd() + paste which includes all blocks indiscriminately.
+      # See https://blog.r-hub.io/2020/01/27/examples/
       for (rd_file in rd_files) {
         rd_path <- file.path(extract_dir, rd_file)
         if (!file.exists(rd_path)) next
 
-        rd <- tryCatch(
-          suppressWarnings(tools::parse_Rd(rd_path)),
-          error = function(e) NULL
+        # Rd2ex writes to a file; we read it back and clean the output
+        ex_file <- tempfile(fileext = ".R")
+        has_example <- tryCatch(
+          {
+            suppressWarnings(tools::Rd2ex(rd_path, ex_file))
+            file.exists(ex_file) && file.size(ex_file) > 0
+          },
+          error = function(e) FALSE
         )
-        if (is.null(rd)) next
 
-        # Extract \examples sections from the parsed Rd
-        examples <- Filter(function(x) {
-          identical(attr(x, "Rd_tag"), "\\examples")
-        }, rd)
+        if (has_example) {
+          lines <- readLines(ex_file, warn = FALSE)
+          lines <- clean_rd2ex_output(lines)
+          code <- trimws(paste(lines, collapse = "\n"))
 
-        if (length(examples) > 0) {
-          code <- paste(unlist(examples[[1]]), collapse = "")
-          code <- trimws(code)
+          # Clean up temp file
+          unlink(ex_file)
 
           if (nchar(code) > 0) {
             return(code)
           }
+        } else {
+          unlink(ex_file)
         }
       }
 
