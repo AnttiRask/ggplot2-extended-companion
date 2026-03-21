@@ -74,7 +74,8 @@ mod_browse_server <- function(id, app_data) {
           data.frame(
             Message = paste(
               "No packages match your current filters.",
-              "Try adjusting your category, CRAN status, or license selections."
+              "Try adjusting your category, CRAN status, or license selections,",
+              "or clearing the search."
             )
           ),
           columns = list(Message = reactable::colDef(align = "center"))
@@ -266,20 +267,20 @@ build_package_table <- function(data, ns) {
     compact = TRUE,
     defaultSorted = list(package_name = "asc"),
 
-    # Theme for dark mode compatibility (dark mode is the default;
-    # light mode inherits readable defaults from Bootstrap)
+    # Theme using inherit and neutral rgba() values so the table works
+    # in both dark and light modes without hardcoding colours
     theme = reactable::reactableTheme(
-      color = "#FFFFFF",
+      color = "inherit",
       backgroundColor = "transparent",
-      borderColor = "rgba(255, 255, 255, 0.1)",
-      headerStyle = list(borderBottomColor = "rgba(255, 255, 255, 0.2)"),
+      borderColor = "rgba(128, 128, 128, 0.2)",
+      headerStyle = list(borderBottomColor = "rgba(128, 128, 128, 0.3)"),
       searchInputStyle = list(
         backgroundColor = "transparent",
-        color = "#FFFFFF",
-        border = "1px solid rgba(255, 255, 255, 0.2)"
+        color = "inherit",
+        border = "1px solid rgba(128, 128, 128, 0.3)"
       ),
-      paginationStyle = list(color = "#9ca3af"),
-      pageButtonHoverStyle = list(backgroundColor = "rgba(255, 255, 255, 0.1)"),
+      paginationStyle = list(color = "inherit"),
+      pageButtonHoverStyle = list(backgroundColor = "rgba(128, 128, 128, 0.1)"),
       pageButtonActiveStyle = list(backgroundColor = "rgba(193, 39, 45, 0.2)")
     )
   )

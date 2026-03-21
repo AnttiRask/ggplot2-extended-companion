@@ -86,11 +86,12 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
     # Divider
     htmltools::hr(),
 
-    # Submit a package link (placeholder until Google Form is created)
+    # Submit a package link (disabled until Google Form is created)
     htmltools::tags$a(
       href = "javascript:void(0)",
-      class = "btn btn-outline-primary w-100",
-      onclick = "alert('Package submission form coming soon!')",
+      class = "btn btn-outline-primary w-100 disabled",
+      `aria-disabled` = "true",
+      title = "Package submission form coming soon",
       "Suggest a Package"
     )
   )

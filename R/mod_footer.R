@@ -35,13 +35,14 @@ mod_footer_ui <- function(id) {
         "to have it corrected or removed."
       ),
 
-      # Submission link (placeholder until Google Form is created)
+      # Submission link (disabled until Google Form is created)
       htmltools::tags$p(
         class = "text-muted small",
         "Know a ggplot2 extension we're missing? ",
-        htmltools::tags$a(
-          href = "javascript:void(0)",
-          onclick = "alert('Package submission form coming soon!')",
+        htmltools::tags$span(
+          class = "text-muted",
+          title = "Package submission form coming soon",
+          style = "text-decoration: underline dotted; cursor: default;",
           "Submit it here"
         ),
         "."
