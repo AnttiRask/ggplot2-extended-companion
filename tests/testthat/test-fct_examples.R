@@ -160,6 +160,40 @@ test_that("install_package_temp returns FALSE for NA package name", {
   expect_false(result)
 })
 
+# --- render_examples() with package installation -----------------------------
+
+test_that("render_examples installs packages into temp lib before extraction", {
+  # Create minimal test data with a small, real CRAN package
+  packages <- tibble::tibble(
+    package_name = "fortunes",
+    license = "GPL-2 | GPL-3"
+  )
+
+  # Create a temp allowlist that allows GPL
+  tmp_dir <- withr::local_tempdir()
+  allowlist_path <- file.path(tmp_dir, "allowlist.csv")
+  write.csv(
+    data.frame(license_pattern = "GPL", allowed = TRUE, stringsAsFactors = FALSE),
+    allowlist_path,
+    row.names = FALSE
+  )
+
+  output_dir <- file.path(tmp_dir, "examples")
+
+  result <- render_examples(
+    packages,
+    allowlist_path = allowlist_path,
+    output_dir = output_dir
+  )
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$package_name, "fortunes")
+  expect_true(result$license_allowed)
+  # Key assertion: example_code should not be NA — the package should have
+  # been installed and its examples extracted (fortunes has examples)
+  expect_false(is.na(result$example_code))
+})
+
 # --- build_example_card() ---------------------------------------------------
 
 test_that("build_example_card shows code and image for successful example", {
