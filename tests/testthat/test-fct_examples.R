@@ -132,6 +132,34 @@ test_that("render_example handles failing code gracefully", {
   expect_equal(result$example_code, code)
 })
 
+# --- install_package_temp() --------------------------------------------------
+
+test_that("install_package_temp installs a small CRAN package into temp lib", {
+  # Use a small, dependency-light CRAN package for fast install
+  tmp_lib <- withr::local_tempdir()
+
+  result <- install_package_temp("fortunes", lib_path = tmp_lib)
+
+  expect_true(result)
+  expect_true("fortunes" %in% list.files(tmp_lib))
+})
+
+test_that("install_package_temp returns FALSE for non-existent package", {
+  tmp_lib <- withr::local_tempdir()
+
+  result <- install_package_temp("definitely_not_a_real_package_xyz_999", lib_path = tmp_lib)
+
+  expect_false(result)
+})
+
+test_that("install_package_temp returns FALSE for NA package name", {
+  tmp_lib <- withr::local_tempdir()
+
+  result <- install_package_temp(NA_character_, lib_path = tmp_lib)
+
+  expect_false(result)
+})
+
 # --- build_example_card() ---------------------------------------------------
 
 test_that("build_example_card shows code and image for successful example", {
