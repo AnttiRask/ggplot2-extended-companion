@@ -132,45 +132,47 @@ test_that("render_example handles failing code gracefully", {
   expect_equal(result$example_code, code)
 })
 
-# --- install_package_temp() --------------------------------------------------
+# --- extract_example_from_cran() ---------------------------------------------
 
-test_that("install_package_temp installs a small CRAN package into temp lib", {
-  # Use a small, dependency-light CRAN package for fast install
-  tmp_lib <- withr::local_tempdir()
+test_that("extract_example_from_cran downloads tarball and extracts example code", {
+  tmp_dir <- withr::local_tempdir()
 
-  result <- install_package_temp("fortunes", lib_path = tmp_lib)
+  # fortunes is small and has examples in its Rd files
+  result <- extract_example_from_cran("fortunes", download_dir = tmp_dir)
 
-  expect_true(result)
-  expect_true("fortunes" %in% list.files(tmp_lib))
+  expect_type(result, "character")
+  expect_false(is.na(result))
+  expect_true(nchar(result) > 0)
 })
 
-test_that("install_package_temp returns FALSE for non-existent package", {
-  tmp_lib <- withr::local_tempdir()
+test_that("extract_example_from_cran returns NA for non-existent package", {
+  tmp_dir <- withr::local_tempdir()
 
-  result <- install_package_temp("definitely_not_a_real_package_xyz_999", lib_path = tmp_lib)
+  result <- extract_example_from_cran("definitely_not_a_real_package_xyz_999",
+                                       download_dir = tmp_dir)
 
-  expect_false(result)
+  expect_true(is.na(result))
 })
 
-test_that("install_package_temp returns FALSE for NA package name", {
-  tmp_lib <- withr::local_tempdir()
+test_that("extract_example_from_cran returns NA for NA package name", {
+  tmp_dir <- withr::local_tempdir()
 
-  result <- install_package_temp(NA_character_, lib_path = tmp_lib)
+  result <- extract_example_from_cran(NA_character_, download_dir = tmp_dir)
 
-  expect_false(result)
+  expect_true(is.na(result))
 })
 
-test_that("install_package_temp returns FALSE for empty string", {
-  tmp_lib <- withr::local_tempdir()
+test_that("extract_example_from_cran returns NA for empty string", {
+  tmp_dir <- withr::local_tempdir()
 
-  result <- install_package_temp("", lib_path = tmp_lib)
+  result <- extract_example_from_cran("", download_dir = tmp_dir)
 
-  expect_false(result)
+  expect_true(is.na(result))
 })
 
-# --- render_examples() with package installation -----------------------------
+# --- render_examples() with tarball extraction --------------------------------
 
-test_that("render_examples installs packages into temp lib before extraction", {
+test_that("render_examples extracts examples from CRAN tarballs", {
   # Create minimal test data with a small, real CRAN package
   packages <- tibble::tibble(
     package_name = "fortunes",
@@ -197,8 +199,8 @@ test_that("render_examples installs packages into temp lib before extraction", {
   expect_equal(nrow(result), 1)
   expect_equal(result$package_name, "fortunes")
   expect_true(result$license_allowed)
-  # Key assertion: example_code should not be NA — the package should have
-  # been installed and its examples extracted (fortunes has examples)
+  # Key assertion: example_code should not be NA — the tarball should have
+  # been downloaded and Rd examples extracted
   expect_false(is.na(result$example_code))
   # fortunes examples don't produce ggplot2 plots, so render should fail gracefully
   expect_false(result$example_success)
