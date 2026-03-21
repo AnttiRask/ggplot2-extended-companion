@@ -35,49 +35,99 @@ check_license_allowed <- function(license, allowlist) {
   }, logical(1)))
 }
 
-#' Install a package into a temporary library path
+#' Extract a code example by downloading a CRAN source tarball
 #'
-#' Installs a CRAN package into an isolated library directory so that its
-#' documentation (including `\examples{}` sections) can be accessed via
-#' `tools::Rd_db()`. Used by the weekly pipeline to install extension
-#' packages before extracting and rendering their examples.
+#' Downloads the source tarball from CRAN, extracts the `man/*.Rd` files,
+#' and parses them with `tools::parse_Rd()` to find `\examples{}` sections.
+#' This avoids installing the package entirely — no compilation, no
+#' dependencies needed — making it fast and reliable for all CRAN packages
+#' regardless of system library availability.
 #'
-#' @param package_name Name of the CRAN package to install.
-#' @param lib_path Path to the temporary library directory.
+#' Used by the weekly pipeline (`render_examples()`) as the primary method
+#' to extract example code. Replaces the previous approach of installing
+#' packages which failed for ~50% of packages due to missing compiled
+#' dependencies.
 #'
-#' @return Logical. `TRUE` if the package was installed successfully.
+#' @param package_name Name of the CRAN package.
+#' @param download_dir Directory to download the tarball into.
+#'
+#' @return A character string of example code, or `NA_character_` if no
+#'   example was found or the package is not on CRAN.
 #'
 #' @noRd
-install_package_temp <- function(package_name, lib_path) {
+extract_example_from_cran <- function(package_name, download_dir) {
   # Guard against NA or empty package names
   if (is.na(package_name) || package_name == "") {
-    return(FALSE)
+    return(NA_character_)
   }
 
   tryCatch(
     {
-      utils::install.packages(
+      # Download the source tarball from CRAN (no installation needed)
+      result <- utils::download.packages(
         package_name,
-        lib = lib_path,
+        destdir = download_dir,
         repos = "https://cloud.r-project.org",
-        quiet = TRUE,
-        # Only install the package itself — dependencies are not needed
-        # for extracting documentation examples
-        dependencies = FALSE
+        type = "source",
+        quiet = TRUE
       )
 
-      # Verify the package was actually installed
-      package_name %in% list.files(lib_path)
+      if (is.null(result) || nrow(result) == 0) {
+        logger::log_warn("Could not download tarball for '{package_name}'")
+        return(NA_character_)
+      }
+
+      tarball_path <- result[1, 2]
+
+      # List files in the tarball and find Rd documentation files
+      all_files <- utils::untar(tarball_path, list = TRUE)
+      rd_files <- all_files[grepl("/man/.*\\.Rd$", all_files)]
+
+      if (length(rd_files) == 0) {
+        return(NA_character_)
+      }
+
+      # Extract the Rd files to a temporary directory
+      extract_dir <- file.path(download_dir, "extract", package_name)
+      dir.create(extract_dir, showWarnings = FALSE, recursive = TRUE)
+      utils::untar(tarball_path, files = rd_files, exdir = extract_dir)
+
+      # Parse each Rd file and look for \examples sections
+      for (rd_file in rd_files) {
+        rd_path <- file.path(extract_dir, rd_file)
+        if (!file.exists(rd_path)) next
+
+        rd <- tryCatch(
+          tools::parse_Rd(rd_path),
+          error = function(e) NULL
+        )
+        if (is.null(rd)) next
+
+        # Extract \examples sections from the parsed Rd
+        examples <- Filter(function(x) {
+          identical(attr(x, "Rd_tag"), "\\examples")
+        }, rd)
+
+        if (length(examples) > 0) {
+          code <- paste(unlist(examples[[1]]), collapse = "")
+          code <- trimws(code)
+
+          if (nchar(code) > 0) {
+            return(code)
+          }
+        }
+      }
+
+      NA_character_
     },
     warning = function(w) {
-      logger::log_warn("Install warning for '{package_name}': {w$message}")
-      # install.packages() raises a warning (not error) for non-existent
-      # packages, so we verify via list.files() whether it actually installed
-      package_name %in% list.files(lib_path)
+      # download.packages() warns when a package is not available on CRAN
+      logger::log_warn("Download warning for '{package_name}': {w$message}")
+      NA_character_
     },
     error = function(e) {
-      logger::log_warn("Failed to install '{package_name}': {e$message}")
-      FALSE
+      logger::log_warn("Failed to extract example from tarball for '{package_name}': {e$message}")
+      NA_character_
     }
   )
 }
@@ -240,18 +290,14 @@ render_examples <- function(
   # Ensure output directory exists
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  # Create a shared temporary library for installing packages.
-  # All packages are installed here so dependencies can be shared across
-  # packages and we avoid polluting the system library.
-  temp_lib <- tempfile("examples_lib_")
-  dir.create(temp_lib, recursive = TRUE)
-  on.exit(unlink(temp_lib, recursive = TRUE), add = TRUE)
+  # Create a shared temporary directory for downloading source tarballs.
+  # Tarballs are downloaded here, Rd files extracted and parsed — no
+  # package installation or compilation is needed.
+  download_dir <- tempfile("examples_dl_")
+  dir.create(download_dir, recursive = TRUE)
+  on.exit(unlink(download_dir, recursive = TRUE), add = TRUE)
 
-  # Combine the temp library with existing library paths so both
-  # newly-installed and already-available packages can be found
-  lib_paths <- c(temp_lib, .libPaths())
-
-  logger::log_info("Example rendering: temp library at {temp_lib}")
+  logger::log_info("Example rendering: download dir at {download_dir}")
   logger::log_info("Processing {nrow(packages_combined)} packages for examples")
 
   results <- lapply(seq_len(nrow(packages_combined)), function(i) {
@@ -272,24 +318,9 @@ render_examples <- function(
       ))
     }
 
-    # Install the package into the temp library if not already available
-    if (!requireNamespace(pkg_name, lib.loc = lib_paths, quietly = TRUE)) {
-      installed <- install_package_temp(pkg_name, lib_path = temp_lib)
-      if (!installed) {
-        logger::log_warn("Skipping '{pkg_name}': could not install")
-        return(tibble::tibble(
-          package_name        = pkg_name,
-          example_code        = NA_character_,
-          example_image       = NA_character_,
-          example_success     = FALSE,
-          example_rendered_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-          license_allowed     = TRUE
-        ))
-      }
-    }
-
-    # Extract example code using the temp library
-    code <- extract_example(pkg_name, lib.loc = lib_paths)
+    # Extract example code by downloading the CRAN source tarball and
+    # parsing the Rd files directly — no installation or compilation needed
+    code <- extract_example_from_cran(pkg_name, download_dir = download_dir)
 
     if (is.na(code)) {
       return(tibble::tibble(
@@ -302,10 +333,9 @@ render_examples <- function(
       ))
     }
 
-    # Render the example with access to the temp library
+    # Render the example in a subprocess
     png_path <- file.path(output_dir, paste0(pkg_name, ".png"))
-    result <- render_example(pkg_name, code, png_path, timeout = 30,
-                             lib_paths = lib_paths)
+    result <- render_example(pkg_name, code, png_path, timeout = 30)
 
     tibble::tibble(
       package_name        = result$package_name,
