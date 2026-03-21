@@ -50,7 +50,6 @@ check_license_allowed <- function(license, allowlist) {
 #' @noRd
 install_package_temp <- function(package_name, lib_path) {
   # Guard against NA or empty package names
-
   if (is.na(package_name) || package_name == "") {
     return(FALSE)
   }
@@ -72,7 +71,8 @@ install_package_temp <- function(package_name, lib_path) {
     },
     warning = function(w) {
       logger::log_warn("Install warning for '{package_name}': {w$message}")
-      # Check if it installed despite the warning
+      # install.packages() raises a warning (not error) for non-existent
+      # packages, so we verify via list.files() whether it actually installed
       package_name %in% list.files(lib_path)
     },
     error = function(e) {

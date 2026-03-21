@@ -160,6 +160,14 @@ test_that("install_package_temp returns FALSE for NA package name", {
   expect_false(result)
 })
 
+test_that("install_package_temp returns FALSE for empty string", {
+  tmp_lib <- withr::local_tempdir()
+
+  result <- install_package_temp("", lib_path = tmp_lib)
+
+  expect_false(result)
+})
+
 # --- render_examples() with package installation -----------------------------
 
 test_that("render_examples installs packages into temp lib before extraction", {
@@ -192,6 +200,8 @@ test_that("render_examples installs packages into temp lib before extraction", {
   # Key assertion: example_code should not be NA — the package should have
   # been installed and its examples extracted (fortunes has examples)
   expect_false(is.na(result$example_code))
+  # fortunes examples don't produce ggplot2 plots, so render should fail gracefully
+  expect_false(result$example_success)
 })
 
 # --- build_example_card() ---------------------------------------------------
