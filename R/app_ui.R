@@ -58,7 +58,7 @@ app_ui <- function(request) {
           condition = "!output.show_detail",
           # Recently added/updated cards above the table
           mod_recent_ui("recent"),
-          htmltools::tags$div(class = "mt-3"),
+          htmltools::tags$div(class = "my-4"),
           # Package table
           mod_browse_ui("browse")
         ),
@@ -95,9 +95,10 @@ app_theme <- function() {
     success  = "#22c55e",
     warning  = "#f59e0b",
 
-    # Typography
+    # Typography — Montserrat for headings (clean geometric sans-serif,
+    # replaces Gotham which had unverified licensing)
     heading_font = bslib::font_collection(
-      "Gotham",
+      bslib::font_google("Montserrat"),
       bslib::font_google("Inter"),
       "sans-serif"
     ),

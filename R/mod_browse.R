@@ -22,6 +22,16 @@ mod_browse_ui <- function(id) {
   ns <- shiny::NS(id)
 
   htmltools::tagList(
+    # Loading spinner shown until reactable renders
+    shiny::conditionalPanel(
+      condition = sprintf("!output['%s']", ns("package_table")),
+      ns = identity,
+      htmltools::tags$div(
+        class = "text-center py-5",
+        htmltools::tags$div(class = "spinner-border text-primary"),
+        htmltools::tags$p(class = "text-muted mt-2", "Loading packages...")
+      )
+    ),
     reactable::reactableOutput(ns("package_table"))
   )
 }
@@ -51,10 +61,22 @@ mod_browse_server <- function(id, app_data) {
     output$package_table <- reactable::renderReactable({
       data <- app_data()
 
-      # Guard against NULL or empty data
-      if (is.null(data) || nrow(data) == 0) {
+      # Guard against NULL or empty data — differentiate between
+      # "data not loaded" and "no results match filters"
+      if (is.null(data)) {
         return(reactable::reactable(
-          data.frame(Message = "No package data available."),
+          data.frame(Message = "Package data is currently unavailable. Please try refreshing the page."),
+          columns = list(Message = reactable::colDef(align = "center"))
+        ))
+      }
+      if (nrow(data) == 0) {
+        return(reactable::reactable(
+          data.frame(
+            Message = paste(
+              "No packages match your current filters.",
+              "Try adjusting your category, CRAN status, or license selections."
+            )
+          ),
           columns = list(Message = reactable::colDef(align = "center"))
         ))
       }
@@ -171,19 +193,21 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # Downloads (30d) -- numeric, comma-formatted, 100px
+      # Downloads (30d) -- numeric, comma-formatted, 100px, right-aligned
       downloads_30d = reactable::colDef(
         name = "Downloads (30d)",
         minWidth = 100,
+        align = "right",
         cell = function(value) {
           if (is.na(value)) "\u2014" else format(value, big.mark = ",")
         }
       ),
 
-      # Downloads (All) -- numeric, comma-formatted, 100px
+      # Downloads (All) -- numeric, comma-formatted, 100px, right-aligned
       downloads_all = reactable::colDef(
         name = "Downloads (All)",
         minWidth = 100,
+        align = "right",
         cell = function(value) {
           if (is.na(value)) "\u2014" else format(value, big.mark = ",")
         }
@@ -242,12 +266,21 @@ build_package_table <- function(data, ns) {
     compact = TRUE,
     defaultSorted = list(package_name = "asc"),
 
-    # Theme for dark mode compatibility
+    # Theme for dark mode compatibility (dark mode is the default;
+    # light mode inherits readable defaults from Bootstrap)
     theme = reactable::reactableTheme(
+      color = "#FFFFFF",
+      backgroundColor = "transparent",
+      borderColor = "rgba(255, 255, 255, 0.1)",
+      headerStyle = list(borderBottomColor = "rgba(255, 255, 255, 0.2)"),
       searchInputStyle = list(
         backgroundColor = "transparent",
+        color = "#FFFFFF",
         border = "1px solid rgba(255, 255, 255, 0.2)"
-      )
+      ),
+      paginationStyle = list(color = "#9ca3af"),
+      pageButtonHoverStyle = list(backgroundColor = "rgba(255, 255, 255, 0.1)"),
+      pageButtonActiveStyle = list(backgroundColor = "rgba(193, 39, 45, 0.2)")
     )
   )
 }

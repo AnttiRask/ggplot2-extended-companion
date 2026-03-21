@@ -22,15 +22,10 @@
 /* ---------------------------------------------------------------------------
  * Font imports
  * ---------------------------------------------------------------------------
- * Gotham loaded from CDN (matching BiblioStatus), with Inter as fallback.
- * Fira Code for monospace/code blocks.
- *
- * WARNING: Gotham font licensing is pending verification (SPEC section 14, Q4).
- * If Gotham cannot be used, switch the @import below to use Montserrat instead,
- * and update the heading_font in app_theme() (R/app_ui.R) accordingly.
- * Montserrat is imported as a ready fallback.
+ * Montserrat for headings (geometric sans-serif, replaces Gotham which had
+ * unverified licensing via cdnfonts.com — see SPEC section 14, Q4).
+ * Inter for body text. Fira Code for monospace/code blocks.
  * --------------------------------------------------------------------------- */
-@import url("https://fonts.cdnfonts.com/css/gotham");
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap");
@@ -62,6 +57,14 @@
   padding: 0.25em 0.75em;
   font-size: 0.8rem;
   font-weight: 500;
+}
+
+/* Dark mode: tone down badge to avoid overpowering package name links.
+ * Uses semi-transparent background so the badge recedes behind the name. */
+[data-bs-theme="dark"] .badge-category {
+  background-color: rgba(193, 39, 45, 0.25);
+  color: #E8494F;
+  border: 1px solid rgba(193, 39, 45, 0.4);
 }
 
 /* ---------------------------------------------------------------------------
@@ -102,6 +105,16 @@
 
 .package-link:hover {
   text-decoration: underline;
+}
+
+/* Dark mode: lighten link colour for WCAG AA contrast (4.5:1 minimum)
+ * #C1272D on #191414 = 3.4:1 (FAIL), #E8494F on #191414 = ~5.0:1 (PASS) */
+[data-bs-theme="dark"] .package-link {
+  color: #E8494F;
+}
+
+[data-bs-theme="dark"] .package-link:hover {
+  color: #F06268;
 }
 
 /* ---------------------------------------------------------------------------

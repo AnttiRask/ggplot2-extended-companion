@@ -69,25 +69,33 @@ mod_detail_server <- function(id, selected_package, app_data, examples_data = re
         if (nrow(ex) > 0) ex else NULL
       }
 
-      # Build the detail view as a stack of cards
+      # Build the detail view as a stack of cards with consistent spacing
       htmltools::tagList(
-        # Back button
+        # Back button (top)
         build_back_button(ns),
 
-        # Package header card
-        build_header_card(pkg),
+        # Card stack with consistent gap-3 spacing
+        htmltools::tags$div(
+          class = "d-grid gap-3",
 
-        # Links card
-        build_links_card(pkg),
+          # Package header card
+          build_header_card(pkg),
 
-        # Download statistics card
-        build_downloads_card(pkg),
+          # Links card
+          build_links_card(pkg),
 
-        # Version info card
-        build_version_card(pkg),
+          # Download statistics card
+          build_downloads_card(pkg),
 
-        # Code example card (M6)
-        build_example_card(example_row)
+          # Version info card
+          build_version_card(pkg),
+
+          # Code example card (M6)
+          build_example_card(example_row)
+        ),
+
+        # Back button (bottom — so user doesn't have to scroll back up)
+        htmltools::tags$div(class = "mt-3", build_back_button(ns))
       )
     })
 
@@ -370,7 +378,7 @@ build_example_card <- function(example) {
         src = paste0("www/examples/", example$example_image),
         alt = paste("Example output for", example$package_name),
         class = "img-fluid rounded",
-        style = "max-width: 100%;"
+        style = "max-width: 800px; width: 100%;"
       )
     )
   } else {
