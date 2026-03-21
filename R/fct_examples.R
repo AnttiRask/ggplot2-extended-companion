@@ -35,6 +35,53 @@ check_license_allowed <- function(license, allowlist) {
   }, logical(1)))
 }
 
+#' Install a package into a temporary library path
+#'
+#' Installs a CRAN package into an isolated library directory so that its
+#' documentation (including `\examples{}` sections) can be accessed via
+#' `tools::Rd_db()`. Used by the weekly pipeline to install extension
+#' packages before extracting and rendering their examples.
+#'
+#' @param package_name Name of the CRAN package to install.
+#' @param lib_path Path to the temporary library directory.
+#'
+#' @return Logical. `TRUE` if the package was installed successfully.
+#'
+#' @noRd
+install_package_temp <- function(package_name, lib_path) {
+  # Guard against NA or empty package names
+
+  if (is.na(package_name) || package_name == "") {
+    return(FALSE)
+  }
+
+  tryCatch(
+    {
+      utils::install.packages(
+        package_name,
+        lib = lib_path,
+        repos = "https://cloud.r-project.org",
+        quiet = TRUE,
+        # Only install the package itself — dependencies are not needed
+        # for extracting documentation examples
+        dependencies = FALSE
+      )
+
+      # Verify the package was actually installed
+      package_name %in% list.files(lib_path)
+    },
+    warning = function(w) {
+      logger::log_warn("Install warning for '{package_name}': {w$message}")
+      # Check if it installed despite the warning
+      package_name %in% list.files(lib_path)
+    },
+    error = function(e) {
+      logger::log_warn("Failed to install '{package_name}': {e$message}")
+      FALSE
+    }
+  )
+}
+
 #' Extract a code example from a package
 #'
 #' Attempts to extract the first example from the package's primary function
