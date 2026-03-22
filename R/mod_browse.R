@@ -140,11 +140,11 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # Description -- flex width, truncated, not sortable
-      description = reactable::colDef(
-        name = "Description",
+      # Title -- flex width, truncated, sortable
+      title = reactable::colDef(
+        name = "Title",
         minWidth = 200,
-        sortable = FALSE,
+        sortable = TRUE,
         cell = function(value) {
           if (is.na(value)) return("\u2014")
           # Truncate to ~100 characters with ellipsis
@@ -156,39 +156,28 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # Category -- badges, 140px, not sortable
+      # Category -- all badges with category-specific colours, sortable
       categories = reactable::colDef(
         name = "Category",
-        minWidth = 140,
-        sortable = FALSE,
+        minWidth = 180,
+        sortable = TRUE,
         cell = function(value) {
           if (is.na(value) || value == "na") return("\u2014")
           cats <- strsplit(value, "\\|")[[1]]
-          # Show first category as badge, "+N" if multiple
-          first_badge <- htmltools::span(
-            class = "badge-category",
-            gsub("_", " ", cats[1])
+          # Show ALL categories as separate coloured badges
+          badges <- lapply(cats, build_category_badge)
+          htmltools::tags$div(
+            class = "d-flex flex-wrap gap-1",
+            badges
           )
-          if (length(cats) > 1) {
-            htmltools::tagList(
-              first_badge,
-              htmltools::span(
-                class = "text-muted",
-                style = "margin-left: 4px; font-size: 0.8em;",
-                paste0("+", length(cats) - 1)
-              )
-            )
-          } else {
-            first_badge
-          }
         }
       ),
 
-      # License -- plain text, 100px, not sortable
+      # License -- plain text, 100px, sortable
       license = reactable::colDef(
         name = "License",
         minWidth = 100,
-        sortable = FALSE,
+        sortable = TRUE,
         cell = function(value) {
           if (is.na(value)) "\u2014" else value
         }
@@ -243,8 +232,10 @@ build_package_table <- function(data, ns) {
       ),
 
       # Hidden columns -- present in data but not displayed in table
+      description = reactable::colDef(show = FALSE),
       is_essential = reactable::colDef(show = FALSE),
       on_cran = reactable::colDef(show = FALSE),
+      has_vignettes = reactable::colDef(show = FALSE),
       maintainer = reactable::colDef(show = FALSE),
       website_url = reactable::colDef(show = FALSE),
       repo_url = reactable::colDef(show = FALSE),
@@ -255,7 +246,9 @@ build_package_table <- function(data, ns) {
       last_checked = reactable::colDef(show = FALSE),
       notes = reactable::colDef(show = FALSE),
       downloads_7d = reactable::colDef(show = FALSE),
-      downloads_365d = reactable::colDef(show = FALSE)
+      downloads_365d = reactable::colDef(show = FALSE),
+      recently_added = reactable::colDef(show = FALSE),
+      recently_updated = reactable::colDef(show = FALSE)
     ),
 
     # Table options
