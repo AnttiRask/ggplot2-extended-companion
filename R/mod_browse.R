@@ -62,11 +62,14 @@ mod_browse_server <- function(id, app_data) {
       data <- app_data()
 
       # Guard against NULL or empty data — differentiate between
-      # "data not loaded" and "no results match filters"
+      # "data not loaded" and "no results match filters".
+      # Empty-state tables use the same theme as the main table so
+      # text colour matches the current dark/light mode.
       if (is.null(data)) {
         return(reactable::reactable(
           data.frame(Message = "Package data is currently unavailable. Please try refreshing the page."),
-          columns = list(Message = reactable::colDef(align = "center"))
+          columns = list(Message = reactable::colDef(align = "center")),
+          theme = browse_theme()
         ))
       }
       if (nrow(data) == 0) {
@@ -78,7 +81,8 @@ mod_browse_server <- function(id, app_data) {
               "or clearing the search."
             )
           ),
-          columns = list(Message = reactable::colDef(align = "center"))
+          columns = list(Message = reactable::colDef(align = "center")),
+          theme = browse_theme()
         ))
       }
 
@@ -260,21 +264,31 @@ build_package_table <- function(data, ns) {
     compact = TRUE,
     defaultSorted = list(package_name = "asc"),
 
-    # Theme using inherit and neutral rgba() values so the table works
-    # in both dark and light modes without hardcoding colours
-    theme = reactable::reactableTheme(
-      color = "inherit",
+    theme = browse_theme()
+  )
+}
+
+#' Reactable theme for the browse table
+#'
+#' Uses inherit and neutral rgba() values so the table works in both
+#' dark and light modes. Shared between the main table and empty-state
+#' tables to ensure consistent text colour.
+#'
+#' @return A reactableTheme object.
+#' @noRd
+browse_theme <- function() {
+  reactable::reactableTheme(
+    color = "inherit",
+    backgroundColor = "transparent",
+    borderColor = "rgba(128, 128, 128, 0.2)",
+    headerStyle = list(borderBottomColor = "rgba(128, 128, 128, 0.3)"),
+    searchInputStyle = list(
       backgroundColor = "transparent",
-      borderColor = "rgba(128, 128, 128, 0.2)",
-      headerStyle = list(borderBottomColor = "rgba(128, 128, 128, 0.3)"),
-      searchInputStyle = list(
-        backgroundColor = "transparent",
-        color = "inherit",
-        border = "1px solid rgba(128, 128, 128, 0.3)"
-      ),
-      paginationStyle = list(color = "inherit"),
-      pageButtonHoverStyle = list(backgroundColor = "rgba(128, 128, 128, 0.1)"),
-      pageButtonActiveStyle = list(backgroundColor = "rgba(193, 39, 45, 0.2)")
-    )
+      color = "inherit",
+      border = "1px solid rgba(128, 128, 128, 0.3)"
+    ),
+    paginationStyle = list(color = "inherit"),
+    pageButtonHoverStyle = list(backgroundColor = "rgba(128, 128, 128, 0.1)"),
+    pageButtonActiveStyle = list(backgroundColor = "rgba(193, 39, 45, 0.2)")
   )
 }

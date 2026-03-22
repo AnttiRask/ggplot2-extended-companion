@@ -25,9 +25,42 @@
 
 get_category_display_names <- function() {
   # Return cached result if available
-
   if (!is.null(.category_cache$display_names)) {
     return(.category_cache$display_names)
+  }
+
+  cats <- .load_categories_csv()
+  result <- stats::setNames(cats$display_name, cats$category)
+
+  # Cache for subsequent calls
+  .category_cache$display_names <- result
+  result
+}
+
+#' Get category descriptions
+#'
+#' Returns a named character vector mapping category technical names
+#' to their descriptions. Used for tooltips on category badges.
+#'
+#' @return A named character vector: names are category IDs, values are descriptions.
+#' @noRd
+get_category_descriptions <- function() {
+  if (!is.null(.category_cache$descriptions)) {
+    return(.category_cache$descriptions)
+  }
+
+  cats <- .load_categories_csv()
+  result <- stats::setNames(cats$description, cats$category)
+
+  .category_cache$descriptions <- result
+  result
+}
+
+#' Load and cache the categories CSV file
+#' @noRd
+.load_categories_csv <- function() {
+  if (!is.null(.category_cache$raw_csv)) {
+    return(.category_cache$raw_csv)
   }
 
   # Try multiple paths to find categories.csv:
@@ -47,12 +80,9 @@ get_category_display_names <- function() {
 
   # na.strings = "" prevents R from converting the literal "NA" display
   # name into an R NA value
-  cats <- read.csv(csv_path, stringsAsFactors = FALSE, na.strings = "")
-  result <- stats::setNames(cats$display_name, cats$category)
+  result <- read.csv(csv_path, stringsAsFactors = FALSE, na.strings = "")
 
-  # Cache for subsequent calls
-  .category_cache$display_names <- result
-
+  .category_cache$raw_csv <- result
   result
 }
 
@@ -125,6 +155,7 @@ get_category_colours <- function() {
 build_category_badge <- function(category) {
   display_names <- get_category_display_names()
   colours <- get_category_colours()
+  descriptions <- get_category_descriptions()
 
   # Look up display name (fallback to technical name)
   display_name <- if (category %in% names(display_names)) {
@@ -138,6 +169,13 @@ build_category_badge <- function(category) {
     colours[[category]]
   } else {
     "#9CA3AF"
+  }
+
+  # Look up description for tooltip (fallback to NULL = no tooltip)
+  tooltip <- if (category %in% names(descriptions)) {
+    descriptions[[category]]
+  } else {
+    NULL
   }
 
   # Convert hex to RGB components for rgba() background
@@ -155,6 +193,7 @@ build_category_badge <- function(category) {
       ),
       r, g, b, colour, r, g, b
     ),
+    title = tooltip,
     display_name
   )
 }
