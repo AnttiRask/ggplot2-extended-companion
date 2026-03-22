@@ -30,11 +30,19 @@ get_category_display_names <- function() {
     return(.category_cache$display_names)
   }
 
-  csv_path <- app_sys("../data-raw/categories.csv")
+  # Try multiple paths to find categories.csv:
+  # 1. Installed package location (works during R CMD check and deployed app)
+  # 2. data-raw/ in project root (works during development with pkgload)
+  # 3. Golem app_sys fallback
+  csv_path <- system.file("extdata", "categories.csv",
+                           package = "ggplot2.extended.companion")
 
-  # Fallback: try project root (for tests and non-golem contexts)
-  if (!file.exists(csv_path)) {
+  if (csv_path == "") {
     csv_path <- "data-raw/categories.csv"
+  }
+
+  if (!file.exists(csv_path)) {
+    csv_path <- app_sys("../data-raw/categories.csv")
   }
 
   # na.strings = "" prevents R from converting the literal "NA" display
