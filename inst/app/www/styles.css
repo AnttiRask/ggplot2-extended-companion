@@ -49,22 +49,16 @@
 
 /* ---------------------------------------------------------------------------
  * Category badges (pill-shaped)
+ * Category-specific colours are applied via inline styles from
+ * build_category_badge() in R/fct_categories.R. This base rule provides
+ * the pill shape and sizing; inline styles set background, colour, border.
  * --------------------------------------------------------------------------- */
 .badge-category {
-  background-color: #C1272D;
-  color: #FFFFFF;
   border-radius: 50rem;
   padding: 0.25em 0.75em;
   font-size: 0.8rem;
   font-weight: 500;
-}
-
-/* Dark mode: tone down badge to avoid overpowering package name links.
- * Uses semi-transparent background so the badge recedes behind the name. */
-[data-bs-theme="dark"] .badge-category {
-  background-color: rgba(193, 39, 45, 0.25);
-  color: #E8494F;
-  border: 1px solid rgba(193, 39, 45, 0.4);
+  display: inline-block;
 }
 
 /* ---------------------------------------------------------------------------
@@ -209,7 +203,7 @@ footer {
 }
 
 /* ---------------------------------------------------------------------------
- * Reactable search input — dark mode compatible
+ * Reactable search input — dark and light mode
  * --------------------------------------------------------------------------- */
 [data-bs-theme="dark"] .rt-search {
   background-color: #2a2a2e;
@@ -217,16 +211,41 @@ footer {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* ---------------------------------------------------------------------------
- * Accordion header styling — subtle for collapsed state
- * --------------------------------------------------------------------------- */
-.accordion-button {
-  font-size: 0.95rem;
+[data-bs-theme="light"] .rt-search {
+  background-color: #FFFFFF;
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 /* ---------------------------------------------------------------------------
- * Sidebar — ensure consistent dark mode
+ * Light mode body — ensure white background, not grey
+ * --------------------------------------------------------------------------- */
+[data-bs-theme="light"] body {
+  background-color: #FFFFFF;
+  color: #1a1a1a;
+}
+
+/* ---------------------------------------------------------------------------
+ * Light mode value boxes — ensure readable in both modes
+ * --------------------------------------------------------------------------- */
+[data-bs-theme="light"] .bslib-value-box {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ---------------------------------------------------------------------------
+ * Light mode table striped rows and hover
+ * --------------------------------------------------------------------------- */
+[data-bs-theme="light"] .rt-table .rt-tr-striped {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* ---------------------------------------------------------------------------
+ * Sidebar — consistent in both modes
  * --------------------------------------------------------------------------- */
 [data-bs-theme="dark"] .bslib-sidebar-layout > .sidebar {
   border-right-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="light"] .bslib-sidebar-layout > .sidebar {
+  border-right-color: rgba(0, 0, 0, 0.1);
 }
