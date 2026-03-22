@@ -64,7 +64,7 @@ mod_footer_ui <- function(id) {
         class = "text-muted small",
         "Machine-readable data: ",
         htmltools::tags$a(
-          href = "data/packages.json",
+          href = "www/data/packages.json",
           target = "_blank",
           "packages.json"
         )

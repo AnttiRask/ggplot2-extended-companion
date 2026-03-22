@@ -171,19 +171,19 @@ build_nav_bar <- function(ns, current_pkg, all_pkgs, suffix = "top") {
       class = "btn btn-back"
     ),
 
-    # Prev button
+    # Prev button (same red styling as back button)
     shiny::actionButton(
       ns(paste0("prev_btn_", suffix)),
       label = htmltools::tagList(htmltools::HTML("&larr;"), " Prev"),
-      class = paste("btn btn-outline-secondary", if (is_first) "disabled" else ""),
+      class = paste("btn btn-back", if (is_first) "disabled" else ""),
       disabled = if (is_first) NA else NULL
     ),
 
-    # Next button
+    # Next button (same red styling as back button)
     shiny::actionButton(
       ns(paste0("next_btn_", suffix)),
       label = htmltools::tagList("Next ", htmltools::HTML("&rarr;")),
-      class = paste("btn btn-outline-secondary", if (is_last) "disabled" else ""),
+      class = paste("btn btn-back", if (is_last) "disabled" else ""),
       disabled = if (is_last) NA else NULL
     )
   )

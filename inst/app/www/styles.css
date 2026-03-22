@@ -173,22 +173,34 @@ pre code {
 }
 
 /* ---------------------------------------------------------------------------
- * Code example block styling — dark background for contrast
+ * Code example block styling — explicit text and background colours
+ * for both modes. Without explicit color, text can be black-on-dark-blue
+ * or white-on-light-grey depending on inherited styles.
  * --------------------------------------------------------------------------- */
 [data-bs-theme="dark"] pre {
   background-color: #1a1a2e;
+  color: #e4e4e7;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.375rem;
   padding: 1rem;
   overflow-x: auto;
 }
 
+[data-bs-theme="dark"] pre code {
+  color: #e4e4e7;
+}
+
 [data-bs-theme="light"] pre {
   background-color: #f8f9fa;
+  color: #1a1a1a;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 0.375rem;
   padding: 1rem;
   overflow-x: auto;
+}
+
+[data-bs-theme="light"] pre code {
+  color: #1a1a1a;
 }
 
 /* ---------------------------------------------------------------------------
@@ -221,15 +233,30 @@ footer {
  * Light mode body — ensure white background, not grey
  * --------------------------------------------------------------------------- */
 [data-bs-theme="light"] body {
-  background-color: #FFFFFF;
+  background-color: #FFFFFF !important;
   color: #1a1a1a;
 }
 
 /* ---------------------------------------------------------------------------
- * Light mode value boxes — ensure readable in both modes
+ * Light mode — ensure main content area has white background
+ * --------------------------------------------------------------------------- */
+[data-bs-theme="light"] .bslib-page-sidebar .main {
+  background-color: #FFFFFF !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Light mode muted text — darker for readability on white
+ * --------------------------------------------------------------------------- */
+[data-bs-theme="light"] .text-muted {
+  color: #6b7280 !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Light mode value boxes — ensure readable with proper borders
  * --------------------------------------------------------------------------- */
 [data-bs-theme="light"] .bslib-value-box {
   border-color: rgba(0, 0, 0, 0.1);
+  background-color: #FFFFFF;
 }
 
 /* ---------------------------------------------------------------------------

@@ -63,6 +63,18 @@ parse_cran_response <- function(package_name, response) {
   # Detect vignettes: pkgsearch includes a vignettes field when available
   has_vignettes <- !is.null(response$vignettes) && length(response$vignettes) > 0
 
+  # Published date: prefer response$Published, fall back to response$date
+  # (pkgsearch sometimes returns an empty string for Published while
+  # the date field has the correct ISO 8601 timestamp)
+  published_raw <- response$Published %||% ""
+  if (published_raw == "") {
+    published_raw <- response$date %||% NA_character_
+  }
+  cran_published <- tryCatch(
+    as.Date(published_raw),
+    error = function(e) as.Date(NA)
+  )
+
   tibble::tibble(
     package_name   = package_name,
     title          = response$Title %||% NA_character_,
@@ -70,7 +82,7 @@ parse_cran_response <- function(package_name, response) {
     maintainer     = maintainer,
     license        = response$License %||% NA_character_,
     cran_version   = response$Version %||% NA_character_,
-    cran_published = as.Date(response$Published %||% NA_character_),
+    cran_published = cran_published,
     on_cran        = TRUE,
     has_vignettes  = has_vignettes
   )
