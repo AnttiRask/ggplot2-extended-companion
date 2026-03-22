@@ -57,6 +57,16 @@ jobs:
           RENDER_EXAMPLES: 'true'
         run: Rscript -e 'targets::tar_make()'
 
+      # Save examples data so the daily pipeline can restore it.
+      # Uses the same cache key as pipeline.yml's "Cache examples data" step.
+      - name: Cache examples data
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/examples.parquet
+            inst/app/www/examples/
+          key: examples-data-${{ hashFiles('data-raw/packages_curated.csv') }}
+
       - name: Authenticate to Google Cloud
         if: env.HAS_GCP == 'true'
         uses: google-github-actions/auth@v2

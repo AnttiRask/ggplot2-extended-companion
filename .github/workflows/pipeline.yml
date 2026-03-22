@@ -69,6 +69,20 @@ jobs:
           restore-keys: |
             targets-${{ hashFiles('data-raw/packages_curated.csv') }}-
 
+      # Restore examples data produced by the weekly examples pipeline.
+      # The daily pipeline skips example rendering (RENDER_EXAMPLES not set),
+      # but the Docker image needs examples.parquet and PNGs to display
+      # code examples in the detail view.
+      - name: Cache examples data
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/examples.parquet
+            inst/app/www/examples/
+          key: examples-data-${{ hashFiles('data-raw/packages_curated.csv') }}
+          restore-keys: |
+            examples-data-
+
       - name: Run targets pipeline
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
