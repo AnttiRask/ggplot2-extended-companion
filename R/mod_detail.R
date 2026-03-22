@@ -251,10 +251,9 @@ build_header_card <- function(pkg) {
       # Category badges with colours
       htmltools::tags$div(class = "d-flex flex-wrap gap-1 mb-2", cat_badges),
 
-      # License
+      # License (same colour as other text in the card)
       if (!is.na(pkg$license)) {
         htmltools::tags$p(
-          class = "text-muted",
           htmltools::tags$strong("License: "),
           pkg$license
         )
@@ -449,14 +448,14 @@ build_example_card <- function(example) {
       "\U0001F4CB Copy to clipboard"
     ),
 
-    # Syntax-highlighted code block (includes install/library preamble)
-    htmltools::tags$pre(
-      htmltools::tags$code(
-        id = code_id,
-        class = "language-r",
-        display_code
-      )
-    )
+    # Syntax-highlighted code block (includes install/library preamble).
+    # Use HTML() to prevent htmltools from auto-indenting inside <pre>,
+    # which would add unwanted leading whitespace to every line.
+    htmltools::HTML(sprintf(
+      '<pre><code id="%s" class="language-r">%s</code></pre>',
+      code_id,
+      htmltools::htmlEscape(display_code)
+    ))
   )
 
   # Image (if render succeeded)

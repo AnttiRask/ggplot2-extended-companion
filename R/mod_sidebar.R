@@ -25,13 +25,15 @@
 mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0)) {
   ns <- shiny::NS(id)
 
-  # Build category choices using display names
+  # Build category choices using display names.
+  # selectInput needs c("Label" = "value") — names are shown, values returned.
+  # So we need c("Animation" = "animation", "Geoms" = "geoms", ...)
   display_names <- get_category_display_names()
-  # Filter to only categories present in the data, then sort by display name
   available <- categories[categories %in% names(display_names)]
-  sorted_display <- sort(display_names[available])
-  # Named vector: display name shown to user, technical name as value
-  category_choices <- c("All" = "All", sorted_display)
+  # Create named vector: display name as name (shown), technical name as value (returned)
+  tech_to_display <- display_names[available]
+  display_to_tech <- stats::setNames(names(tech_to_display), unname(tech_to_display))
+  category_choices <- c("All" = "All", sort(display_to_tech))
 
   # Build license choices: "All" + sorted unique licenses
   license_choices <- c("All", sort(licenses))
