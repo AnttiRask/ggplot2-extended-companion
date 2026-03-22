@@ -140,6 +140,22 @@ pre code {
 }
 
 /* ---------------------------------------------------------------------------
+ * Back button — red border with red hover state
+ * --------------------------------------------------------------------------- */
+.btn-back {
+  color: inherit;
+  background-color: transparent;
+  border: 1px solid #C1272D;
+  border-radius: 0.375rem;
+}
+
+.btn-back:hover {
+  background-color: #C1272D;
+  border-color: #C1272D;
+  color: #FFFFFF;
+}
+
+/* ---------------------------------------------------------------------------
  * Light mode overrides
  * --------------------------------------------------------------------------- */
 [data-bs-theme="light"] .card {

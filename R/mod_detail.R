@@ -118,21 +118,21 @@ build_back_button <- function(ns) {
     label = htmltools::tagList(
       htmltools::HTML("&larr;"), " Back to all packages"
     ),
-    class = "btn btn-outline-secondary mb-3"
+    class = "btn btn-back mb-3"
   )
 }
 
 #' Build the package header card
+#'
+#' Shows package name as heading, title as lead subtitle, full description
+#' as body paragraph, maintainer, category badges with colours, and license.
 #' @noRd
 build_header_card <- function(pkg) {
-  # Category badges (all categories, not just first)
+  # Category badges with category-specific colours
   cats <- strsplit(pkg$categories, "\\|")[[1]]
   cat_badges <- lapply(cats, function(cat) {
     if (cat == "na") return(NULL)
-    htmltools::span(
-      class = "badge-category me-1",
-      gsub("_", " ", cat)
-    )
+    build_category_badge(cat)
   })
 
   # Essential badge
@@ -143,6 +143,22 @@ build_header_card <- function(pkg) {
     )
   }
 
+  # Title (short one-liner from CRAN Title field)
+  title_text <- if ("title" %in% names(pkg) && !is.na(pkg$title)) {
+    pkg$title
+  } else if (!is.na(pkg$description)) {
+    # Fallback for data without separate title field
+    pkg$description
+  } else {
+    "No title available."
+  }
+
+  # Description (longer paragraph from CRAN Description field)
+  desc_block <- if ("description" %in% names(pkg) && !is.na(pkg$description) &&
+                     "title" %in% names(pkg)) {
+    htmltools::tags$p(pkg$description)
+  }
+
   bslib::card(
     bslib::card_body(
       # Package name heading
@@ -151,11 +167,11 @@ build_header_card <- function(pkg) {
         essential_badge
       ),
 
-      # Full description
-      htmltools::tags$p(
-        class = "lead",
-        if (is.na(pkg$description)) "No description available." else pkg$description
-      ),
+      # Title as lead subtitle
+      htmltools::tags$p(class = "lead", title_text),
+
+      # Full description as body text
+      desc_block,
 
       # Maintainer
       if (!is.na(pkg$maintainer)) {
@@ -165,8 +181,8 @@ build_header_card <- function(pkg) {
         )
       },
 
-      # Category badges
-      htmltools::tags$div(class = "mb-2", cat_badges),
+      # Category badges with colours
+      htmltools::tags$div(class = "d-flex flex-wrap gap-1 mb-2", cat_badges),
 
       # License
       if (!is.na(pkg$license)) {
@@ -193,7 +209,7 @@ build_links_card <- function(pkg) {
     links <- c(links, list(make_link_button("Website", pkg$website_url, "\U0001F310")))
   }
   if (!is.na(pkg$repo_url)) {
-    links <- c(links, list(make_link_button("GitHub/GitLab", pkg$repo_url, "\U0001F4BB")))
+    links <- c(links, list(make_link_button("Repo (GitHub, etc.)", pkg$repo_url, "\U0001F4BB")))
   }
   if (!is.na(pkg$cran_url)) {
     links <- c(links, list(make_link_button("CRAN", pkg$cran_url, "\U0001F4E6")))
@@ -247,25 +263,21 @@ build_downloads_card <- function(pkg) {
         bslib::value_box(
           title = "Last 7 days",
           value = format_dl(pkg$downloads_7d),
-          showcase = htmltools::tags$span("\U0001F4C8"),
           theme = "primary"
         ),
         bslib::value_box(
           title = "Last 30 days",
           value = format_dl(pkg$downloads_30d),
-          showcase = htmltools::tags$span("\U0001F4C8"),
           theme = "primary"
         ),
         bslib::value_box(
           title = "Last 365 days",
           value = format_dl(pkg$downloads_365d),
-          showcase = htmltools::tags$span("\U0001F4C8"),
           theme = "primary"
         ),
         bslib::value_box(
-          title = "All time (since 2015)",
+          title = "Since 2015",
           value = format_dl(pkg$downloads_all),
-          showcase = htmltools::tags$span("\U0001F4C8"),
           theme = "primary"
         )
       )

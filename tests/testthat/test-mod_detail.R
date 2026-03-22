@@ -11,11 +11,13 @@
 # Helper: create a one-row test package data frame
 make_test_pkg <- function(
   package_name = "ggrepel",
-  description = "Text labels for ggplot2",
+  title = "Automatically Position Non-Overlapping Text Labels with ggplot2",
+  description = "Provides geoms for ggplot2 to repel overlapping text labels.",
   maintainer = "Kamil Slowikowski",
   categories = "annotations",
   is_essential = TRUE,
   on_cran = TRUE,
+  has_vignettes = TRUE,
   license = "GPL-3",
   cran_version = "0.9.6",
   cran_published = as.Date("2024-09-07"),
@@ -32,7 +34,9 @@ make_test_pkg <- function(
 ) {
   data.frame(
     package_name = package_name,
+    title = title,
     description = description,
+    has_vignettes = has_vignettes,
     maintainer = maintainer,
     categories = categories,
     is_essential = is_essential,
@@ -56,14 +60,14 @@ make_test_pkg <- function(
 
 # --- build_header_card() ----------------------------------------------------
 
-test_that("build_header_card includes package name and description", {
+test_that("build_header_card includes package name and title", {
   pkg <- make_test_pkg()
 
   result <- build_header_card(pkg)
   html <- as.character(result)
 
   expect_true(grepl("ggrepel", html))
-  expect_true(grepl("Text labels", html))
+  expect_true(grepl("Non-Overlapping Text Labels", html))
 })
 
 test_that("build_header_card shows essential badge when is_essential is TRUE", {
@@ -90,18 +94,32 @@ test_that("build_header_card shows all category badges for multi-category packag
   result <- build_header_card(pkg)
   html <- as.character(result)
 
-  expect_true(grepl("geoms", html))
-  expect_true(grepl("stats", html))
-  expect_true(grepl("themes", html))
+  # Category badges use display names (capitalized)
+  expect_true(grepl("Geoms", html))
+  expect_true(grepl("Stats", html))
+  expect_true(grepl("Themes", html))
 })
 
-test_that("build_header_card handles NA description", {
-  pkg <- make_test_pkg(description = NA)
+test_that("build_header_card handles NA title and description", {
+  pkg <- make_test_pkg(title = NA, description = NA)
 
   result <- build_header_card(pkg)
   html <- as.character(result)
 
-  expect_true(grepl("No description available", html))
+  expect_true(grepl("No title available", html))
+})
+
+test_that("build_header_card shows title as lead and description as body", {
+  pkg <- make_test_pkg(
+    title = "My Package Title",
+    description = "A longer description of the package."
+  )
+
+  result <- build_header_card(pkg)
+  html <- as.character(result)
+
+  expect_true(grepl("My Package Title", html))
+  expect_true(grepl("A longer description", html))
 })
 
 # --- build_links_card() -----------------------------------------------------
