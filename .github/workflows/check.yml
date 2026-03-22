@@ -71,17 +71,20 @@ jobs:
             if (!requireNamespace("pkgload", quietly = TRUE)) install.packages("pkgload")
           '
 
+      - name: Set renv library on R_LIBS_USER
+        run: |
+          Rscript -e '
+            lib <- renv::paths$library()
+            cat("R_LIBS_USER=", lib, "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
+          '
+
       - name: R CMD check
         run: |
           Rscript -e '
-            # Add the renv library to .libPaths so R CMD check can find
-            # Suggests packages (ggplot2, testthat, targets, withr)
-            lib <- renv::paths$library()
             rcmdcheck::rcmdcheck(
               args = c("--no-manual", "--as-cran"),
               error_on = "warning",
-              check_dir = "check",
-              libpath = c(lib, .libPaths())
+              check_dir = "check"
             )
           '
 
