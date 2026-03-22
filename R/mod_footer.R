@@ -31,7 +31,7 @@ mod_footer_ui <- function(id) {
         class = "text-muted small",
         "If you have concerns about information presented on this site",
         "(licensing, metadata accuracy, etc.), please reach out via email at",
-        htmltools::tags$a(href = "mailto:antti@youcanbeapirate.com", "antti@youcanbeapirate.com"),
+        htmltools::tags$a(href = "mailto:anttilennartrask@gmail.com", "anttilennartrask@gmail.com"),
         "to have it corrected or removed."
       ),
 
@@ -48,19 +48,14 @@ mod_footer_ui <- function(id) {
         "."
       ),
 
-      # Links
+      # Book link
       htmltools::tags$p(
         class = "text-muted small",
+        "Check out the book (in progress): ",
         htmltools::tags$a(
-          href = "https://exts.ggplot2.tidyverse.org/",
+          href = "https://ggplot2-extended-book.com/",
           target = "_blank",
-          "ggplot2 extensions gallery"
-        ),
-        " | ",
-        htmltools::tags$a(
-          href = "https://youcanbeapirate.com",
-          target = "_blank",
-          "youcanbeapirate.com"
+          "ggplot2 extended"
         )
       ),
 
@@ -83,8 +78,7 @@ mod_footer_ui <- function(id) {
           href = "https://youcanbeapirate.com",
           target = "_blank",
           "Antti Rask"
-        ),
-        " | youcanbeapirate.com"
+        )
       )
     )
   )
