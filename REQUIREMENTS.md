@@ -1,235 +1,261 @@
 # REQUIREMENTS.md
-## ggplot2 Extended Companion App
+## ggplot2 extended (companion) — Production Fix & Polish Round
 
 ### 1. Overview
-- **Purpose**: An R Shiny web application that serves as the most comprehensive, searchable directory of ggplot2 extension packages. It is a companion to the [ggplot2 extended book](https://ggplot2-extended-book.com/), replacing a manually maintained [Notion database](https://youcanbeapirate.notion.site/7d7e8ac88bfb4f1b88118c01b82850eb?v=15a163223ec843dfb0040f6a234754ee&pvs=74) with an automated, polished web app. The app helps ggplot2 users discover extension packages from a curated database of ~455 packages, with daily-refreshed metadata and download statistics.
-- **Target Users**:
-  - **Primary**: Intermediate-to-advanced ggplot2 users looking to discover and evaluate extension packages
-  - **Secondary**: Beginners (guided by curated "Essential Extensions" filtering), package authors seeking visibility, educators looking for a resource to point students to, and AI agents consuming structured data
-- **Success Criteria**:
-  - Users discover new ggplot2 extension packages through the app
-  - Maintainer spends minimal time on weekly maintenance (target: under 30 minutes/week)
-  - The app is recognised as the most complete directory of ggplot2 extensions
+- **Purpose**: This document captures the bugs, spec corrections, and feature additions needed to bring the ggplot2 extended (companion) Shiny app from its current state to a polished, correct release. The app is a searchable, filterable directory of ~455 ggplot2 extension packages with daily-refreshed metadata, download statistics, and pre-rendered code examples. These requirements address issues discovered during production use and stakeholder review.
+- **Target Users**: R developers and data analysts who use ggplot2 and want to discover extension packages that enhance their plots.
+- **Success Criteria**: All must-have items resolved. Dark/light mode works consistently across all views. Data displays correctly (Title vs. Description). Filters (including sort) are fully functional. The app looks and feels correct in both color modes.
+- **Context**: The app is already built and deployed. This is a bug-fix and polish round, not a greenfield build. The existing SPEC.md remains the source of truth for overall architecture — this document captures **corrections to the spec** and **new requirements** discovered during production review.
 
 ### 2. Functional Requirements
 
-#### 2.1 Package Discovery & Browsing
-- **Search bar** (must-have): Search by package name. Searching by description, author, and tags is a stretch goal.
-- **Filtering** (must-have):
-  - By category (single category at a time; multi-category filtering is a stretch goal)
-  - By CRAN status (on CRAN or not)
-  - By license
-  - By "Essential Extensions" tag (curated subset for beginners)
-- **Sorting** (must-have):
-  - Alphabetical by package name
-  - Alphabetical by creator/maintainer name
-  - By download count
-  - By CRAN latest version published date
-  - By GitHub last update date
-- **Sorting** (nice-to-have):
-  - By "recently added to the app" date
-- **Main browsing view**: A searchable, filterable, sortable table
-- **Design reference**: [r-packages.io](https://r-packages.io/packages) for general functionality inspiration
+#### 2.1 App Title
+- **Requirement**: Rename the app from "ggplot2 Extended Companion" to **"ggplot2 extended (companion)"** everywhere it appears — header, meta tags, page title, any internal references.
+- **Priority**: Must-have
 
-#### 2.2 Package Detail View
-Accessed by clicking a package in the table. Displays all available metadata:
+#### 2.2 Recently Added / Recently Updated → Filter Checkboxes
+- **Current behavior**: Two separate cards above the main table showing lists of recently added and recently updated packages.
+- **Required behavior**:
+  - Remove the Recently Added and Recently Updated cards entirely.
+  - Add two **checkbox filters** to the sidebar: "Recently Added" and "Recently Updated".
+  - A package is flagged as `recently_added` if its `date_added` is within the past 7 days.
+  - A package is flagged as `recently_updated` if `max(cran_published, github_updated)` is within the past 7 days.
+  - These checkboxes are **stackable** with all other sidebar filters (category, CRAN status, license, essential).
+  - When checked, the table shows only packages matching the flag. Both can be checked simultaneously. **Open question for developer**: Confirm whether AND or OR logic is more useful when both are checked. Stakeholder preference: whichever is more practical.
+- **Layout impact**: The main table moves up to occupy the space previously held by the Recently Added/Updated cards.
+- **Priority**: Must-have
 
-| Field | Source | Also in Table? |
-|---|---|---|
-| Name | CRAN / GitHub | Yes |
-| Short Description | CRAN (preferred), GitHub/similar (fallback) | Yes (excerpt) |
-| Creator/Maintainer Name | CRAN / GitHub (to be added) | No |
-| Website URL | Automated where predictable; manual otherwise | No |
-| GitHub/GitLab Repo URL | Manual / automated | No |
-| CRAN URL | Automated | No |
-| Reference Manual(s) URL | Automated where predictable | No |
-| Vignette(s) URL | Automated where predictable (single or directory) | No |
-| CRAN Downloads (7 days) | cranlogs API | No |
-| CRAN Downloads (30 days) | cranlogs API | Yes |
-| CRAN Downloads (365 days) | cranlogs API | No |
-| CRAN Downloads (all time, 2015–present) | cranlogs API | Yes |
-| Latest Version (CRAN) | CRAN metadata | Yes |
-| Category | Manual with auto-suggestion | Yes |
-| License | CRAN metadata | Yes |
-| Latest Version Published (CRAN) | CRAN metadata | Yes |
-| Last Update (GitHub) | GitHub API | Yes |
-| Runnable code example | Pulled from package documentation | No |
+#### 2.3 "What are ggplot2 extensions?" Section
+- **Current behavior**: Collapsible `bslib::accordion()` panel, collapsed by default.
+- **Required behavior**:
+  - Convert to **plain text** — always visible, no accordion, no collapsible behavior.
+  - Update the links within the section:
+    - "ggplot2 extensions gallery" → **"ggplot2 extended (the book)"** with a link to https://ggplot2-extended-book.com/.
+    - Keep the **"ggplot2 documentation"** link.
+  - The section should remain understated — informative for newcomers, unobtrusive for regulars.
+- **Priority**: Must-have
 
-- **Future additions (not in v1)**:
-  - Short editorial description or "Note from the package author"
-  - Related packages ("if you like this, you might also like...") — feasibility to be evaluated by Solution Architect
+#### 2.4 Sidebar Fixes
+- **Category dropdown**: Display **`display_name`** values (e.g., "Arranging Plots") instead of technical names (e.g., "arranging_plots").
+- **Essential checkbox label**: Change "Essential Extensions only" to **"Essential Extensions Only"** (capitalize the O).
+- **Sort by dropdown**: Currently non-functional. **Must be investigated** — determine whether this is a wiring bug or an unbuilt feature, then fix/build it so it works as specified in SPEC.md §5.3.
+- **Padding/margins**: Reduce sidebar padding/margins so the "Suggest a Package" button is visible without scrolling on a typical desktop viewport.
+- **Suggest a Package button**: Keep visible but **disabled** with a **"Coming soon" tooltip**. The Google Form has not been created yet.
+- **Priority**: All must-have except padding reduction (should-have)
 
-#### 2.3 Download Statistics
-- **Time windows** (all sliding): Past 7 days, past 30 days, past 365 days, all time (2015–present)
-- **Table columns**: Past 30 days and all time
-- **Detail page**: All four time windows
-- **Trend visualisation** (nice-to-have): Line chart of downloads over time on the detail page
-- **No ranking display** — users sort the table by download count instead
+#### 2.5 Main Table Changes
 
-#### 2.4 Package Submission
-- **Mechanism**: Link from the app to a Google Form (more robust in-app solution is a future consideration if volume demands it)
-- **Submission fields**: Package name, link (CRAN/GitHub/pkgdown/etc.), optional category suggestion
-- **Review process**: Maintainer personally reviews and adds packages. Email notification via Google Forms. No public "pending" status in v1.
+##### 2.5.1 Title vs. Description (Data Correction)
+- **Current behavior**: The "Description" column shows the CRAN **Title** field (a short one-liner like "Animated Interactive Grammar of Graphics"), mislabeled as "Description".
+- **Required behavior**:
+  - Rename the table column from "Description" to **"Title"**.
+  - The data source for this column should be the CRAN **Title** field (which is what is currently being displayed — the label is wrong, not the data).
+  - In the **Package Detail view**, show:
+    - **Title** as a subtitle directly under the package name.
+    - **Description** (the longer CRAN Description field) as a paragraph below the Title.
+  - This may require fetching the CRAN Description field in the pipeline if it is not already being captured.
+- **Priority**: Must-have
 
-#### 2.5 Data Refresh
-- **Frequency**: Daily scheduled job
-- **Trigger**: Automated schedule (stakeholder preference: GitHub Actions), plus a manual trigger for when new packages are added
-- **Automated data sources**:
-  - CRAN metadata (versions, descriptions, license, published date)
-  - cranlogs API (download counts)
-  - GitHub/GitLab API (last update, repo info)
-  - Predictable URL patterns (reference manuals, vignettes, some website URLs)
-- **Semi-automated**:
-  - Category assignment: Auto-suggestion based on package description, with maintainer's manual approval
-  - Audit of all existing categorisations for missed or incorrect tags (one-time task during build)
-- **Manual (deferred to v2)**: Non-predictable website URLs, vignette links that don't follow standard patterns
-- **Pipeline**: Unified new pipeline. Borrow needed functionality from existing repos ([CRAN-package-info](https://github.com/AnttiRask/CRAN-package-info) and [CRAN-package-downloads](https://github.com/AnttiRask/CRAN-package-downloads)) but do not merge or deprecate them.
+##### 2.5.2 Category Display
+- **Current behavior**: Shows the first category plus "+N" for packages with multiple categories (e.g., "animation +1").
+- **Required behavior**: Show **all categories** as separate badges. Since Title and other fields already allow multi-line rows, multiple category badges can wrap to additional lines within the cell.
+- **Category names**: Use **`display_name`** values, not technical names (consistent with sidebar fix in §2.4).
+- **Category-specific colors**: Each of the 19 categories should have a **distinct badge color**. The color palette should:
+  - Work well in both dark and light modes.
+  - Be proposed by the designer/developer (no specific palette mandated by stakeholder).
+- **Priority**: Must-have (display all categories + display names). Category-specific colors: must-have.
 
-#### 2.6 Recently Added / Recently Updated
-- A simple list (last 10 each) for both recently added packages and recently updated packages (on CRAN or GitHub)
-- Must-have for v1
+##### 2.5.3 Table Position
+- The main table should occupy the space previously held by the Recently Added/Updated cards (i.e., higher up in the layout). See §2.2.
+- **Priority**: Must-have
 
-#### 2.7 Introductory / Onboarding Content
-- Brief introductory text explaining what ggplot2 extensions are
-- May be drawn from the book — natural cross-over opportunity
-- Links to the book and other resources (details deferred to after v1 is functional)
+#### 2.6 Package Detail View Fixes
 
-#### 2.8 Disclaimer
-- The app must include a disclaimer text stating that if anyone has concerns about information presented on the site (licensing, metadata accuracy, etc.), they can reach out via email to have it corrected or removed.
+##### 2.6.1 Link Labels
+- **Current**: "GitHub/GitLab" label for the repository link.
+- **Required**: Change to **"Repo (GitHub, etc.)"**.
+- **Priority**: Must-have
+
+##### 2.6.2 Vignettes Link
+- **Current behavior**: May show even when no vignettes exist.
+- **Required behavior**: **Hide the vignettes link entirely** when the package has no vignettes. This is consistent with the existing pattern where unavailable links are hidden (not greyed out), as specified in SPEC.md §5.4.
+- **Implementation note**: This requires a way to check whether vignettes actually exist for a given package. The developer should investigate the best approach (e.g., checking the CRAN page, using the `tools` package, or checking the constructed vignettes URL for a 404).
+- **Priority**: Must-have
+
+##### 2.6.3 Download Statistics Cards
+- Remove the **graph emoji** from the download statistics value boxes.
+- Rename **"All time (since 2015)"** to **"Since 2015"**.
+- **Priority**: Must-have
+
+##### 2.6.4 Back Button Styling
+- The "← Back to all packages" button should have a **red border** and turn **red on hover/active** state (using the app's primary accent color `#C1272D`).
+- **Priority**: Should-have
+
+##### 2.6.5 Title and Description Layout
+- Show the CRAN **Title** as a subtitle directly under the package name (h2 heading).
+- Show the CRAN **Description** as a full paragraph below the Title.
+- See §2.5.1 for data source details.
+- **Priority**: Must-have
+
+#### 2.7 Dark/Light Mode Consistency
+- **Current behavior**: Color mode breaks when navigating between browse view and detail view. Light mode shows dark-styled boxes in the detail view. Dark mode shows white boxes in the detail view.
+- **Required behavior**: The selected color mode (dark or light) must **persist consistently** across all views — browse, detail, sidebar, header, footer. No elements should render in the wrong mode.
+- **Additional light mode issues**:
+  - Search box renders in dark mode styling regardless of the active mode. Must respect the current color mode.
+  - Background color should be **white (`#FFFFFF`)**, not gray. Text color adjusted accordingly (per SPEC.md §7: foreground light is `#1a1a1a`).
+- **Priority**: Must-have
+
+#### 2.8 Footer Updates
+- **Current footer content** needs the following changes:
+  - **Email address**: Change from `antti@youcanbeapirate.com` to **`anttilennartrask@gmail.com`** (as a clickable mailto link).
+  - **Remove**: "ggplot2 extensions gallery | youcanbeapirate.com" line.
+  - **Add**: "Check out the book (in progress): **ggplot2 extended**" — link to https://ggplot2-extended-book.com/.
+  - **Keep** (with proper links):
+    - "Package data last updated: {timestamp}"
+    - Disclaimer with updated email
+    - "Know a ggplot2 extension we're missing? Submit it here." — already disabled with tooltip, no change needed.
+    - "Machine-readable data: packages.json" [LINK]
+    - "Created by Antti Rask | youcanbeapirate.com" [LINK]
+- **Priority**: Must-have
+
+#### 2.9 Shareable Package Links
+- **Requirement**: When a user is viewing a package detail page, the browser URL should update to include the package name (e.g., `?package=ggrepel` or a hash-based route like `#package/ggrepel`), so the URL can be shared and will open directly to that package's detail view.
+- **Note**: The current SPEC.md (§5.1) says "no URL routing in v1". This is a change from the spec.
+- **Priority**: Should-have
+
+#### 2.10 Navigation Arrows Between Packages
+- **Requirement**: In the package detail view, provide **next/previous navigation arrows** to move between packages. Navigation order should follow the current sort order of the table (e.g., if sorted alphabetically, arrows move to the next/previous package alphabetically).
+- **Priority**: Should-have
+
+#### 2.11 Code Example Enhancements
+- **Requirement**: Prepend the necessary `install.packages()` and `library()` calls at the beginning of each code example, so users can copy the full snippet and run it without manually installing dependencies.
+- **Feasibility check needed**: The developer should assess whether this is straightforward (the package name is known; `install.packages()` is simple) or whether dependency detection adds complexity.
+- **Priority**: Should-have (if feasible)
 
 ### 3. Data Model
 
-- **Package attributes**: See full field list in Section 2.2
-- **Creator/maintainer name**: To be added (not currently in Notion database). Automatable from CRAN or GitHub metadata.
-- **"Last Checked" field**: Internal/maintenance only, not user-facing
-- **"Essential Extensions" tag**: Manually curated boolean flag for beginner-friendly packages
+#### 3.1 Changes to Package Entity
+- **Add field**: `title` (character) — sourced from the CRAN **Title** field. This is the short one-liner. Currently this data may already be captured but mislabeled as `description`.
+- **Clarify field**: `description` (character) — should contain the CRAN **Description** field (the longer paragraph). If this is not currently being fetched, it needs to be added to the pipeline.
+- **Add flags**: `recently_added` (logical) and `recently_updated` (logical) — derived fields, computed as:
+  - `recently_added`: `date_added` is within the past 7 days.
+  - `recently_updated`: `max(cran_published, github_updated)` is within the past 7 days.
+- **Add field (if not present)**: `has_vignettes` (logical) — to support conditional display of the vignettes link in the detail view.
 
-- **Data sources**:
-  - CRAN metadata API (descriptions, versions, license, published date, maintainer)
-  - cranlogs API (download counts across time windows)
-  - GitHub/GitLab API (last update, repo info)
-  - Manual curation (categories, essential extensions tag, non-standard URLs)
-  - Package documentation (code examples for runnable snippets)
-
-- **Storage**: Stakeholder preference is Turso (existing experience). Solution Architect to evaluate fit or recommend alternatives.
-
-- **Refresh pipeline**: Daily GitHub Actions job fetches from all automated sources, updates the database, and checks for changes. Manual trigger available for adding new packages.
-
-- **Backup**: Not needed for data that can be re-fetched from CRAN/GitHub. Backup strategy required for manually curated data (categories, editorial tags, essential extensions flag, non-standard URLs).
+#### 3.2 Investigation Needed
+- **`github_updated` field**: The stakeholder asked which GitHub API field is being used. The developer should verify and document which field from the GitHub API populates `github_updated` (e.g., `pushed_at`, `updated_at`, or something else) and confirm it represents the most meaningful "last update" date.
+- **CRAN Title vs. Description**: Confirm which CRAN API field is currently being stored as `description` in the pipeline. Map the correct fields.
 
 ### 4. Non-Functional Requirements
-- **Performance**: ~455 packages, modest growth. No strict load time targets — just reasonable for the data size. Not a performance-intensive dataset.
-- **Hosting**: Docker on Google Cloud Run (stakeholder preference, existing infrastructure). Solution Architect to flag if there is a strong reason against it.
-- **Repository**: Private (at least for now).
-- **Authentication**: Fully public app, no login required.
-- **Responsiveness**: Desktop-first. Nice if it also works on phones, but not a must-have.
-- **Accessibility**: No specific requirements stated beyond general usability.
-- **Analytics**: Basic usage tracking for v1 (e.g., page views, popular packages). Details to be determined by Solution Architect.
-- **SEO**: Nice-to-have, not a must. Primary discovery will be through the maintainer's own links from apps/websites.
-- **Language**: English only.
-- **AI agent compatibility** (must-have): App should be well-structured and parseable by AI agents browsing the web. JSON API or downloadable dataset is a stretch goal — feasibility to be evaluated by Solution Architect.
+- No changes from the existing SPEC.md. The app remains:
+  - **Public** (no authentication)
+  - **Desktop-first** (basic mobile responsiveness via bslib)
+  - **Deployed** on Google Cloud Run via Docker
+  - **Dark mode default** with light mode toggle
 
 ### 5. User Experience
-- **Design direction**: Professional yet approachable. Functional and user-focused — content-first, not heavy decoration. Consistent with existing youcanbeapirate.com apps.
-- **Design references**:
-  - [r-packages.io](https://r-packages.io/packages) for table/browsing functionality
-  - [BiblioStatus app](https://bibliostatus.youcanbeapirate.com) for tone, feel, and navigation patterns
-  - [BiblioStatus pkgdown](https://youcanbeapirate.com/BiblioStatus) for branding style
-  - [ggplot2 extended book](https://ggplot2-extended-book.com/) for content style
-- **Branding**: Blend of "ggplot2 extended" (book) and "youcanbeapirate" identity. The ggplot2 extended logo is a work-in-progress; youcanbeapirate branding is more established.
-- **Colour palette**: Deep red (#C1272D) as primary accent (consistent with existing apps), neutral grays/blacks/whites for foundation.
-- **Typography**: Modern fonts (Gotham and Inter used across existing apps).
-- **Dark mode**: Default. Light/dark mode toggle is a nice-to-have if easy to implement.
-- **Key UX principle**: **Speed to finding a useful package** is the #1 priority.
-- **Layout**: Sidebar navigation pattern (familiar from existing apps). Two main views: browsable table and package detail page.
+
+#### 5.1 Color Mode Consistency
+- This is the single most impactful UX issue. The app must feel like one cohesive experience regardless of which color mode is active. See §2.7 for details.
+
+#### 5.2 Category Badge Colors
+- 19 distinct colors is a significant design challenge. The palette should:
+  - Be visually distinguishable (not just slight hue shifts).
+  - Work on both dark and light backgrounds.
+  - Not be so saturated that they overwhelm the table layout.
+- **Stakeholder preference**: Left to designer/developer discretion. No specific colors mandated.
+
+#### 5.3 Sidebar Compactness
+- The sidebar should be compact enough that all controls and the "Suggest a Package" button are visible without scrolling on a standard desktop viewport (~900px height). Reducing padding/margins is the preferred approach.
 
 ### 6. Content
-- **"Essential Extensions" tag**: Manually curated filter/tag for beginner-friendly packages. Must-have in v1. A featured section on the landing page is a future consideration (v2).
-- **Introductory text**: Brief explanation of what ggplot2 extensions are. Potential cross-over content from the book.
-- **Recently added / recently updated**: Simple lists (last 10 each). Must-have.
-- **External links**: Links to the book, maintainer's other resources, and general ggplot2 materials. Details deferred to after v1 is functional.
-- **No community features in v1**: No ratings, reviews, or comments.
+
+#### 6.1 Header Section
+- "What are ggplot2 extensions?" becomes plain text (always visible).
+- Links updated: "ggplot2 extended (the book)" + "ggplot2 documentation".
+
+#### 6.2 Footer Section
+- See §2.8 for full updated footer content.
+- New addition: Link to the book (in progress).
+
+#### 6.3 Code Examples
+- If feasible, prepend `install.packages()` and `library()` calls to code snippets. See §2.11.
 
 ### 7. Maintenance & Operations
-- **Maintainer(s)**: Solo maintainer (Antti Rask).
-- **Update workflow**: Add a row to config/database → trigger pipeline → pipeline fetches all automatable fields → maintainer confirms/assigns category → package goes live.
-- **Submission handling**: Google Form submission → email notification → maintainer reviews and adds package via the update workflow.
-- **Monitoring**: GitHub Actions notifications for failures (data refresh failures, pipeline errors).
-- **Backup**: Backup strategy for manually curated data only. Auto-fetchable data does not need backup.
-- **App versioning / release cadence**: Not specified. "When it's ready" approach.
+- No changes from existing SPEC.md for this round.
+- **Google Form**: Not yet created. Parked for a future iteration. The "Suggest a Package" button shows as disabled with "Coming soon" tooltip in the interim.
 
 ### 8. Constraints
-- **Budget**: Comfortable with reasonable hosting costs (Google Cloud Run, Turso, etc.). No hard ceiling specified.
-- **Timeline**: No hard deadline. No external dependencies (not tied to book launch or events).
-- **Technical constraints**:
-  - Primary technology: R Shiny. Open to other technologies (JavaScript, HTML, CSS) where needed (e.g., webR integration), but maintainer cannot validate non-R code as easily. Solution Architect should be aware.
-  - Stakeholder preferences (not hard requirements): Turso for database, Docker on Google Cloud Run for hosting, GitHub Actions for scheduled jobs.
-  - Tidyverse syntax and style conventions for all R code.
-- **Legal/licensing**:
-  - No package logos used (to avoid potential licensing issues).
-  - Code examples pulled from package documentation — must respect each package's license.
-  - The app should have a mechanism to check what each package's license permits regarding use of metadata and examples. Do not use anything not clearly allowed.
-  - Disclaimer text required (see Section 2.8).
-- **Existing assets**:
-  - [Notion database](https://youcanbeapirate.notion.site/7d7e8ac88bfb4f1b88118c01b82850eb?v=15a163223ec843dfb0040f6a234754ee&pvs=74) — current source of truth (~455 packages)
-  - [CRAN-package-info repo](https://github.com/AnttiRask/CRAN-package-info) — existing automation for CRAN metadata
-  - [CRAN-package-downloads repo](https://github.com/AnttiRask/CRAN-package-downloads) — existing automation for download stats
-  - Other youcanbeapirate.com apps — can be used for inspiration, but Solution Architect should be critical of the code (not always best practices)
+- **Budget**: No change.
+- **Timeline**: These are production fixes — should be addressed promptly but no hard deadline specified.
+- **Technical constraints**: All changes should work within the existing golem/bslib/reactable architecture. No new framework dependencies expected.
+- **Scope**: This is a fix/polish round. The existing SPEC.md architecture remains intact. Changes are to the UI layer, data labels, and filter behavior.
 
 ### 9. Prioritisation
 
 | Requirement | Priority |
 |---|---|
-| Searchable/filterable/sortable package table | Must-have |
-| Search by package name | Must-have |
-| Filter by category (single), CRAN status, license | Must-have |
-| "Essential Extensions" tag/filter | Must-have |
-| Package detail page with full metadata and links | Must-have |
-| Runnable code examples (static snippet + "Run" button) | Must-have |
-| Download stats (7d, 30d, 365d, all-time) | Must-have |
-| Daily automated data refresh pipeline (GitHub Actions) | Must-have |
-| Manual trigger for adding new packages | Must-have |
-| Category auto-suggestion with manual approval | Must-have |
-| Audit of existing categorisations | Must-have |
-| Recently added / recently updated lists (last 10) | Must-have |
-| Google Form link for package submissions | Must-have |
-| Introductory/onboarding text | Must-have |
-| Disclaimer text | Must-have |
-| Dark mode as default | Must-have |
-| Well-structured HTML for AI agent parsing | Must-have |
-| Creator/maintainer name field | Must-have |
-| Backup strategy for manually curated data | Must-have |
-| Docker on Google Cloud Run deployment | Must-have |
-| Download trend chart (line chart on detail page) | Nice-to-have |
-| Sort by "recently added to the app" | Nice-to-have |
-| Light/dark mode toggle | Nice-to-have |
-| SEO optimisation | Nice-to-have |
-| Mobile responsiveness | Nice-to-have |
-| Search by description, author, tags | Stretch goal |
-| Multi-category filtering | Stretch goal |
-| JSON API or downloadable dataset for AI agents | Stretch goal |
-| Interactive code editor (beyond static "Run") | Stretch goal |
-| Related packages suggestions | Stretch goal (feasibility TBD) |
-| In-app package submission form (replacing Google Form) | Stretch goal |
+| App title rename to "ggplot2 extended (companion)" | Must-have |
+| Dark/light mode consistency across all views | Must-have |
+| Light mode: white background, search box styling | Must-have |
+| Sort by dropdown functional | Must-have |
+| Category display names in sidebar and table | Must-have |
+| Title vs. Description data correction | Must-have |
+| Show all categories in table (not "+N") | Must-have |
+| Category-specific badge colors (19 categories) | Must-have |
+| Recently Added/Updated → sidebar checkbox filters | Must-have |
+| Main table moved up (cards removed) | Must-have |
+| "What are ggplot2 extensions?" as plain text with updated links | Must-have |
+| Footer content updates (email, book link, removed gallery line) | Must-have |
+| Hide vignettes link when unavailable | Must-have |
+| Detail view: "Repo (GitHub, etc.)" link label | Must-have |
+| Detail view: remove graph emoji from download cards | Must-have |
+| Detail view: "Since 2015" label | Must-have |
+| Detail view: Title as subtitle, Description as paragraph | Must-have |
+| "Essential Extensions Only" capitalization | Must-have |
+| Suggest a Package button: disabled with "Coming soon" tooltip | Must-have |
+| Shareable links to package pages | Should-have |
+| Navigation arrows between packages in detail view | Should-have |
+| `install.packages()` / `library()` in code examples | Should-have (if feasible) |
+| Back button: red border and red on hover | Should-have |
+| Sidebar padding/margin reduction | Should-have |
 
 ### 10. Parking Lot (Future Considerations)
-- **Featured/curated section on landing page** (v2) — e.g., "Staff Picks" or highlighted essential extensions beyond just a filter
-- **Editorial descriptions or "Note from the package author"** per package
-- **Non-predictable URL resolution** — website URLs, vignette links that don't follow standard patterns
-- **More customised code examples** beyond what's in package documentation
-- **Community features** — ratings, reviews, comments
-- **Tighter book integration** — linking to specific book chapters from package detail pages
-- **Package comparison** — side-by-side comparison of packages
-- **Multilingual support**
+- **Google Form creation** and connection to "Suggest a Package" button/footer link.
+- **More information about non-CRAN packages** — automated or manual process for enriching metadata for packages not on CRAN.
+- **Download trend chart** (already noted as v1.1 in SPEC.md §5.4) — `plotly` or `echarts4r` line chart of monthly downloads.
 
 ### 11. Open Questions
-1. **Turso suitability**: Is Turso the right database choice for this use case, or is there a better alternative? (Solution Architect to evaluate)
-2. **webR integration feasibility**: What is the best approach for runnable code examples in a Shiny app? webR, shinylive, or another approach? What are the limitations?
-3. **License checking mechanism**: How should the app determine what each package's license permits regarding displaying metadata and running examples? Can this be automated?
-4. **Category auto-suggestion approach**: What method should be used for suggesting categories based on package descriptions? (NLP, keyword matching, LLM-based, etc.)
-5. **GitHub Actions + Google Cloud Run**: What is the best architecture for a daily GitHub Actions pipeline that updates a database consumed by a Dockerised Shiny app on Cloud Run?
-6. **AI agent compatibility**: What structural choices (semantic HTML, meta tags, structured data, etc.) best support AI agent parsing without building a full API?
-7. **Notion data migration**: What is the best approach for the initial migration of ~455 packages from Notion to the new database?
-8. **Backup strategy for curated data**: What is the simplest reliable approach? (e.g., periodic database export to a GitHub repo, cloud storage, etc.)
-9. **Basic analytics implementation**: What is the lightest-weight approach for tracking usage in a Shiny app on Cloud Run?
-10. **Existing repo code reuse**: Which specific functionalities from CRAN-package-info and CRAN-package-downloads are worth incorporating into the unified pipeline?
+
+| # | Question | Context | Who Resolves |
+|---|---|---|---|
+| 1 | Which GitHub API field populates `github_updated`? | Stakeholder flagged this as a data accuracy concern. Is it `pushed_at`, `updated_at`, or another field? | Developer |
+| 2 | Is the CRAN Description field currently fetched by the pipeline? | The table shows the CRAN Title. The longer Description may not be in the data model yet. | Developer |
+| 3 | Is the Sort by dropdown a bug or an unbuilt feature? | Dropdown exists in the UI but does nothing. | Developer |
+| 4 | How to check if a package has vignettes? | Needed to conditionally hide the vignettes link. Options: check CRAN page, use `tools` package, check URL for 404. | Developer |
+| 5 | Recently Added + Recently Updated checkboxes: AND or OR logic when both checked? | If both are checked, should the table show packages matching BOTH flags or EITHER flag? | Developer (stakeholder defers to practicality) |
+| 6 | Is prepending `install.packages()` / `library()` to examples straightforward? | Package name is known, but dependency detection may add complexity. | Developer |
+| ~~7~~ | ~~What is the book URL for "ggplot2 extended (the book)"?~~ | **Resolved**: https://ggplot2-extended-book.com/ | Stakeholder |
+| ~~8~~ | ~~What is the submission link URL for "Submit it here" in the footer?~~ | **Resolved**: Footer submission link is already disabled with tooltip. No change needed. | Stakeholder |
+
+### 12. SPEC.md Corrections Needed
+
+The following items in the existing SPEC.md should be updated to reflect these requirements:
+
+| Section | Current | Should Be |
+|---|---|---|
+| §1 App name | "ggplot2 Extended Companion" | "ggplot2 extended (companion)" |
+| §3.1 `description` field | "Short description" from CRAN API | Split into `title` (CRAN Title) and `description` (CRAN Description) |
+| §5.1 Navigation | "no URL routing in v1" | URL updates with package name for shareable links (if implemented) |
+| §5.2 Description column | Column labeled "Description" | Column labeled "Title", showing CRAN Title |
+| §5.2 Category column | "First category shown, '+N' if multiple" | All categories shown as separate badges with category-specific colors |
+| §5.3 Category dropdown | Implied technical names | Must use `display_name` values |
+| §5.3 Essential checkbox | "Essential Extensions only" | "Essential Extensions Only" |
+| §5.4 Links card | "GitHub/GitLab" | "Repo (GitHub, etc.)" |
+| §5.4 Vignettes link | Hidden when NA | Hidden when NA **and** when package has no vignettes |
+| §5.4 Download stats | "All time (since 2015)" with emoji | "Since 2015", no emoji |
+| §5.5 Recent lists | Separate cards above table | Removed — replaced by sidebar checkbox filters |
+| §5.6 Header/Intro | Collapsible accordion, collapsed by default | Plain text, always visible |
+| §5.6 Header links | "ggplot2 extensions gallery" | "ggplot2 extended (the book)" |
+| §5.7 Footer | See §2.8 of this document | Updated email, book link, removed gallery line |
+| §7 Light mode background | `#FFFFFF` (specified but not rendering correctly) | Confirm implementation matches spec |

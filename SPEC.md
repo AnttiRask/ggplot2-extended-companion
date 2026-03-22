@@ -1,34 +1,36 @@
 # SPEC.md
-## ggplot2 Extended Companion — Technical Specification
+## ggplot2 extended (companion) — Technical Specification
 
 ### 1. Overview
-- **App name**: ggplot2 Extended Companion
+- **App name**: ggplot2 extended (companion)
 - **One-line description**: A searchable, filterable directory of ~455 ggplot2 extension packages with daily-refreshed metadata, download statistics, and pre-rendered code examples.
 - **Technology**: R Shiny (golem framework)
 - **Target deployment**: Docker on Google Cloud Run
 - **Repository structure**: Mono-repo (private GitHub repository) containing the Shiny app, data pipeline, and deployment configuration.
+- **Spec version note**: This spec supersedes the original SPEC.md. It incorporates all corrections and additions from the production fix & polish round (REQUIREMENTS.md v2). Changes from the original spec are noted inline where significant.
 
 ### 2. Architecture
 
 #### 2.1 Application Structure
 - **Framework**: golem — app is structured as an R package with `DESCRIPTION`, `NAMESPACE`, and `roxygen2` documentation.
 - **UI framework**: bslib (Bootstrap 5) with dark mode as the default colour mode.
-- **Routing approach**: Single-page app using `bslib::page_sidebar()` with a main browsing table and a detail view. The detail view replaces the table content when a package is selected (no URL routing in v1).
-- **Table package**: reactable for the main browsing table (client-side filtering, sorting, search).
+- **Routing approach**: Single-page app using `bslib::page_sidebar()` with a main browsing table and a detail view. The detail view replaces the table content when a package is selected. **URL updates with query parameter** (`?package={name}`) for shareable links — the app reads this on load to navigate directly to a package detail view.
+- **Table package**: reactable for the main browsing table (client-side sorting, server-side filtering via sidebar controls).
 - **Module list**:
 
 | Module | File | Responsibility |
 |---|---|---|
-| Browse | `R/mod_browse.R` | Main package table with search, filters, sorting |
-| Detail | `R/mod_detail.R` | Package detail view with full metadata, links, code example |
-| Sidebar | `R/mod_sidebar.R` | Filter controls (category, CRAN status, license, essential) and sort selector |
-| Recent | `R/mod_recent.R` | Recently added and recently updated package lists |
-| Header | `R/mod_header.R` | App title, introductory text, onboarding content |
-| Footer | `R/mod_footer.R` | Disclaimer, links to book/resources, submission link, footer credits |
+| Browse | `R/mod_browse.R` | Main package table with search, column-header sorting, pagination |
+| Detail | `R/mod_detail.R` | Package detail view with full metadata, links, downloads, code example, nav arrows |
+| Sidebar | `R/mod_sidebar.R` | Filter controls (category, CRAN status, license, essential, recently added, recently updated) |
+| Header | `R/mod_header.R` | App introductory text (plain text, always visible) |
+| Footer | `R/mod_footer.R` | Disclaimer, credits, book link, data freshness, submission link |
+
+**Removed module**: `mod_recent.R` — the Recently Added/Updated cards have been replaced by sidebar checkbox filters. This module should be deleted.
 
 #### 2.2 Data Architecture
-- **Storage**: Parquet files bundled inside the Docker image, queried in-process by DuckDB via `dplyr`/`dbplyr`.
-- **Caching**: No runtime caching needed — data is loaded once at app startup from Parquet files into DuckDB. Data is static for the lifetime of a container instance.
+- **Storage**: Parquet files bundled inside the Docker image, read by `arrow::read_parquet()` into tibbles at app startup.
+- **Caching**: No runtime caching needed — data is loaded once at app startup from Parquet files. Data is static for the lifetime of a container instance.
 - **Refresh mechanism**: GitHub Actions runs the `{targets}` pipeline daily, producing updated Parquet files. A new Docker image is built and deployed to Cloud Run, replacing the running container.
 
 #### 2.3 Infrastructure
@@ -56,22 +58,35 @@
 | Field | Column Name | Type | Source | Update Frequency | Used For |
 |---|---|---|---|---|---|
 | Package name | `package_name` | character | Curated CSV | On add | Display, search, sort, primary key |
-| Short description | `description` | character | CRAN API (preferred), curated CSV (fallback) | Daily | Display, search (stretch) |
-| Creator/Maintainer | `maintainer` | character | CRAN API (parsed from `Maintainer` field) | Daily | Display, sort |
+| Title | `title` | character | CRAN API (`response$Title`) | Daily | Display (table column, detail subtitle), search |
+| Description | `description` | character | CRAN API (`response$Description`) | Daily | Display (detail view paragraph) |
+| Creator/Maintainer | `maintainer` | character | CRAN API (parsed from `Maintainer` field) | Daily | Display (detail view) |
 | Categories | `categories` | character (pipe-separated) | Curated CSV | On edit | Display, filter |
-| Is essential | `is_essential` | logical | Curated CSV | On edit | Filter |
+| Is essential | `is_essential` | logical | Curated CSV | On edit | Filter, display |
 | On CRAN | `on_cran` | logical | Derived (CRAN API response) | Daily | Filter, display |
 | License | `license` | character | CRAN API | Daily | Display, filter |
 | Latest CRAN version | `cran_version` | character | CRAN API | Daily | Display |
 | CRAN published date | `cran_published` | date | CRAN API | Daily | Display, sort |
-| GitHub last update | `github_updated` | date | GitHub API | Daily | Display, sort |
+| GitHub last update | `github_updated` | date | GitHub API (`pushed_at`, with `updated_at` fallback) | Daily | Display, sort |
+| Has vignettes | `has_vignettes` | logical | CRAN API (`response$vignettes`) or HEAD request fallback | Daily | Conditional display of vignettes link |
 | CRAN URL | `cran_url` | character | Derived (pattern: `https://cran.r-project.org/package={name}`) | On add | Display (link) |
 | Website URL | `website_url` | character | Curated CSV (manual) | On edit | Display (link) |
 | GitHub/GitLab URL | `repo_url` | character | Curated CSV | On edit | Display (link) |
 | Reference manual URL | `manual_url` | character | Derived (pattern-based) | Daily | Display (link) |
-| Vignettes URL | `vignettes_url` | character | Derived (pattern-based) | Daily | Display (link) |
-| Date added to app | `date_added` | date | Curated CSV | On add | Display, sort (nice-to-have), recent list |
+| Vignettes URL | `vignettes_url` | character | Derived (pattern-based), set NA when `has_vignettes == FALSE` | Daily | Display (link) |
+| Date added to app | `date_added` | date | Curated CSV | On add | Filter (recently added) |
 | Last checked | `last_checked` | date | Pipeline metadata | Daily | Internal only |
+
+**Changes from original spec:**
+- `description` field split into `title` (CRAN Title — short one-liner) and `description` (CRAN Description — longer paragraph).
+- `has_vignettes` added to support conditional vignettes link display.
+- `github_updated` now documented as sourced from `pushed_at` (not `updated_at`), which represents actual code pushes rather than issue/PR activity.
+
+**Derived flags (computed at app startup in `load_app_data()`):**
+- `recently_added` (logical): `TRUE` when `date_added >= Sys.Date() - 7`.
+- `recently_updated` (logical): `TRUE` when `pmax(cran_published, github_updated, na.rm = TRUE) >= Sys.Date() - 7`.
+
+These flags are computed at data load time, not stored in Parquet, because the 7-day window is relative to the current date.
 
 #### 3.2 Download Statistics Entity
 
@@ -102,14 +117,70 @@
 | Last successful run | `last_run` | datetime | Pipeline | Each run | Display (footer), internal |
 | Status | `status` | character | Pipeline | Each run | Internal, monitoring |
 
-#### 3.5 Data Sources
+#### 3.5 Category Reference
 
-- **CRAN metadata**: `pkgsearch::cran_package()` — returns description, version, license, published date, maintainer, etc. No authentication required. Rate limit: be polite (1 req/sec recommended). ~455 calls per pipeline run.
-- **cranlogs API**: `cranlogs::cran_downloads()` — returns daily download counts. No authentication. Documented rate limits are generous. Aggregate across time windows in R.
-- **GitHub API**: `gh::gh()` — returns last push date, repo metadata. Requires `GITHUB_PAT` for 5,000 req/hr (unauthenticated: 60 req/hr). ~455 calls per pipeline run.
+Defined in `data-raw/categories.csv` with columns `category`, `display_name`, `description`. The app and sidebar use `display_name` values for user-facing display; `category` (technical name) is used internally for filtering and data storage.
+
+| category | display_name |
+|---|---|
+| `animation` | Animation |
+| `annotations` | Annotations |
+| `arranging_plots` | Arranging Plots |
+| `coords` | Coords |
+| `data` | Data |
+| `facets` | Facets |
+| `finishing_touches` | Finishing Touches |
+| `geoms` | Geoms |
+| `helpers` | Helpers |
+| `interactive_plots` | Interactive Plots |
+| `interactive_tools` | Interactive Tools |
+| `maps` | Maps |
+| `networks` | Networks |
+| `python` | Python |
+| `scales_and_guides` | Scales & Guides |
+| `sports` | Sports |
+| `stats` | Stats |
+| `themes` | Themes |
+| `na` | NA |
+
+**Category badge colour map** (19 colours). Each category gets a distinct colour used for badge rendering in both dark and light modes. Badge styling uses semi-transparent backgrounds with matching text colour (consistent with the existing dark-mode badge pattern). Defined as a named list in `R/fct_categories.R`:
+
+| category | Badge colour (hex) | Usage |
+|---|---|---|
+| `animation` | `#8B5CF6` | Purple |
+| `annotations` | `#3B82F6` | Blue |
+| `arranging_plots` | `#06B6D4` | Cyan |
+| `coords` | `#14B8A6` | Teal |
+| `data` | `#10B981` | Emerald |
+| `facets` | `#22C55E` | Green |
+| `finishing_touches` | `#84CC16` | Lime |
+| `geoms` | `#C1272D` | Red (primary accent) |
+| `helpers` | `#F59E0B` | Amber |
+| `interactive_plots` | `#F97316` | Orange |
+| `interactive_tools` | `#EF4444` | Red-orange |
+| `maps` | `#0EA5E9` | Sky blue |
+| `networks` | `#A855F7` | Violet |
+| `python` | `#FBBF24` | Yellow |
+| `scales_and_guides` | `#EC4899` | Pink |
+| `sports` | `#6366F1` | Indigo |
+| `stats` | `#D946EF` | Fuchsia |
+| `themes` | `#78716C` | Stone |
+| `na` | `#9CA3AF` | Grey (muted) |
+
+**Badge rendering approach (both modes)**:
+- **Dark mode**: Background `rgba({r}, {g}, {b}, 0.20)`, text colour at full hex, border `rgba({r}, {g}, {b}, 0.40)`.
+- **Light mode**: Background `rgba({r}, {g}, {b}, 0.15)`, text colour darkened ~20% from hex, border `rgba({r}, {g}, {b}, 0.30)`.
+
+This is implemented via CSS classes `.badge-cat-{category}` generated in `styles.css`, or via inline styles in the reactable cell renderer and detail view.
+
+#### 3.6 Data Sources
+
+- **CRAN metadata**: `pkgsearch::cran_package(package_name)` — returns `Title`, `Description`, `Version`, `License`, `Published`, `Maintainer`, `vignettes` list, etc. No authentication required. Rate limit: be polite (1 req/sec recommended). ~455 calls per pipeline run.
+- **cranlogs API**: `cranlogs::cran_downloads(packages, from, to)` — returns daily download counts. No authentication. Documented rate limits are generous. Aggregate across time windows in R.
+- **GitHub API**: `gh::gh("GET /repos/{owner}/{repo}")` — returns `pushed_at`, `updated_at`, repo metadata. Requires `GITHUB_PAT` for 5,000 req/hr (unauthenticated: 60 req/hr). ~455 calls per pipeline run.
 - **Package documentation**: `tools::Rd_db()` or parsing installed package `\examples{}` sections. Runs locally during example rendering.
 
-#### 3.6 Data Storage Schema
+#### 3.7 Data Storage Schema
 
 **Parquet files** (produced by pipeline, bundled in Docker image):
 
@@ -132,6 +203,7 @@
 | File | Contents |
 |---|---|
 | `data-raw/packages_curated.csv` | Source of truth for curated fields: `package_name`, `categories`, `is_essential`, `website_url`, `repo_url`, `date_added`, `notes` |
+| `data-raw/categories.csv` | 19 canonical categories with `category`, `display_name`, `description` |
 | `data-raw/license_allowlist.csv` | Allowlist of licenses that permit example rendering: `license_pattern`, `allowed` |
 
 ### 4. Data Pipeline
@@ -149,18 +221,23 @@
 | Step | Target Name | Function | Input | Output | Error Handling |
 |---|---|---|---|---|---|
 | 1. Load curated list | `curated_packages` | `read_curated_csv()` | `data-raw/packages_curated.csv` | tibble of ~455 packages with curated fields | Fail pipeline (source of truth missing) |
-| 2. Fetch CRAN metadata | `cran_metadata` | `fetch_cran_metadata()` | `curated_packages$package_name` | tibble with description, version, license, published date, maintainer | Per-package: log warning, use cached. If all fail: use previous target value. |
+| 2. Fetch CRAN metadata | `cran_metadata` | `fetch_cran_metadata()` | `curated_packages$package_name` | tibble with title, description, version, license, published date, maintainer, has_vignettes | Per-package: log warning, use cached. If all fail: use previous target value. |
 | 3. Fetch download stats | `download_stats` | `fetch_download_stats()` | `curated_packages$package_name` | tibble with 7d, 30d, 365d, all-time counts | Per-package: log warning, set counts to NA. If cranlogs API down: use previous target value. |
-| 4. Fetch GitHub metadata | `github_metadata` | `fetch_github_metadata()` | `curated_packages$repo_url` | tibble with last update date, repo info | Per-package: log warning, set to NA. Rate limit: use cached. |
-| 5. Construct URLs | `constructed_urls` | `construct_urls()` | `curated_packages`, `cran_metadata` | tibble with `cran_url`, `manual_url`, `vignettes_url` | Pattern-based, no external calls — cannot fail. |
+| 4. Fetch GitHub metadata | `github_metadata` | `fetch_github_metadata()` | `curated_packages$repo_url` | tibble with last update date (from `pushed_at`) | Per-package: log warning, set to NA. Rate limit: use cached. |
+| 5. Construct URLs | `constructed_urls` | `construct_urls()` | `curated_packages`, `cran_metadata` | tibble with `cran_url`, `manual_url`, `vignettes_url` (vignettes_url set NA when `has_vignettes == FALSE`) | Pattern-based, no external calls — cannot fail. |
+| 5b. Fix non-CRAN downloads | `download_stats_fixed` | `fix_non_cran_downloads()` | `download_stats`, `cran_metadata` | downloads with NA for non-CRAN packages | Cannot fail (join only). |
 | 6. Merge all data | `packages_combined` | `merge_package_data()` | Steps 1–5 outputs | Single tibble with all fields | Cannot fail (joins only). |
 | 7. Write packages.parquet | `packages_parquet` | `write_parquet_output()` | `packages_combined` | `data/packages.parquet` | Fail pipeline if write fails. |
-| 8. Write downloads.parquet | `downloads_parquet` | `write_parquet_output()` | `download_stats` | `data/downloads.parquet` | Fail pipeline if write fails. |
-| 9. Derive recent lists | `recent_packages` | `derive_recent()` | `packages_combined` | Included in `packages.parquet` (sorted/flagged) | Cannot fail. |
+| 8. Write downloads.parquet | `downloads_parquet` | `write_parquet_output()` | `download_stats_fixed` | `data/downloads.parquet` | Fail pipeline if write fails. |
 | 10. Render code examples | `code_examples` | `render_examples()` | `packages_combined`, license allowlist | `data/examples.parquet` + PNG files in `inst/app/www/examples/` | Per-package: log warning, flag `example_success = FALSE`. Timeout: 30s per example. |
 | 11. Write examples.parquet | `examples_parquet` | `write_parquet_output()` | `code_examples` | `data/examples.parquet` | Fail pipeline if write fails. |
-| 12. Export JSON | `packages_json` | `export_json()` | `packages_combined`, `download_stats` | `inst/app/www/data/packages.json` | Cannot fail. |
+| 12. Export JSON | `packages_json` | `export_json()` | `packages_combined`, `download_stats_fixed` | `inst/app/www/data/packages.json` | Cannot fail. |
 | 13. Write metadata | `pipeline_metadata` | `write_metadata()` | Timestamps from steps 2–4, 10 | `data/metadata.parquet` | Cannot fail. |
+
+**Pipeline changes for this round:**
+- Step 2 (`fetch_cran_metadata` / `parse_cran_response`): Now stores `response$Title` as `title` and `response$Description` as `description` (previously stored `response$Title` as `description`). Also extracts `has_vignettes` from `response$vignettes` (truthy check: `length(response$vignettes) > 0` or presence of vignettes field).
+- Step 5 (`construct_urls`): `vignettes_url` is now set to `NA` when `has_vignettes == FALSE`, not just when `on_cran == FALSE`.
+- Step 12 (`export_json`): JSON export updated to include both `title` and `description` fields.
 
 #### 4.3 Code Example Rendering (Step 10 Detail)
 
@@ -170,7 +247,7 @@ For each package where `license_allowed == TRUE`:
 2. Extract the first example from the package's primary function documentation using `tools::Rd_db()`.
 3. If no example found, check for a `README` example or vignette code block. If still nothing, set `example_success = FALSE`.
 4. Execute the example code in a `callr::r()` subprocess with a 30-second timeout.
-5. Capture the last plot via `ggplot2::ggsave()` as a PNG (800×600px, 150 DPI).
+5. Capture the last plot via `ggplot2::ggsave()` as a PNG (800x600px, 150 DPI).
 6. If execution fails or times out, set `example_success = FALSE`, store code snippet only.
 7. Store: code text in `examples.parquet`, PNG in `inst/app/www/examples/{package_name}.png`.
 
@@ -193,87 +270,54 @@ For each package where `license_allowed == TRUE`:
 - `is_essential` is `TRUE` or `FALSE`.
 - Pipe-separated `categories` are well-formed (no trailing pipes, no spaces around pipes).
 
-#### 4.5 Category Reference
-
-A separate file `data-raw/categories.csv` defines the canonical category list:
-
-```csv
-category,display_name,description
-animation,"Animation","Packages for creating animated plots"
-annotations,"Annotations","Packages for adding text, labels, and annotations"
-arranging_plots,"Arranging Plots","Packages for combining multiple plots"
-coords,"Coords","Packages for helping navigate the coordinate systems"
-data,"Data","Packages that contain datasets to visualize"
-facets,"Facets","Packages for helping create faceted visualizations"
-finishing_touches,"Finishing Touches","Packages that help create a publication ready visualization"
-geoms,"Geoms","New geometric objects for ggplot2"
-helpers,"Helpers","Utility packages that assist ggplot2 workflows"
-interactive_plots,"Interactive Plots","Packages for creating interactive visualisations"
-interactive_tools,"Interactive Tools","Packages that contain interactive tools like apps"
-maps,"Maps","Packages for geographic/spatial visualisation"
-networks,"Networks","Packages for network and graph visualisation"
-python,"Python","Python packages that still are extensions to ggplot2"
-scales_and_guides,"Scales & Guides","Custom scales, axes, legends, and guides"
-sports,"Sports","Sports-specific visualisation packages"
-stats,"Stats","Statistical layers and transformations"
-themes,"Themes","Custom themes and styling"
-na,"NA","Packages that have no category"
-```
-
-This list reflects the actual categories used in the curated package data. It was updated from the original 15-category draft to include `coords`, `data`, `facets`, `finishing_touches`, `interactive_tools`, `python`, and `na` based on the real package taxonomy. The previous categories `colours`, `rendering`, and `transformations` were removed as they did not match actual package classifications.
-
 ### 5. UI Specification
 
 #### 5.1 Navigation Structure
 
-The app uses `bslib::page_sidebar()` as the primary layout. The sidebar contains filter and sort controls. The main panel switches between the browse view (table) and the detail view (single package).
+The app uses `bslib::page_sidebar()` as the primary layout. The sidebar contains filter controls. The main panel switches between the browse view (table) and the detail view (single package).
+
+**URL routing**: When a package is selected, the browser URL updates to include `?package={package_name}` via `shiny::updateQueryString()`. On app load, `session$clientData$url_search` is parsed — if a `package` parameter is present, the app navigates directly to that package's detail view. This enables shareable links to individual packages.
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│  [ggplot2 Extended Companion]           [dark/light] ☀️  │
-├────────────┬─────────────────────────────────────────────┤
-│            │                                             │
-│  SIDEBAR   │  MAIN CONTENT                              │
-│            │                                             │
-│  Search    │  [Header / Intro text]                     │
-│  ________  │                                             │
-│            │  [Recently Added] [Recently Updated]        │
-│  Filters   │                                             │
-│  Category  │  ┌─────────────────────────────────────┐   │
-│  CRAN      │  │  Package Table (reactable)          │   │
-│  License   │  │  ─────────────────────────────────  │   │
-│  Essential │  │  name | desc | cat | 30d | all | …  │   │
-│            │  │  ─────────────────────────────────  │   │
-│  Sort by   │  │  ...                                │   │
-│  [dropdown]│  │  ...                                │   │
-│            │  └─────────────────────────────────────┘   │
-│            │                                             │
-│  ────────  │  [Footer / Disclaimer / Links]             │
-│  Submit    │                                             │
-│  [link]    │                                             │
-│            │                                             │
-│  Footer    │                                             │
-│  links     │                                             │
-│            │                                             │
-└────────────┴─────────────────────────────────────────────┘
++----------------------------------------------------------+
+|  [ggplot2 extended (companion)]          [dark/light] sun |
++------------+---------------------------------------------+
+|            |                                             |
+|  SIDEBAR   |  MAIN CONTENT                              |
+|            |                                             |
+|  Filters   |  [Intro text — always visible]              |
+|  Category  |                                             |
+|  CRAN      |  +-------------------------------------+   |
+|  License   |  |  Package Table (reactable)          |   |
+|  Essential |  |  -----------------------------------  |   |
+|  Recently  |  |  name | title | cat | 30d | all | …|   |
+|    Added   |  |  -----------------------------------  |   |
+|  Recently  |  |  ...                                |   |
+|    Updated |  |  ...                                |   |
+|            |  +-------------------------------------+   |
+|  --------  |                                             |
+|  Suggest   |  [Footer / Disclaimer / Links]             |
+|  [disabled]|                                             |
+|            |                                             |
++------------+---------------------------------------------+
 ```
 
-When a package is clicked, the main content area replaces the table with the detail view. A "← Back to all packages" button returns to the table.
+When a package is clicked, the main content area replaces the table with the detail view. A "← Back to all packages" button returns to the table. Navigation arrows allow moving to next/previous package alphabetically.
 
 #### 5.2 Browse View (`mod_browse`)
 
 - **Purpose**: Discover and evaluate ggplot2 extension packages.
-- **Layout**: Full-width `reactable` table in the main panel.
+- **Layout**: Full-width `reactable` table in the main panel, directly below the intro text (no Recently Added/Updated cards above it).
 - **Components**:
   - **Package table** (`reactable`):
     - **Columns**:
 
 | Column | Data Field | Width | Sortable | Notes |
 |---|---|---|---|---|
-| Name | `package_name` | 150px | Yes (alpha) | Clickable link → detail view. Bold text. |
-| Description | `description` | Flex | No | Truncated to ~100 chars with ellipsis. |
-| Category | `categories` | 140px | No | Displayed as badge(s). First category shown, "+N" if multiple. |
-| License | `license` | 100px | No | Plain text. |
+| Name | `package_name` | 150px | Yes (alpha) | Clickable link → detail view. Bold text. Essential packages get star badge. |
+| Title | `title` | Flex | Yes (alpha) | Truncated to ~100 chars with ellipsis. **Changed**: was labeled "Description", now labeled "Title" and mapped to CRAN Title field. |
+| Category | `categories` | 180px | Yes (alpha, sorts by first category) | **All categories shown as separate badges** with category-specific colours and `display_name` values. No "+N" truncation. Badges wrap within the cell. Secondary sort by `package_name` for ties. |
+| License | `license` | 100px | Yes (alpha) | Plain text. Secondary sort by `package_name` for ties. |
 | Downloads (30d) | `downloads_30d` | 100px | Yes (numeric) | Formatted with comma separators. |
 | Downloads (All) | `downloads_all` | 100px | Yes (numeric) | Formatted with comma separators. |
 | CRAN Version | `cran_version` | 90px | No | Shows version string, or "—" if not on CRAN. |
@@ -281,15 +325,15 @@ When a package is clicked, the main content area replaces the table with the det
 | GitHub Updated | `github_updated` | 110px | Yes (date) | Format: `YYYY-MM-DD`. |
 
   - **Pagination**: 25 rows per page, client-side pagination.
-  - **Search**: Built-in `reactable` search bar (searches `package_name` column). Positioned above the table.
-  - **"Essential Extensions" badge**: Packages with `is_essential == TRUE` get a small star icon or badge next to their name.
+  - **Search**: Built-in `reactable` search bar (searches across visible text). Positioned above the table.
+  - **"Essential Extensions" badge**: Packages with `is_essential == TRUE` get a star icon next to their name.
+  - **Sorting**: Handled entirely by reactable column headers (click to sort, click again to reverse). **No Sort dropdown in the sidebar.** Default initial sort: `package_name` ascending. All columns marked `sortable = TRUE` above support click-to-sort.
 
 - **Interactions**:
-  - Click package name → navigate to detail view (`mod_detail`).
+  - Click package name → navigate to detail view (`mod_detail`), URL updates to `?package={name}`.
   - Type in search bar → table filters instantly (client-side).
   - Change sidebar filters → table updates (server-side filter, then re-render reactable).
-  - Change sort dropdown → table re-sorts.
-  - Click column header → sort by that column (reactable built-in).
+  - Click column header → sort by that column (reactable built-in, client-side).
 
 - **Reactive dependencies**:
   - `filtered_packages()` — a reactive expression that applies sidebar filters to the full dataset.
@@ -297,53 +341,81 @@ When a package is clicked, the main content area replaces the table with the det
 
 #### 5.3 Sidebar Controls (`mod_sidebar`)
 
-- **Purpose**: Filter and sort the package table.
-- **Layout**: `bslib::sidebar()` with vertically stacked controls.
+- **Purpose**: Filter the package table.
+- **Layout**: `bslib::sidebar()` with vertically stacked controls. Compact padding to ensure all controls and the "Suggest a Package" button are visible without scrolling on a standard desktop viewport (~900px height).
 - **Components**:
 
 | Control | Type | Options | Default | Behaviour |
 |---|---|---|---|---|
-| Search | `textInput` | Free text | Empty | Filters `package_name` (passed to reactable search). |
-| Category | `selectInput` | All categories + "All" | "All" | Single-select. Filters packages containing the selected category. |
+| Category | `selectInput` | All categories (using `display_name`) + "All" | "All" | Single-select. Filters packages containing the selected category. Category dropdown displays `display_name` values (e.g., "Arranging Plots"), but filters internally using the `category` technical name. |
 | CRAN status | `radioButtons` | "All", "On CRAN", "Not on CRAN" | "All" | Filters by `on_cran`. |
 | License | `selectInput` | All unique licenses + "All" | "All" | Single-select. Filters by `license`. |
-| Essential only | `checkboxInput` | Toggle | Unchecked | When checked, filters to `is_essential == TRUE`. |
-| Sort by | `selectInput` | "Name (A–Z)", "Name (Z–A)", "Creator (A–Z)", "Creator (Z–A)", "Downloads (30d) ↓", "Downloads (All) ↓", "CRAN Published (newest)", "CRAN Published (oldest)", "GitHub Updated (newest)", "GitHub Updated (oldest)" | "Name (A–Z)" | Sets the default sort on the reactable. |
-| Submit a package | `actionLink` | — | — | Opens Google Form in new tab. Styled as a button. |
+| Essential Only | `checkboxInput` | Toggle | Unchecked | When checked, filters to `is_essential == TRUE`. **Label**: "Essential Extensions Only" (capital O). |
+| Recently Added | `checkboxInput` | Toggle | Unchecked | When checked, filters to `recently_added == TRUE` (packages with `date_added` within 7 days). |
+| Recently Updated | `checkboxInput` | Toggle | Unchecked | When checked, filters to `recently_updated == TRUE` (packages with `max(cran_published, github_updated)` within 7 days). |
+| Suggest a Package | `tags$a` (styled button) | — | Disabled | **Disabled** with `"Coming soon"` tooltip. Not clickable. Styled as `btn btn-outline-primary w-100 disabled`. |
+
+**Removed control**: Sort by dropdown — sorting is now handled entirely via reactable column headers.
+
+- **Filter logic**: All filters are combined with AND logic. The Recently Added and Recently Updated checkboxes use **OR logic with each other** — when both are checked, packages matching *either* flag are shown. All other filters remain AND. Implementation:
+  ```r
+  # Pseudocode for filter composition
+  result <- data
+  result <- filter by category (AND)
+  result <- filter by cran_status (AND)
+  result <- filter by license (AND)
+  result <- filter by essential_only (AND)
+  # Recently Added / Recently Updated use OR with each other
+  if (recently_added || recently_updated) {
+    result <- result |> filter(
+      (recently_added & recently_added_checked) |
+      (recently_updated & recently_updated_checked)
+    )
+  }
+  ```
 
 - **Interactions**:
   - Any filter change → `filtered_packages()` reactive updates → table re-renders.
-  - Sort change → table re-renders with new default sort.
+
+- **Styling**: Reduce default padding/margins on sidebar controls so all elements fit without scrolling. Apply compact spacing via CSS: `.sidebar .form-group { margin-bottom: 0.5rem; }` and reduce the sidebar title margin.
 
 #### 5.4 Detail View (`mod_detail`)
 
 - **Purpose**: View full information about a single package.
-- **Trigger**: User clicks a package name in the browse table.
+- **Trigger**: User clicks a package name in the browse table, or navigates via URL `?package={name}`.
 - **Layout**: Replaces the main content area. Structured as a vertical stack of `bslib::card()` components.
 
 **Components (top to bottom)**:
 
-1. **Back button**: `actionButton` — "← Back to all packages". Returns to browse view, restoring previous filter/sort state.
+1. **Navigation bar**: Back button + next/previous arrows.
+   - `actionButton` — "← Back to all packages". Returns to browse view, restoring previous filter state. URL updates to remove the `?package=` parameter.
+   - **Styling**: `btn btn-outline-secondary` with **red border** (`border-color: #C1272D`) and **red on hover/active** (`background-color: rgba(193, 39, 45, 0.1); border-color: #C1272D; color: #C1272D`).
+   - **Next/Previous arrows** (should-have): Two small buttons ("← Prev" / "Next →") that navigate to the previous/next package in **alphabetical order** (by `package_name`). The full alphabetically-sorted package list is passed to `mod_detail_server()`. At the first/last package, the corresponding arrow is disabled. When navigating, the URL updates to reflect the new package name.
 
 2. **Package header card**:
    - Package name (large heading, `<h2>`).
-   - "Essential Extension" badge (if applicable).
-   - Full description text.
+   - "Essential Extension" badge (if `is_essential == TRUE`).
+   - **Title** as subtitle directly under the package name — styled as `<h4>` or `<p class="lead">`, displaying the CRAN Title (short one-liner).
+   - **Description** as a full paragraph below the Title — styled as `<p>`, displaying the CRAN Description (longer paragraph). If description is NA, show "No description available."
    - Creator/Maintainer name.
-   - Category badges (all categories).
+   - Category badges (all categories, using `display_name` values and category-specific colours).
    - License.
 
 3. **Links card**:
-   - Row of icon-buttons/links: Website, GitHub/GitLab, CRAN, Reference Manual, Vignettes.
+   - Row of icon-buttons/links: Website, **Repo (GitHub, etc.)**, CRAN, Reference Manual, Vignettes.
    - Each link opens in a new tab. Links that are `NA` are hidden (not greyed out).
+   - **Vignettes link**: Hidden when `has_vignettes == FALSE` OR when `vignettes_url` is `NA`. This is the key change — previously the vignettes link was shown for all CRAN packages regardless of whether vignettes actually existed.
+   - **Label change**: "GitHub/GitLab" → **"Repo (GitHub, etc.)"**.
 
 4. **Download statistics card**:
+   - Header: "Download Statistics"
    - Four `bslib::value_box()` components in a row:
      - "Last 7 days" — `downloads_7d`
      - "Last 30 days" — `downloads_30d`
      - "Last 365 days" — `downloads_365d`
-     - "All time (since 2015)" — `downloads_all`
-   - Download trend chart (nice-to-have): `plotly` or `echarts4r` line chart of monthly downloads. Deferred to v1.1 if time permits.
+     - **"Since 2015"** — `downloads_all` (**changed** from "All time (since 2015)")
+   - **No graph emoji** in the `showcase` parameter. Remove `showcase = htmltools::tags$span("\U0001F4C8")` from all four value boxes. Use `showcase = NULL` or omit the parameter entirely.
+   - Download trend chart: Deferred to v1.1.
 
 5. **Version info card**:
    - Latest CRAN version + published date.
@@ -351,6 +423,7 @@ When a package is clicked, the main content area replaces the table with the det
 
 6. **Code example card**:
    - Syntax-highlighted code block (using `htmltools::pre()` + `code()` with a highlight.js or Prism.js integration via CSS class).
+   - **Prepended code** (should-have, if feasible): At the top of the code block, prepend `install.packages("{package_name}")` and `library({package_name})` so users can copy the full runnable snippet. The package name is always known, so this is straightforward — no dependency detection needed. Separated from the example code by a blank line and a comment: `# Example:`.
    - "Copy to clipboard" button (JavaScript `navigator.clipboard.writeText()`).
    - Rendered output image (`<img>` tag pointing to `examples/{package_name}.png`).
    - If `example_success == FALSE`: show code only, with a note "Output preview not available for this package."
@@ -359,46 +432,47 @@ When a package is clicked, the main content area replaces the table with the det
 
 - **Reactive dependencies**:
   - `selected_package()` — drives which package data is displayed.
-  - Package data is looked up from the DuckDB connection by `package_name`.
+  - `all_packages_sorted()` — alphabetically sorted list of all `package_name` values for next/prev navigation.
 
-#### 5.5 Recently Added / Recently Updated (`mod_recent`)
-
-- **Purpose**: Highlight new and recently updated packages.
-- **Layout**: Two horizontally arranged `bslib::card()` components above the main table, each containing a compact list.
-- **Components**:
-  - **"Recently Added" card**: Last 10 packages by `date_added`, descending. Each entry: package name (clickable → detail view) + date added.
-  - **"Recently Updated" card**: Last 10 packages by `max(cran_published, github_updated)`, descending. Each entry: package name (clickable → detail view) + update date + source label ("CRAN" or "GitHub").
-- **Interactions**: Click package name → navigate to detail view.
-
-#### 5.6 Header / Intro (`mod_header`)
+#### 5.5 Header / Intro (`mod_header`)
 
 - **Purpose**: Brief introduction to ggplot2 extensions for new visitors.
-- **Layout**: A collapsible `bslib::accordion()` panel above the recent lists. Collapsed by default (so returning users skip it).
+- **Layout**: **Plain text** (always visible) above the main table. **Not** a collapsible accordion.
 - **Content**:
   - "What are ggplot2 extensions?" — 2–3 sentences explaining the concept.
-  - Link to the ggplot2 extended book.
-  - Link to ggplot2 documentation.
-- **Design**: Understated — not a hero banner. Informative for newcomers, ignorable for regulars.
+  - Link: **"ggplot2 extended (the book)"** → `https://ggplot2-extended-book.com/` (opens in new tab).
+  - Link: **"ggplot2 documentation"** → `https://ggplot2.tidyverse.org/` (opens in new tab).
+- **Design**: Understated — not a hero banner. Informative for newcomers, unobtrusive for regulars. Use `<p>` tags with `text-muted` styling.
 
-#### 5.7 Footer / Disclaimer (`mod_footer`)
+**Changed from original spec**: Was a collapsible `bslib::accordion()`, collapsed by default. Now plain text, always visible. Links updated: "ggplot2 extensions gallery" removed, replaced with "ggplot2 extended (the book)".
+
+#### 5.6 Footer / Disclaimer (`mod_footer`)
 
 - **Purpose**: Legal disclaimer, credits, and cross-links.
-- **Layout**: Full-width footer below the main content area, styled consistently with BiblioStatus footer.
-- **Content**:
-  - **Disclaimer**: "If you have concerns about information presented on this site (licensing, metadata accuracy, etc.), please reach out via email at [email] to have it corrected or removed."
-  - **Data freshness**: "Package data last updated: {last_run from metadata}."
-  - **Links**: ggplot2 extended book, youcanbeapirate.com, other youcanbeapirate apps.
-  - **Submission link**: "Know a ggplot2 extension we're missing? [Submit it here]" → Google Form.
-  - **Credit**: "Created by Antti Rask | youcanbeapirate.com"
+- **Layout**: Full-width footer below the main content area, styled with `border-top`.
+- **Content** (in order):
+
+  1. **Data freshness**: "Package data last updated: {last_run from metadata}."
+  2. **Disclaimer**: "If you have concerns about information presented on this site (licensing, metadata accuracy, etc.), please reach out via email at [anttilennartrask@gmail.com](mailto:anttilennartrask@gmail.com) to have it corrected or removed."
+  3. **Submission link**: "Know a ggplot2 extension we're missing? Submit it here." — "Submit it here" is styled as dotted-underline text with `cursor: default` and a `title="Package submission form coming soon"` tooltip. Not clickable.
+  4. **Book link**: "Check out the book (in progress): [ggplot2 extended](https://ggplot2-extended-book.com/)."
+  5. **Machine-readable data**: "Machine-readable data: [packages.json](data/packages.json)."
+  6. **Credits**: "Created by [Antti Rask](https://youcanbeapirate.com) | [youcanbeapirate.com](https://youcanbeapirate.com)"
+
+**Changes from original spec**:
+- Email changed from `antti@youcanbeapirate.com` to `anttilennartrask@gmail.com`.
+- Removed: "ggplot2 extensions gallery | youcanbeapirate.com" line.
+- Added: Book link line.
+- Submission link is disabled with tooltip (was previously an active link to a Google Form that doesn't exist yet).
 
 ### 6. Package Submission
 
 #### 6.1 Submission Mechanism
-- **Type**: External link to a Google Form (opens in new tab).
-- **Location in app**: Sidebar (always visible) + footer.
-- **Link text**: "Suggest a Package" (sidebar), "Know a ggplot2 extension we're missing? Submit it here" (footer).
+- **Type**: External link to a Google Form (opens in new tab). **Currently disabled** — the Google Form has not been created yet.
+- **Location in app**: Sidebar (disabled button with "Coming soon" tooltip) + footer (disabled text with tooltip).
+- **Status**: Parked for a future iteration.
 
-#### 6.2 Google Form Fields
+#### 6.2 Google Form Fields (future)
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
@@ -407,7 +481,7 @@ When a package is clicked, the main content area replaces the table with the det
 | Category suggestion | Dropdown (from category list) | No | "I'm not sure" as an option |
 | Any other notes | Long text | No | |
 
-#### 6.3 Submission Processing
+#### 6.3 Submission Processing (future)
 - **Storage**: Google Form responses stored in linked Google Sheet.
 - **Notification**: Google Forms sends email notification to maintainer on each submission.
 - **Approval flow**: Maintainer reviews submission → adds row to `data-raw/packages_curated.csv` → commits and pushes → triggers pipeline manually → package goes live.
@@ -419,7 +493,7 @@ When a package is clicked, the main content area replaces the table with the det
 
 | Role | Hex | Usage |
 |---|---|---|
-| Primary accent | `#C1272D` | Buttons, links, active states, badges |
+| Primary accent | `#C1272D` | Buttons, links, active states |
 | Background (dark) | `#191414` | Page background in dark mode |
 | Foreground (dark) | `#FFFFFF` | Text colour in dark mode |
 | Background (light) | `#FFFFFF` | Page background in light mode |
@@ -427,21 +501,33 @@ When a package is clicked, the main content area replaces the table with the det
 | Muted text | `#9ca3af` | Secondary text, timestamps, footnotes |
 | Card background (dark) | `#2a2a2e` | Card surfaces in dark mode |
 | Success | `#22c55e` | "On CRAN" badge |
-| Warning | `#f59e0b` | Stale data indicator |
+| Warning | `#f59e0b` | Stale data indicator, essential badge |
+
+- **Category badge colours**: 19 distinct colours defined in §3.5. Semi-transparent background with matching text. See §3.5 for the full colour map.
 
 - **Typography**:
-  - Headings: Gotham (loaded via CDN, with Inter as fallback).
+  - Headings: Montserrat (Google Fonts, with Inter as fallback).
   - Body text: Inter (Google Fonts).
   - Code blocks: `"Fira Code", "Source Code Pro", monospace`.
   - Base font size: 16px (1rem).
+
 - **Component styling**:
   - **Cards**: Subtle border, rounded corners (0.5rem), slight shadow in dark mode.
-  - **Badges** (categories): Pill-shaped, primary colour background, white text.
-  - **Essential badge**: Star icon (⭐) or distinct colour variant.
+  - **Badges** (categories): Pill-shaped, category-specific colours (semi-transparent background + matching text). See §3.5.
+  - **Essential badge**: Star icon (⭐) next to package name.
   - **Table**: Striped rows (subtle), hover highlight, compact row height.
-  - **Value boxes**: Primary colour accent on the left border.
+  - **Value boxes**: Primary colour accent on the left border. **No emoji/icon in showcase slot.**
   - **Buttons**: Primary colour, rounded, consistent padding.
+  - **Back button**: `btn-outline-secondary` with red border (`#C1272D`), red text/background on hover.
+
 - **Dark/light mode toggle**: `bslib::input_dark_mode()` in the navbar/header area. Dark mode is the default (`mode = "dark"`).
+
+- **Dark/light mode consistency** (critical fix):
+  - The selected colour mode **must persist** when navigating between browse and detail views. The root cause is likely that `renderUI()` in `mod_detail` generates new HTML that doesn't inherit the current `data-bs-theme` attribute. Fix approach: ensure all dynamically rendered UI uses `bslib` components that respect the theme, or explicitly pass the theme context.
+  - **Search box**: Must respect the current colour mode. The reactable search input must inherit colours from the active Bootstrap theme, not hardcode dark-mode styles. The existing CSS rule `[data-bs-theme="dark"] .rt-search` handles dark mode, but a matching `[data-bs-theme="light"] .rt-search` rule is needed to ensure light mode renders correctly (white background, dark text, light border).
+  - **Light mode background**: Must be `#FFFFFF`, not grey. Verify that `bslib::bs_theme(bg = "#191414")` doesn't bleed into light mode — the `bg` parameter sets the dark-mode background. For light mode, Bootstrap 5's `[data-bs-theme="light"]` should use the default white background. If needed, add explicit CSS: `[data-bs-theme="light"] body { background-color: #FFFFFF; color: #1a1a1a; }`.
+  - **Detail view cards**: Must use the correct card background in both modes. The existing CSS rules handle this (`[data-bs-theme="dark"] .card` and `[data-bs-theme="light"] .card`), but the dynamically rendered cards from `renderUI()` may not pick up the theme. Ensure cards are wrapped in a container that inherits `data-bs-theme`.
+
 - **Responsive**: Desktop-first. bslib's Bootstrap 5 grid handles basic responsiveness. Sidebar collapses on mobile. No mobile-specific design work in v1.
 
 ### 8. AI Agent Compatibility
@@ -449,7 +535,7 @@ When a package is clicked, the main content area replaces the table with the det
 - **Semantic HTML**: bslib and reactable produce reasonably semantic markup. Ensure headings (`<h1>` through `<h4>`), table elements, and links use proper HTML tags.
 - **Meta tags**: `tags$head()` includes:
   - `<meta name="description" content="Searchable directory of 455+ ggplot2 extension packages with download statistics and code examples.">`
-  - `<meta property="og:title" content="ggplot2 Extended Companion">`
+  - `<meta property="og:title" content="ggplot2 extended (companion)">`
   - `<meta property="og:description" content="...">`
   - `<meta property="og:type" content="website">`
 - **Static JSON export**: `www/data/packages.json` — machine-readable export of all package data, regenerated on each pipeline run. Linked from the footer: "Machine-readable data: packages.json".
@@ -461,7 +547,8 @@ When a package is clicked, the main content area replaces the table with the det
     "packages": [
       {
         "name": "ggrepel",
-        "description": "...",
+        "title": "Automatically Position Non-Overlapping Text Labels with ggplot2",
+        "description": "Provides geoms for ggplot2 to repel overlapping text labels...",
         "categories": ["annotations"],
         "is_essential": true,
         "on_cran": true,
@@ -483,10 +570,10 @@ When a package is clicked, the main content area replaces the table with the det
 
 | Layer | Framework | What Is Tested | Location |
 |---|---|---|---|
-| Unit | `testthat` | Data processing functions: `fetch_cran_metadata()`, `fetch_download_stats()`, `merge_package_data()`, `construct_urls()`, `render_examples()`, CSV validation | `tests/testthat/` |
-| Integration | `testthat` | Full pipeline: `targets::tar_make()` with mocked API responses produces valid Parquet files | `tests/testthat/` |
-| UI | `shinytest2` | Key user flows: browse → filter → select package → view detail → back to browse | `tests/testthat/` |
-| Snapshot | `testthat` | reactable output structure, value box rendering | `tests/testthat/` |
+| Unit | `testthat` | Data processing functions: `fetch_cran_metadata()`, `fetch_download_stats()`, `merge_package_data()`, `construct_urls()`, `render_examples()`, CSV validation, `filter_packages()`, category display name mapping | `tests/testthat/` |
+| Integration | `testthat` | Full pipeline: `targets::tar_make()` with mocked API responses produces valid Parquet files with correct `title`/`description`/`has_vignettes` fields | `tests/testthat/` |
+| UI | `shinytest2` | Key user flows: browse → filter → select package → view detail → back to browse; dark/light mode toggle persistence; shareable link loading | `tests/testthat/` |
+| Snapshot | `testthat` | reactable output structure, value box rendering, category badge rendering | `tests/testthat/` |
 | CSV validation | `testthat` (+ CI) | `packages_curated.csv` structure and content validity | `tests/testthat/` |
 
 **Mocking strategy**: Use `httptest2` to mock CRAN, cranlogs, and GitHub API responses in tests. Store mock fixtures in `tests/testthat/fixtures/`.
@@ -497,7 +584,7 @@ When a package is clicked, the main content area replaces the table with the det
 ggplot2-extended-companion/
 ├── DESCRIPTION                          # golem package metadata, dependencies
 ├── NAMESPACE                            # Auto-generated by roxygen2
-├── LICENSE                              # Project license (e.g., MIT)
+├── LICENSE                              # Project license
 ├── LICENSE.md                           # Full license text
 ├── .Rbuildignore                        # Files excluded from R CMD check
 ├── .gitignore                           # Git ignores
@@ -508,20 +595,21 @@ ggplot2-extended-companion/
 ├── app.R                                # golem entry point (golem::run_app())
 ├── R/
 │   ├── app_config.R                     # golem app configuration
-│   ├── app_server.R                     # Main server function, loads data, calls modules
-│   ├── app_ui.R                         # Main UI function, bslib layout, theme, meta tags
+│   ├── app_server.R                     # Main server: loads data, calls modules, handles URL routing
+│   ├── app_ui.R                         # Main UI: bslib layout, theme, meta tags
 │   ├── run_app.R                        # golem::run_app() wrapper
-│   ├── mod_browse.R                     # Browse view: reactable table
-│   ├── mod_detail.R                     # Detail view: full package info
-│   ├── mod_sidebar.R                    # Sidebar: filters, sort, submission link
-│   ├── mod_recent.R                     # Recently added / recently updated lists
-│   ├── mod_header.R                     # Introductory text / onboarding accordion
-│   ├── mod_footer.R                     # Disclaimer, credits, links
-│   ├── fct_data.R                       # Data loading functions (DuckDB + Parquet)
+│   ├── mod_browse.R                     # Browse view: reactable table with column sorting
+│   ├── mod_detail.R                     # Detail view: full package info, nav arrows
+│   ├── mod_sidebar.R                    # Sidebar: filters (category, CRAN, license, essential, recent)
+│   ├── mod_header.R                     # Introductory text (plain, always visible)
+│   ├── mod_footer.R                     # Disclaimer, credits, book link
+│   ├── fct_data.R                       # Data loading functions (arrow + Parquet)
 │   ├── fct_pipeline.R                   # Pipeline functions (fetch, merge, write)
 │   ├── fct_examples.R                   # Code example extraction and rendering
 │   ├── fct_urls.R                       # URL construction logic
 │   ├── fct_validation.R                 # CSV validation functions
+│   ├── fct_filters.R                    # Filter functions (no sort — sorting is client-side)
+│   ├── fct_categories.R                 # Category display name mapping and badge colour definitions
 │   └── utils_helpers.R                  # Shared utility functions
 ├── data/
 │   ├── packages.parquet                 # Core package data (pipeline output)
@@ -530,13 +618,13 @@ ggplot2-extended-companion/
 │   └── metadata.parquet                 # Pipeline run metadata (pipeline output)
 ├── data-raw/
 │   ├── packages_curated.csv             # Curated package list (source of truth)
-│   ├── categories.csv                   # Canonical category definitions
+│   ├── categories.csv                   # Canonical category definitions with display_name
 │   ├── license_allowlist.csv            # Allowed licenses for example rendering
-│   └── migrate_notion.R                # One-time Notion migration script
+│   └── migrate_notion.R                 # One-time Notion migration script
 ├── inst/
 │   └── app/
 │       └── www/
-│           ├── styles.css               # Custom CSS overrides
+│           ├── styles.css               # Custom CSS: badge colours, dark/light mode fixes, compact sidebar
 │           ├── favicon.png              # App favicon
 │           ├── logo.png                 # App logo (if available)
 │           ├── clipboard.js             # Copy-to-clipboard JavaScript helper
@@ -549,15 +637,17 @@ ggplot2-extended-companion/
 ├── tests/
 │   ├── testthat.R                       # Test runner
 │   └── testthat/
-│       ├── test-fct_data.R              # Tests for data loading
-│       ├── test-fct_pipeline.R          # Tests for pipeline functions
+│       ├── test-fct_data.R              # Tests for data loading (incl. recently_added/updated flags)
+│       ├── test-fct_pipeline.R          # Tests for pipeline functions (title/description split)
 │       ├── test-fct_examples.R          # Tests for example rendering
-│       ├── test-fct_urls.R              # Tests for URL construction
+│       ├── test-fct_urls.R              # Tests for URL construction (vignettes conditional)
 │       ├── test-fct_validation.R        # Tests for CSV validation
+│       ├── test-fct_filters.R           # Tests for filter functions (incl. recently_added/updated OR logic)
+│       ├── test-fct_categories.R        # Tests for category display names and badge colours
 │       ├── test-mod_browse.R            # UI tests for browse module
 │       ├── test-mod_detail.R            # UI tests for detail module
 │       └── fixtures/
-│           ├── cran_response.json       # Mock CRAN API response
+│           ├── cran_response.json       # Mock CRAN API response (with Title + Description)
 │           ├── cranlogs_response.json   # Mock cranlogs API response
 │           └── github_response.json     # Mock GitHub API response
 ├── Dockerfile                           # Production Docker image
@@ -573,162 +663,165 @@ ggplot2-extended-companion/
     └── 03_deploy.R                      # golem dev helper: deployment
 ```
 
+**Files to delete**: `R/mod_recent.R` — replaced by sidebar checkbox filters.
+**Files to create**: `R/fct_categories.R` — category display name mapping and badge colour definitions.
+
 ### 11. Implementation Milestones
 
-#### M0: Project Scaffold
-- **Goal**: Initialise golem project structure, set up renv, configure bslib theme, create empty app shell that runs.
+These milestones are ordered by priority (must-haves first) and dependency. Each milestone is independently testable.
+
+#### M1: Pipeline — Title/Description Split & Vignettes Detection
+- **Goal**: Update the data pipeline to fetch CRAN Title and Description as separate fields, and detect whether packages have vignettes.
+- **Depends on**: Nothing (pipeline changes are independent of UI)
+- **Files modified**:
+  - `R/fct_pipeline.R` — Update `parse_cran_response()`: store `response$Title` as `title`, `response$Description` as `description`, derive `has_vignettes` from `length(response$vignettes) > 0`. Update `merge_package_data()` to include new fields.
+  - `R/fct_urls.R` — Update `construct_urls()`: set `vignettes_url = NA` when `has_vignettes == FALSE` (not just when `on_cran == FALSE`). The function now needs `has_vignettes` as input.
+  - `R/fct_pipeline.R` — Update `export_json()`: include both `title` and `description` in JSON output.
+  - `_targets.R` — Pass `has_vignettes` from `cran_metadata` to `construct_urls()`.
+  - `tests/testthat/test-fct_pipeline.R` — Update `parse_cran_response()` tests for new field mapping. Add test for `has_vignettes` detection.
+  - `tests/testthat/test-fct_urls.R` — Add tests for `vignettes_url` being NA when `has_vignettes == FALSE`.
+  - `tests/testthat/fixtures/cran_response.json` — Update mock to include `Description` and `vignettes` fields.
+- **Definition of done**: `targets::tar_make()` produces `packages.parquet` with `title`, `description`, and `has_vignettes` columns. The `title` column contains CRAN Title (short), `description` contains CRAN Description (long). `vignettes_url` is NA for packages without vignettes. All pipeline tests pass.
+- **Testable outcome**: `arrow::read_parquet("data/packages.parquet") |> dplyr::select(package_name, title, description, has_vignettes) |> head()` shows correct field separation. Packages known to lack vignettes have `has_vignettes == FALSE`.
+
+#### M2: Category Infrastructure — Display Names & Badge Colours
+- **Goal**: Create the category helper module with display name mapping and 19-colour badge palette.
+- **Depends on**: Nothing
 - **Files created**:
-  - `DESCRIPTION` — package metadata with initial dependencies (`shiny`, `bslib`, `golem`, `reactable`, `duckdb`, `dplyr`, `arrow`, `logger`, `jsonlite`)
-  - `NAMESPACE` — auto-generated
-  - `app.R` — golem entry point
-  - `R/app_ui.R` — bslib `page_sidebar()` with dark theme, placeholder content
-  - `R/app_server.R` — empty server function
-  - `R/app_config.R` — golem configuration
-  - `R/run_app.R` — `run_app()` function
-  - `inst/app/www/styles.css` — initial custom CSS (dark mode colours, font imports)
-  - `renv.lock` — initial lockfile
-  - `.gitignore`, `.Rbuildignore`, `.dockerignore`
-  - `data-raw/categories.csv` — initial category list
-  - `data-raw/license_allowlist.csv` — initial license allowlist
-- **Definition of done**: `golem::run_app()` launches a Shiny app showing a dark-themed page with the title "ggplot2 Extended Companion", a sidebar placeholder, and a main content area placeholder. No data, no functionality.
-- **Testable outcome**: App launches without errors. Dark theme is visible. Page title is correct.
+  - `R/fct_categories.R` — Contains:
+    - `get_category_display_names()`: reads `data-raw/categories.csv` and returns a named vector mapping `category` → `display_name`.
+    - `get_category_colours()`: returns a named list mapping `category` → hex colour (the 19-colour palette from §3.5).
+    - `category_to_display_name(category_technical)`: converts a single technical name to display name.
+    - `build_category_badge(category_technical, display_names, colours)`: returns an `htmltools::span()` with the correct colour styling for a given category.
+  - `tests/testthat/test-fct_categories.R` — Tests for all category functions: mapping completeness (all 19 categories have display names and colours), badge HTML output structure.
+- **Definition of done**: `get_category_display_names()` returns a complete named vector. `get_category_colours()` returns 19 distinct hex colours. `build_category_badge("arranging_plots", ...)` returns an HTML span with text "Arranging Plots" and correct colour styling.
+- **Testable outcome**: All tests in `test-fct_categories.R` pass.
 
-#### M1: Notion Migration & Curated Data
-- **Goal**: Migrate ~455 packages from Notion CSV export into `packages_curated.csv`. Audit and standardise categories.
-- **Depends on**: M0
-- **Files created**:
-  - `data-raw/migrate_notion.R` — migration script
-  - `data-raw/packages_curated.csv` — populated with ~455 packages
-  - `data-raw/categories.csv` — refined category list based on audit
-  - `R/fct_validation.R` — CSV validation functions
-  - `tests/testthat/test-fct_validation.R` — validation tests
-- **Definition of done**: `packages_curated.csv` contains all ~455 packages with: `package_name`, `categories` (pipe-separated, from canonical list), `is_essential`, `website_url`, `repo_url`, `date_added`. Validation script passes with zero errors. Category audit is complete (every package has at least one valid category).
-- **Testable outcome**: `source("data-raw/migrate_notion.R")` produces the CSV. `testthat::test_file("tests/testthat/test-fct_validation.R")` passes.
+#### M3: App Rename & Meta Tags
+- **Goal**: Rename the app from "ggplot2 Extended Companion" to "ggplot2 extended (companion)" everywhere.
+- **Depends on**: Nothing
+- **Files modified**:
+  - `R/app_ui.R` — Update `title` and `window_title` in `page_sidebar()` to "ggplot2 extended (companion)". Update `app_title` in `golem_add_external_resources()`. Update `og:title` meta tag.
+- **Definition of done**: App title bar shows "ggplot2 extended (companion)". Page source shows correct meta tags. No references to "ggplot2 Extended Companion" remain in user-facing text.
+- **Testable outcome**: `golem::run_app()` shows the updated title. `grep -r "Extended Companion" R/ inst/` returns no user-facing matches.
 
-#### M2: Data Pipeline (Core)
-- **Goal**: Build the `{targets}` pipeline that fetches CRAN metadata, download stats, and GitHub metadata, then produces Parquet files.
-- **Depends on**: M1
-- **Files created**:
-  - `_targets.R` — pipeline definition
-  - `R/fct_pipeline.R` — `fetch_cran_metadata()`, `fetch_download_stats()`, `fetch_github_metadata()`, `merge_package_data()`, `write_parquet_output()`
-  - `R/fct_urls.R` — `construct_urls()` for CRAN, manual, vignette URLs
-  - `tests/testthat/test-fct_pipeline.R` — pipeline function tests with mocked APIs
-  - `tests/testthat/test-fct_urls.R` — URL construction tests
-  - `tests/testthat/fixtures/` — mock API response files
-  - `data/packages.parquet` — first real output
-  - `data/downloads.parquet` — first real output
-  - `data/metadata.parquet` — first real output
-- **Definition of done**: `targets::tar_make()` runs successfully, producing three Parquet files with complete data for all ~455 packages. `packages.parquet` contains all fields from the data model (section 3.1). `downloads.parquet` contains 7d, 30d, 365d, and all-time download counts. Pipeline handles individual package failures gracefully (logs warning, continues).
-- **Testable outcome**: `targets::tar_make()` completes. `arrow::read_parquet("data/packages.parquet") |> nrow()` returns ~455. `tar_visnetwork()` shows a clean DAG with all targets up to date.
+#### M4: Sidebar Overhaul — Filters Without Sort
+- **Goal**: Update the sidebar: remove Sort dropdown, add Recently Added / Recently Updated checkboxes, fix category display names, fix "Essential Extensions Only" label, reduce padding, ensure Suggest button is visible without scrolling.
+- **Depends on**: M2 (category display names)
+- **Files modified**:
+  - `R/mod_sidebar.R` — Remove `sort_by` selectInput. Add `recently_added` and `recently_updated` checkboxInputs. Fix `essential_only` label to "Essential Extensions Only". Change category dropdown choices to use `display_name` values (from `get_category_display_names()`). Update server return list to include `recently_added` and `recently_updated` reactive values, remove `sort_by`.
+  - `R/fct_filters.R` — Remove `sort_packages()` function entirely. Update `filter_packages()` to accept `recently_added` and `recently_updated` boolean parameters. Implement OR logic between the two: when either or both are checked, filter to packages matching any checked flag.
+  - `R/fct_data.R` — Update `load_app_data()` to compute `recently_added` and `recently_updated` derived columns at load time.
+  - `R/app_server.R` — Remove `sort_packages()` call. Pass `recently_added` and `recently_updated` from sidebar values to `filter_packages()`. Remove `sort_by` from sidebar values access. Update category choices to use display names with a reverse mapping for filtering.
+  - `inst/app/www/styles.css` — Add compact sidebar CSS: `.sidebar .form-group { margin-bottom: 0.5rem; }`, reduce sidebar title margin, reduce padding on radio buttons.
+  - `tests/testthat/test-fct_filters.R` — Update tests: remove sort tests, add filter tests for `recently_added` and `recently_updated` (individual and combined OR logic).
+- **Definition of done**: Sidebar shows: Category (display names), CRAN Status, License, Essential Extensions Only, Recently Added, Recently Updated, hr, Suggest a Package (disabled). No Sort dropdown. All controls visible without scrolling on ~900px viewport. Checking "Recently Added" filters table to packages added in last 7 days. Checking both "Recently Added" and "Recently Updated" shows the union. Category dropdown shows "Arranging Plots" not "arranging_plots".
+- **Testable outcome**: `filter_packages(data, recently_added = TRUE, recently_updated = TRUE)` returns the union of both flags. Sidebar renders with no Sort dropdown. "Essential Extensions Only" has capital O.
 
-#### M3: Data Loading & Browse Table
-- **Goal**: Wire the Parquet data into the Shiny app. Display all packages in a searchable, sortable `reactable` table.
-- **Depends on**: M0, M2
-- **Files created/modified**:
-  - `R/fct_data.R` — `load_packages()`, `load_downloads()` functions using DuckDB
-  - `R/mod_browse.R` — `mod_browse_ui()` / `mod_browse_server()` with reactable
-  - `R/app_server.R` — updated to load data at startup and call browse module
-  - `R/app_ui.R` — updated to include browse module UI in main panel
-  - `tests/testthat/test-fct_data.R` — data loading tests
-  - `tests/testthat/test-mod_browse.R` — basic table rendering test
-- **Definition of done**: App launches and displays a `reactable` table with all ~455 packages. Table columns: Name, Description (truncated), Category (badge), License, Downloads (30d), Downloads (All), CRAN Version, CRAN Published, GitHub Updated. Table is searchable by package name (reactable built-in search). Columns are sortable by clicking headers.
-- **Testable outcome**: `golem::run_app()` shows a populated table. Typing "ggrepel" in the search bar filters to matching packages. Clicking the "Downloads (30d)" column header sorts by download count.
+#### M5: Browse Table — Title Column, All Category Badges, Column Sorting
+- **Goal**: Rename Description → Title column, show all category badges with colours, make all meaningful columns sortable via reactable headers, remove server-side sort.
+- **Depends on**: M1 (title field), M2 (category badges), M4 (sort removal)
+- **Files modified**:
+  - `R/mod_browse.R` — In `build_package_table()`:
+    - Rename `description` colDef to use field `title`, label "Title", `sortable = TRUE`.
+    - Update `categories` colDef: render ALL categories as separate badges using `build_category_badge()` from `fct_categories.R`. Increase `minWidth` to 180. Set `sortable = TRUE` with a custom `sortMethod` that sorts by the first category's display name.
+    - Update `license` colDef: set `sortable = TRUE`.
+    - Remove `defaultSorted = list(package_name = "asc")` — let reactable use natural data order (which is alphabetical from the server). Or keep `defaultSorted = list(package_name = "asc")` as initial state since sorting is now fully client-side.
+    - Update hidden columns list: `description` is now a separate field (not displayed in table), add it to `show = FALSE` list.
+  - `R/app_server.R` — Ensure `filtered_data()` returns data sorted by `package_name` ascending as default (simple `dplyr::arrange()`), since there's no sort dropdown.
+- **Definition of done**: Table column header says "Title" (not "Description"). Title column shows CRAN Title data. All categories shown as coloured badges with display names — no "+N" truncation. Clicking any sortable column header sorts the table. Clicking again reverses. Category column sorts alphabetically by first category display name. License column sorts alphabetically. Default sort is Name A–Z.
+- **Testable outcome**: Table for a package with categories "animation|geoms" shows two badges: "Animation" (purple) and "Geoms" (red). Clicking "Title" header sorts by title. Clicking "License" sorts by license.
 
-#### M4: Sidebar Filters & Sorting
-- **Goal**: Add all filter controls to the sidebar and wire them to the table.
-- **Depends on**: M3
-- **Files created/modified**:
-  - `R/mod_sidebar.R` — `mod_sidebar_ui()` / `mod_sidebar_server()` with all filter controls
-  - `R/app_server.R` — updated to connect sidebar outputs to browse module inputs
-  - `R/app_ui.R` — updated to include sidebar module
-- **Definition of done**: Sidebar displays: category dropdown (populated from data), CRAN status radio buttons, license dropdown (populated from data), essential-only checkbox, sort-by dropdown. Changing any filter updates the table reactively. Selecting "themes" in category shows only theme packages. Checking "Essential only" shows only essential packages. Sort dropdown changes the table's default sort order. All filters can be combined.
-- **Testable outcome**: Select category "geoms" → table shows only geom packages. Check "Essential only" → table shows only essential packages. Select sort "Downloads (30d) ↓" → table sorts by 30-day downloads descending.
+#### M6: Detail View Fixes — Labels, Downloads, Title/Description, Links
+- **Goal**: Fix all detail view issues: title/description layout, link labels, download card cleanup, vignettes conditional display.
+- **Depends on**: M1 (title/description/has_vignettes data), M2 (category badges)
+- **Files modified**:
+  - `R/mod_detail.R`:
+    - `build_header_card()`: Show `title` as subtitle (`<p class="lead">`) under the `<h2>` package name. Show `description` as a separate `<p>` paragraph below. Use `build_category_badge()` for category badges with display names and colours.
+    - `build_links_card()`: Change "GitHub/GitLab" label to "Repo (GitHub, etc.)". Add condition for vignettes: only show when `has_vignettes == TRUE` AND `vignettes_url` is not NA.
+    - `build_downloads_card()`: Remove `showcase = htmltools::tags$span("\U0001F4C8")` from all four value boxes. Change fourth value box title from "All time (since 2015)" to "Since 2015".
+    - `build_back_button()`: Change class from `btn btn-outline-secondary` to include red border styling. Add CSS class `btn-back` and define in `styles.css`.
+  - `inst/app/www/styles.css` — Add `.btn-back` styles: `border-color: #C1272D;` and hover state `background-color: rgba(193, 39, 45, 0.1); border-color: #C1272D; color: #C1272D;`.
+  - `tests/testthat/test-mod_detail.R` — Update tests for new title/description layout, link labels, download card labels.
+- **Definition of done**: Detail view shows Title as subtitle under package name, Description as paragraph below. "Repo (GitHub, etc.)" label on repo link. No graph emoji on download cards. "Since 2015" label. Vignettes link hidden for packages without vignettes. Back button has red border and red hover.
+- **Testable outcome**: Navigate to a package with known vignettes → vignettes link visible. Navigate to a package without vignettes → no vignettes link. Download cards show no emoji. Fourth card says "Since 2015".
 
-#### M5: Package Detail View
-- **Goal**: Build the full detail view for a single package, accessible by clicking a package name.
-- **Depends on**: M4
-- **Files created/modified**:
-  - `R/mod_detail.R` — `mod_detail_ui()` / `mod_detail_server()` with all cards
-  - `R/mod_browse.R` — updated to handle row click → set `selected_package()`
-  - `R/app_server.R` — updated to toggle between browse and detail views
-  - `R/app_ui.R` — updated to include detail module UI (conditionally shown)
-  - `tests/testthat/test-mod_detail.R` — detail view tests
-- **Definition of done**: Clicking a package name in the table shows the detail view with: package header (name, description, maintainer, categories, license), links card (website, GitHub, CRAN, manual, vignettes — only shown if URL exists), download statistics (four value boxes: 7d, 30d, 365d, all-time), version info (CRAN version + published date, GitHub updated). "← Back to all packages" button returns to the table with previous filter/sort state preserved.
-- **Testable outcome**: Click "ggrepel" → detail view shows full metadata. All links open in new tabs. Back button returns to table. Filter state is preserved after returning.
+#### M7: Dark/Light Mode Consistency
+- **Goal**: Fix colour mode persistence across browse/detail views. Fix search box in light mode. Fix light mode background.
+- **Depends on**: M5, M6 (need complete UI to test against)
+- **Files modified**:
+  - `inst/app/www/styles.css`:
+    - Add `[data-bs-theme="light"] .rt-search` rule: white background, dark text, light grey border.
+    - Add `[data-bs-theme="light"] body` rule: `background-color: #FFFFFF; color: #1a1a1a;` (if not already handled by bslib).
+    - Verify all `renderUI()` generated elements inherit theme correctly. If not, add explicit theme-aware CSS for dynamically rendered components.
+    - Ensure value boxes, cards, and badges all have both `[data-bs-theme="dark"]` and `[data-bs-theme="light"]` rules.
+  - `R/mod_detail.R` — If `renderUI()` content doesn't inherit theme, wrap detail content in a `div` that explicitly reads the theme state, or use `bslib::card()` components consistently (they respect the theme automatically).
+  - `R/app_ui.R` — Verify `bslib::input_dark_mode()` placement and configuration.
+- **Definition of done**: Toggle to light mode → entire app (browse table, search box, sidebar, detail view, cards, value boxes, footer) renders with white background, dark text, light borders. Toggle back to dark → everything returns to dark theme. Navigate to detail view → theme persists. Navigate back → theme persists. No element renders in the wrong mode.
+- **Testable outcome**: Manual visual inspection in both modes across all views. `shinytest2` test: toggle to light mode → navigate to detail → verify background colour is white.
 
-#### M6: Code Examples Pipeline & Display
-- **Goal**: Add code example rendering to the pipeline and display examples in the detail view.
-- **Depends on**: M2, M5
-- **Files created/modified**:
-  - `R/fct_examples.R` — `extract_example()`, `render_example()`, `render_examples()` functions
-  - `_targets.R` — updated with code example targets
-  - `R/mod_detail.R` — updated to show code example card
-  - `inst/app/www/clipboard.js` — copy-to-clipboard JavaScript
-  - `data/examples.parquet` — code example metadata
-  - `inst/app/www/examples/*.png` — rendered example images
-  - `data-raw/license_allowlist.csv` — populated with standard licenses
-  - `tests/testthat/test-fct_examples.R` — example rendering tests
-- **Definition of done**: Pipeline renders code examples for packages with allowed licenses. Detail view shows: syntax-highlighted code block, "Copy to clipboard" button, rendered output image (if successful), "Output preview not available" message (if failed), "Example last rendered: {date}" timestamp. Packages with disallowed licenses show "Code example not available" message.
-- **Testable outcome**: `targets::tar_make()` produces `examples.parquet` and PNG files. Detail view for a CRAN package shows code + image. Copy button copies code to clipboard. Failed examples show graceful fallback.
+#### M8: Header & Footer Content Updates
+- **Goal**: Convert header to plain text with updated links. Update footer content.
+- **Depends on**: Nothing (independent of other UI changes)
+- **Files modified**:
+  - `R/mod_header.R` — Replace `bslib::accordion()` with plain `htmltools::tagList()` of `<p>` tags. Update links: remove "ggplot2 extensions gallery", add "ggplot2 extended (the book)" → `https://ggplot2-extended-book.com/`. Keep "ggplot2 documentation" → `https://ggplot2.tidyverse.org/`.
+  - `R/mod_footer.R` — Update email to `anttilennartrask@gmail.com`. Remove "ggplot2 extensions gallery | youcanbeapirate.com" line. Add book link: "Check out the book (in progress): ggplot2 extended" → `https://ggplot2-extended-book.com/`.
+- **Definition of done**: Header shows plain text (no accordion). Links: "ggplot2 extended (the book)" and "ggplot2 documentation". Footer shows updated email, book link, no gallery line. Submission text is disabled with tooltip.
+- **Testable outcome**: Visually confirm header is always visible (no expand/collapse). Footer email links to `anttilennartrask@gmail.com`. Book link opens `https://ggplot2-extended-book.com/`.
 
-#### M7: Recently Added / Updated & Header
-- **Goal**: Add recently added/updated lists, introductory text, and complete the footer.
-- **Depends on**: M4
-- **Files created/modified**:
-  - `R/mod_recent.R` — `mod_recent_ui()` / `mod_recent_server()`
-  - `R/mod_header.R` — `mod_header_ui()` / `mod_header_server()`
-  - `R/mod_footer.R` — `mod_footer_ui()` / `mod_footer_server()`
-  - `R/app_ui.R` — updated to include all three modules
-  - `R/app_server.R` — updated to call all three modules
-- **Definition of done**: Above the table: collapsible accordion with introductory text (collapsed by default). Two cards showing "Recently Added" (last 10 by `date_added`) and "Recently Updated" (last 10 by latest update date). Package names in both lists are clickable → detail view. Below the table/detail: footer with disclaimer text, data freshness timestamp, submission link, book link, credits, cross-links to other youcanbeapirate apps.
-- **Testable outcome**: Recently added list shows 10 packages sorted by date_added descending. Recently updated list shows 10 packages sorted by most recent CRAN/GitHub update. Accordion expands/collapses. Footer displays complete disclaimer text.
+#### M9: Remove mod_recent & Clean Up
+- **Goal**: Remove the Recently Added/Updated cards module. Clean up dead code (sort functions, old references).
+- **Depends on**: M4 (sidebar has replacement filters), M5 (table is positioned correctly)
+- **Files deleted**:
+  - `R/mod_recent.R` — delete entirely.
+- **Files modified**:
+  - `R/app_ui.R` — Remove `mod_recent_ui("recent")` call and the spacer div above the table.
+  - `R/app_server.R` — Remove `mod_recent_server("recent", ...)` call. Remove `on_select` callback for recent packages.
+  - `R/fct_filters.R` — Remove `sort_packages()` function (if not already removed in M4).
+  - `R/fct_data.R` — `get_recently_added()` and `get_recently_updated()` can be kept (they're useful utilities) but are no longer called from `mod_recent`. They can be removed if no other code references them.
+- **Definition of done**: No "Recently Added" / "Recently Updated" cards appear above the table. Main table sits directly below the intro text. App runs without errors. No dead code references to `mod_recent`. `R CMD check` passes.
+- **Testable outcome**: App loads with table immediately below intro text. `R CMD check --as-cran` passes. No warnings about unused imports.
 
-#### M8: AI Agent Compatibility & JSON Export
-- **Goal**: Add semantic HTML improvements, meta tags, and static JSON export.
-- **Depends on**: M2, M7
-- **Files created/modified**:
-  - `R/app_ui.R` — updated with `<meta>` tags, Open Graph tags
-  - `R/fct_pipeline.R` — updated with `export_json()` function
-  - `_targets.R` — updated with JSON export target
-  - `inst/app/www/data/packages.json` — generated JSON file
-  - `R/mod_footer.R` — updated with link to `packages.json`
-- **Definition of done**: App HTML includes descriptive `<meta>` tags and Open Graph tags. `packages.json` is accessible at `{app_url}/data/packages.json` and contains all package data in the structure defined in section 8. Footer includes "Machine-readable data" link. JSON is regenerated on each pipeline run.
-- **Testable outcome**: `{app_url}/data/packages.json` returns valid JSON with ~455 packages. JSON structure matches the spec. Meta tags are present in page source.
+#### M10: Shareable Package Links (should-have)
+- **Goal**: URL updates with `?package={name}` when viewing a package. App loads directly to a package detail view when the URL contains a `package` parameter.
+- **Depends on**: M6 (detail view must be complete)
+- **Files modified**:
+  - `R/app_server.R` — Add URL routing logic:
+    - On app load: parse `session$clientData$url_search` for `package` parameter. If present, set `selected_package()` to that value.
+    - When `selected_package()` changes: call `shiny::updateQueryString(paste0("?package=", selected_package()))` when a package is selected, or `shiny::updateQueryString("?")` when returning to browse.
+  - `R/mod_detail.R` — No changes needed (already driven by `selected_package()` reactive).
+- **Definition of done**: Navigating to `{app_url}?package=ggrepel` opens directly to the ggrepel detail view. Clicking a package in the table updates the URL. Clicking "Back" removes the `?package=` parameter. Copying the URL and opening in a new tab shows the same package.
+- **Testable outcome**: `shinytest2` test: set URL to `?package=ggrepel` → detail view renders for ggrepel. Navigate back → URL is clean.
 
-#### M9: Polish & Theming
-- **Goal**: Refine styling, loading states, error handling, and dark/light mode toggle.
-- **Depends on**: M7
-- **Files created/modified**:
-  - `inst/app/www/styles.css` — refined custom CSS
-  - `R/app_ui.R` — updated with `input_dark_mode()` toggle, favicon, logo
-  - `R/mod_browse.R` — loading spinner while table renders
-  - `R/mod_detail.R` — loading spinner while detail loads
-  - `R/app_server.R` — structured logging with `{logger}`
-  - `inst/app/www/favicon.png` — app favicon
-- **Definition of done**: Dark mode is the default. Light/dark toggle works in the navbar. Loading spinners appear while data renders. Error states display user-friendly messages (not raw R errors). All colours match the palette defined in section 7. Typography (Gotham headings, Inter body, Fira Code for code) renders correctly. Category badges are styled as pills. Value boxes have accent borders. Footer matches BiblioStatus style.
-- **Testable outcome**: App loads in dark mode by default. Toggle switches to light mode and back. No unstyled components. Fonts load correctly. No visible layout glitches.
+#### M11: Navigation Arrows Between Packages (should-have)
+- **Goal**: Add previous/next navigation arrows in the detail view to move between packages alphabetically.
+- **Depends on**: M6 (detail view), M10 (shareable links — arrows should update URL)
+- **Files modified**:
+  - `R/mod_detail.R`:
+    - Add `all_packages_alpha` parameter to `mod_detail_server()` — a reactive containing the alphabetically sorted vector of all `package_name` values.
+    - Build navigation arrows: find current package's index in the sorted vector, determine prev/next. Disable the arrow at the boundaries (first/last package).
+    - Add `input$prev_pkg` and `input$next_pkg` observers that call `on_navigate(pkg_name)` callback.
+    - Render arrows alongside the back button in a flex row.
+  - `R/app_server.R` — Pass `all_packages_alpha` reactive to `mod_detail_server()`. Add `on_navigate` callback that sets `selected_package()` to the new package name.
+- **Definition of done**: Detail view shows "← Prev" and "Next →" buttons next to the back button. Clicking "Next →" navigates to the next package alphabetically. URL updates. At the first package alphabetically, "← Prev" is disabled. At the last, "Next →" is disabled.
+- **Testable outcome**: Navigate to "aaa" (first alpha package) → "← Prev" is disabled. Click "Next →" → navigates to next package. URL updates.
 
-#### M10: Docker & Cloud Run Deployment
-- **Goal**: Containerise the app and deploy to Google Cloud Run. Set up CI/CD.
-- **Depends on**: M9
-- **Files created/modified**:
-  - `Dockerfile` — multi-stage build: R base + system deps + renv restore + app files + Parquet data
-  - `.dockerignore` — exclude dev files, renv cache, tests
-  - `.github/workflows/pipeline.yml` — daily pipeline: targets → Docker build → push to Artifact Registry → deploy to Cloud Run
-  - `.github/workflows/examples.yml` — weekly pipeline: same as daily + example rendering
-  - `.github/workflows/check.yml` — PR checks: R CMD check, tests, CSV validation
-  - `dev/03_deploy.R` — golem deployment helper updated for Docker
-- **Definition of done**: `docker build` produces a working image. `docker run -p 3838:3838` serves the app locally. GitHub Actions `pipeline.yml` runs successfully: executes `tar_make()`, builds Docker image, pushes to Google Artifact Registry, deploys to Cloud Run. App is accessible at the Cloud Run URL. GitHub Actions `check.yml` runs on PRs and passes. Daily schedule is configured (06:00 UTC cron). Weekly schedule is configured (Sunday 04:00 UTC cron). Manual `workflow_dispatch` trigger works.
-- **Testable outcome**: App is live on Cloud Run URL. Daily pipeline runs automatically. Manual trigger deploys a fresh version within 10 minutes. PR checks pass on a clean PR.
+#### M12: Code Example Enhancements (should-have)
+- **Goal**: Prepend `install.packages()` and `library()` calls to code examples in the detail view.
+- **Depends on**: M6 (detail view code example card)
+- **Files modified**:
+  - `R/mod_detail.R` — In `build_example_card()`, when `example_code` is not NA and `license_allowed == TRUE`, prepend:
+    ```r
+    # Install and load the package
+    install.packages("{package_name}")
+    library({package_name})
 
-#### M11: Documentation & Handoff
-- **Goal**: Write maintenance documentation. Ensure the project is self-documenting.
-- **Depends on**: M10
-- **Files created/modified**:
-  - `CLAUDE.md` — updated with complete project guidance for AI agents
-  - `dev/MAINTENANCE.md` — maintenance guide: how to add packages, trigger pipeline, monitor failures, update categories
-- **Definition of done**: A new maintainer (or AI agent) can: add a new package by following `MAINTENANCE.md`, understand the project structure from `CLAUDE.md`, run the pipeline locally with `targets::tar_make()`, deploy manually via `workflow_dispatch`. All golem dev scripts (`dev/01_start.R`, `dev/02_dev.R`, `dev/03_deploy.R`) are up to date.
-- **Testable outcome**: Follow `MAINTENANCE.md` to add a test package → pipeline runs → package appears in app.
+    # Example:
+    {original_example_code}
+    ```
+    This is purely a display-time transformation — the stored `example_code` in `examples.parquet` is not modified. The package name is available from `example$package_name`.
+- **Definition of done**: Code example block in detail view starts with `install.packages()` and `library()` lines. Copy-to-clipboard copies the full block including the prepended lines.
+- **Testable outcome**: Navigate to any package with a code example → code block starts with install/library lines. Click "Copy" → paste into editor → install and library lines are present.
 
 ### 12. Configuration & Environment
 
@@ -742,6 +835,7 @@ ggplot2-extended-companion/
 | `GCP_SERVICE_NAME` | Cloud Run service name | Yes (CI deploy) | `ggplot2-companion` |
 | `GCP_SA_KEY` | Service account key JSON for CI/CD | Yes (CI deploy) | N/A |
 | `SHINY_PORT` | Shiny server port inside container | No | `3838` |
+| `RENDER_EXAMPLES` | Whether to render code examples (set by weekly pipeline) | No | `""` (false) |
 
 - **R version**: >= 4.3.0
 - **Key package versions** (pinned in `renv.lock`):
@@ -752,15 +846,12 @@ ggplot2-extended-companion/
 | `golem` (>= 0.5.0) | App framework |
 | `bslib` (>= 0.9.0) | Bootstrap 5 UI |
 | `reactable` (>= 0.4.4) | Interactive table |
-| `duckdb` (>= 1.0.0) | In-process analytical database |
 | `arrow` (>= 17.0.0) | Parquet read/write |
 | `dplyr` (>= 1.1.0) | Data manipulation |
-| `dbplyr` (>= 2.5.0) | DuckDB/dplyr integration |
 | `targets` (>= 1.7.0) | Pipeline orchestration |
 | `pkgsearch` (>= 3.1.0) | CRAN metadata API |
 | `cranlogs` (>= 2.1.1) | CRAN download counts |
 | `gh` (>= 1.4.0) | GitHub API client |
-| `httr2` (>= 1.0.0) | HTTP requests (fallback) |
 | `jsonlite` (>= 1.8.0) | JSON export |
 | `callr` (>= 3.7.0) | Subprocess for example rendering |
 | `logger` (>= 0.3.0) | Structured logging |
@@ -772,23 +863,23 @@ ggplot2-extended-companion/
 |---|---|---|---|
 | CRAN/cranlogs API downtime during pipeline | Medium | Low | `{targets}` uses cached previous values. Pipeline logs warning but continues. Data is at most 1 day stale. |
 | GitHub API rate limit exceeded | Low | Low | Use `GITHUB_PAT` (5,000 req/hr). ~455 requests per run is well within limit. Cache with `{targets}`. |
-| Code example rendering takes too long | High | Medium | 30-second timeout per package. Run weekly, not daily. Skip packages that consistently fail. Total weekly budget: ~4 hours on GitHub Actions (free tier: 2,000 min/month). |
-| Docker image size too large | Medium | Medium | Multi-stage build. Only include app code + Parquet files + PNG examples in final image. Do not install all 455 packages in the app image (only in the pipeline runner). Target: < 1 GB. |
-| Gotham font CDN unavailable | Low | Low | Inter (Google Fonts) as fallback. Both declared in `font_collection()`. |
-| Cloud Run cold starts | Medium | Low | Lightweight app (Parquet + DuckDB, no external DB calls on startup). Cold start should be < 10 seconds. Min instances = 0 is acceptable for a non-critical app. |
-| Notion export has unexpected format | Medium | Medium | Migration script includes validation and error reporting. Run interactively, review output before committing. |
-| Package removed from CRAN after addition | Low | Low | Pipeline detects missing packages (CRAN API returns error), sets `on_cran = FALSE`. Package stays in directory with a "No longer on CRAN" indicator. |
-| `{targets}` cache corruption on GitHub Actions | Low | Medium | Cache is a performance optimisation, not required. If cache fails, full pipeline re-run completes in ~15 minutes. |
+| Code example rendering takes too long | High | Medium | 30-second timeout per package. Run weekly, not daily. Skip packages that consistently fail. |
+| Docker image size too large | Medium | Medium | Multi-stage build. Only include app code + Parquet files + PNG examples in final image. Target: < 1 GB. |
+| Dark/light mode inconsistency in dynamically rendered UI | Medium | High | Primary UX issue. Test all `renderUI()` output in both modes. Use `bslib::card()` components that respect theme. Add explicit CSS rules for both modes. |
+| 19-colour category palette insufficient contrast | Low | Medium | Colours chosen from Tailwind palette with good separation. Semi-transparent backgrounds reduce visual weight. Test in both dark and light modes. |
+| `pkgsearch` response doesn't include vignettes field | Low | Medium | Fallback: send HTTP HEAD request to the vignettes URL during pipeline. If 404, set `has_vignettes = FALSE`. |
+| Cloud Run cold starts | Medium | Low | Lightweight app (Parquet + arrow, no external DB calls on startup). Cold start should be < 10 seconds. |
+| `has_vignettes` detection is inaccurate | Low | Low | Some packages may have vignettes not listed in pkgsearch. HEAD request fallback catches most cases. False negatives (hiding link when vignettes exist) are low-impact — the Manual link still provides access. |
+| Reactable column sort doesn't handle ties well | Low | Low | Category and License columns will have many ties. Reactable's built-in sort is stable (preserves original order for ties), so the default alphabetical order by package_name serves as the secondary sort. |
 
 ### 14. Open Questions
 
-1. **Notion database structure**: The Notion export format needs to be verified during M1. The migration script may need adjustments based on the actual export columns. The existing `packages_ggplot2.csv` in the CRAN repos has ~235 packages — the Notion database has ~455. These need to be reconciled.
-2. **Category taxonomy finalisation**: The category list in section 4.5 is based on the existing CSV data. During the Notion migration audit (M1), categories should be reviewed, consolidated, and finalised. Some categories may be too granular or too broad.
-3. **Google Cloud Run configuration**: Exact Cloud Run settings (memory, CPU, max instances, concurrency) should be determined during M10 based on local Docker testing. Starting point: 512 MB memory, 1 vCPU, max 3 instances, 80 concurrent requests.
-4. **Gotham font licensing**: Gotham is a commercial font. The CDN link used in BiblioStatus (`fonts.cdnfonts.com`) may have licensing implications. Verify this is acceptable, or switch to a similar free alternative (e.g., `Montserrat`).
-5. **Google Form setup**: The Google Form for package submissions needs to be created before M7. Fields are defined in section 6.2.
-6. **Domain/URL**: Will the app use a custom subdomain (e.g., `extensions.youcanbeapirate.com` or `ggplot2extended.youcanbeapirate.com`) or the default Cloud Run URL? To be decided before M10.
-7. **Download trend chart**: Listed as nice-to-have. If pursued, it would require storing historical daily download data in an additional Parquet file. This would significantly increase data size (~455 packages × ~3,650 days × row). Decision deferred to after v1 core is complete.
+1. ~~Which GitHub API field populates `github_updated`?~~ **Resolved**: Uses `pushed_at` (with `updated_at` as fallback). `pushed_at` represents actual code pushes, which is more meaningful than `updated_at` (which includes issue/PR activity).
+2. ~~Is the CRAN Description field currently fetched?~~ **Resolved**: No, the pipeline currently stores `response$Title` as `description`. M1 fixes this by splitting into `title` (from `response$Title`) and `description` (from `response$Description`).
+3. ~~Is the Sort dropdown a bug or unbuilt feature?~~ **Resolved**: The `sort_packages()` function works correctly, but the reactable's `defaultSorted` parameter overrides the server-side sort order. **Decision**: Remove the Sort dropdown entirely. Sorting is handled by reactable column headers (client-side).
+4. ~~How to check if a package has vignettes?~~ **Resolved**: Check `pkgsearch::cran_package()` response for `vignettes` field. If empty or missing, set `has_vignettes = FALSE`. HEAD request fallback if needed.
+5. ~~Recently Added + Recently Updated: AND or OR?~~ **Resolved**: OR logic. When both are checked, show packages matching either flag.
+6. ~~Is prepending install/library to examples straightforward?~~ **Resolved**: Yes. The package name is always known. Prepend at display time in `build_example_card()`, not in the stored data. Implemented in M12 as a should-have.
 
 ### 15. Appendix
 
@@ -796,9 +887,10 @@ ggplot2-extended-companion/
 
 **CRAN metadata via `pkgsearch`**:
 - Function: `pkgsearch::cran_package(package_name)`
-- Returns: List with fields including `Package`, `Version`, `Title`, `Description`, `License`, `Maintainer`, `Published`, `URL`, `BugReports`, etc.
+- Returns: List with fields including `Package`, `Version`, `Title`, `Description`, `License`, `Maintainer`, `Published`, `URL`, `BugReports`, `vignettes` (list), etc.
 - Rate limit: No documented limit, but be polite (~1 req/sec).
 - No authentication required.
+- **Key fields for this app**: `Title` (short one-liner → `title` column), `Description` (longer paragraph → `description` column), `vignettes` (list → `has_vignettes` flag).
 
 **CRAN downloads via `cranlogs`**:
 - Function: `cranlogs::cran_downloads(packages, from, to)`
@@ -812,7 +904,7 @@ ggplot2-extended-companion/
 - Returns: List with `pushed_at`, `updated_at`, `description`, `html_url`, etc.
 - Rate limit: 5,000 req/hr with PAT, 60 req/hr without.
 - Authentication: `GITHUB_PAT` environment variable.
-- Note: Parse `repo_url` from curated CSV to extract `owner` and `repo`.
+- **Key field**: `pushed_at` is used for `github_updated` (represents last code push, not last issue/PR activity).
 
 #### B. URL Construction Patterns
 
@@ -820,8 +912,7 @@ ggplot2-extended-companion/
 |---|---|---|
 | CRAN page | `https://cran.r-project.org/package={package_name}` | `on_cran == TRUE` |
 | Reference manual | `https://cran.r-project.org/web/packages/{package_name}/{package_name}.pdf` | `on_cran == TRUE` |
-| Vignettes (directory) | `https://cran.r-project.org/web/packages/{package_name}/vignettes/` | `on_cran == TRUE` (validate with HEAD request in pipeline) |
-| Vignettes (single) | `https://cran.r-project.org/web/packages/{package_name}/vignettes/{name}.html` | Discovered via CRAN metadata `vignettes` field |
+| Vignettes (directory) | `https://cran.r-project.org/web/packages/{package_name}/vignettes/` | `on_cran == TRUE` AND `has_vignettes == TRUE` |
 
 #### C. Glossary
 
@@ -832,6 +923,6 @@ ggplot2-extended-companion/
 | Essential Extension | A manually curated tag indicating a package is particularly useful for beginners or widely applicable. |
 | Pipeline | The automated data processing workflow that fetches, transforms, and stores package data. |
 | Parquet | A columnar data storage format, efficient for analytical queries. Used as the app's data layer. |
-| DuckDB | An in-process analytical database engine that can query Parquet files directly. |
 | golem | An R package framework for building production-grade Shiny applications as R packages. |
 | targets | An R package for defining and running reproducible data pipelines as directed acyclic graphs (DAGs). |
+| display_name | The human-readable category name (e.g., "Arranging Plots") as opposed to the technical identifier (e.g., "arranging_plots"). |
