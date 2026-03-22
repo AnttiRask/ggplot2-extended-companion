@@ -30,9 +30,9 @@ app_ui <- function(request) {
 
     # Main page layout
     bslib::page_sidebar(
-      title = "ggplot2 Extended Companion",
+      title = "ggplot2 extended (companion)",
       theme = app_theme(),
-      window_title = "ggplot2 Extended Companion",
+      window_title = "ggplot2 extended (companion)",
 
       # Dark/light mode toggle in the navbar
       bslib::input_dark_mode(id = "colour_mode", mode = "dark"),
@@ -132,7 +132,7 @@ golem_add_external_resources <- function() {
   tags$head(
     golem::bundle_resources(
       path = app_sys("app/www"),
-      app_title = "ggplot2 Extended Companion"
+      app_title = "ggplot2 extended (companion)"
     ),
 
     # Meta tags for AI agent compatibility (SPEC section 8)
@@ -143,7 +143,7 @@ golem_add_external_resources <- function() {
         "with download statistics and code examples."
       )
     ),
-    tags$meta(property = "og:title", content = "ggplot2 Extended Companion"),
+    tags$meta(property = "og:title", content = "ggplot2 extended (companion)"),
     tags$meta(
       property = "og:description",
       content = paste(

@@ -23,7 +23,7 @@ app_server <- function(input, output, session) {
   # Data loading (once at startup)
   # -------------------------------------------------------------------------
 
-  logger::log_info("Starting ggplot2 Extended Companion app")
+  logger::log_info("Starting ggplot2 extended (companion) app")
   app_data_raw <- load_app_data()
 
   if (!is.null(app_data_raw)) {
