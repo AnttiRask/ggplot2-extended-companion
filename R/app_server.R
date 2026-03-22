@@ -151,13 +151,15 @@ app_server <- function(input, output, session) {
     }
   }) |> shiny::bindEvent(session$clientData$url_search, once = TRUE)
 
-  # Update URL when selected_package changes
+  # Update URL when selected_package changes.
+  # Use "push" for package selection (creates history entry for back button),
+  # "replace" for clearing (avoids extra history entry on startup/back).
   shiny::observe({
     pkg <- selected_package()
     if (!is.null(pkg)) {
       shiny::updateQueryString(paste0("?package=", pkg), mode = "push")
     } else {
-      shiny::updateQueryString("?", mode = "push")
+      shiny::updateQueryString("?", mode = "replace")
     }
   })
 

@@ -74,12 +74,11 @@ mod_detail_server <- function(id, selected_package, app_data,
 
       # Determine prev/next package for navigation arrows
       all_pkgs <- all_packages_alpha()
-      nav_bar <- build_nav_bar(ns, pkg_name, all_pkgs)
 
       # Build the detail view as a stack of cards with consistent spacing
       htmltools::tagList(
-        # Navigation bar: back + prev/next (top)
-        nav_bar,
+        # Navigation bar: back + prev/next (top — distinct IDs from bottom)
+        build_nav_bar(ns, pkg_name, all_pkgs, suffix = "top"),
 
         # Card stack with consistent gap-3 spacing
         htmltools::tags$div(
@@ -101,42 +100,39 @@ mod_detail_server <- function(id, selected_package, app_data,
           build_example_card(example_row)
         ),
 
-        # Navigation bar (bottom — so user doesn't have to scroll back up)
-        htmltools::tags$div(class = "mt-3", nav_bar)
+        # Navigation bar (bottom — distinct IDs from top)
+        htmltools::tags$div(class = "mt-3",
+          build_nav_bar(ns, pkg_name, all_pkgs, suffix = "bottom")
+        )
       )
     })
 
-    # Handle back button click
-    shiny::observeEvent(input$back_btn, {
-      on_back()
-    })
+    # Handle back button clicks (both top and bottom nav bars)
+    shiny::observeEvent(input$back_btn_top, { on_back() })
+    shiny::observeEvent(input$back_btn_bottom, { on_back() })
 
-    # Handle prev/next navigation
-    shiny::observeEvent(input$prev_btn, {
+    # Helper for prev/next navigation logic
+    navigate_to <- function(direction) {
       pkg_name <- selected_package()
       all_pkgs <- all_packages_alpha()
       if (!is.null(pkg_name) && !is.null(all_pkgs)) {
         idx <- match(pkg_name, all_pkgs)
-        if (!is.na(idx) && idx > 1) {
-          new_pkg <- all_pkgs[idx - 1]
+        new_idx <- idx + direction
+        if (!is.na(idx) && new_idx >= 1 && new_idx <= length(all_pkgs)) {
+          new_pkg <- all_pkgs[new_idx]
           if (!is.null(on_navigate)) on_navigate(new_pkg)
           else selected_package(new_pkg)
         }
       }
-    })
+    }
 
-    shiny::observeEvent(input$next_btn, {
-      pkg_name <- selected_package()
-      all_pkgs <- all_packages_alpha()
-      if (!is.null(pkg_name) && !is.null(all_pkgs)) {
-        idx <- match(pkg_name, all_pkgs)
-        if (!is.na(idx) && idx < length(all_pkgs)) {
-          new_pkg <- all_pkgs[idx + 1]
-          if (!is.null(on_navigate)) on_navigate(new_pkg)
-          else selected_package(new_pkg)
-        }
-      }
-    })
+    # Handle prev button clicks (both top and bottom)
+    shiny::observeEvent(input$prev_btn_top, { navigate_to(-1) })
+    shiny::observeEvent(input$prev_btn_bottom, { navigate_to(-1) })
+
+    # Handle next button clicks (both top and bottom)
+    shiny::observeEvent(input$next_btn_top, { navigate_to(1) })
+    shiny::observeEvent(input$next_btn_bottom, { navigate_to(1) })
   })
 }
 
@@ -148,14 +144,16 @@ mod_detail_server <- function(id, selected_package, app_data,
 #'
 #' Renders a horizontal flex row with "Back to all packages",
 #' "← Prev", and "Next →" buttons. Prev/next are disabled at
-#' the boundaries of the alphabetical package list.
+#' the boundaries of the alphabetical package list. Uses a suffix
+#' to generate unique IDs when rendered at both top and bottom.
 #'
 #' @param ns The module's namespace function.
 #' @param current_pkg The currently selected package name.
 #' @param all_pkgs Character vector of all package names (alphabetically sorted).
+#' @param suffix A string ("top" or "bottom") to ensure unique button IDs.
 #' @return An htmltools tag with the navigation bar.
 #' @noRd
-build_nav_bar <- function(ns, current_pkg, all_pkgs) {
+build_nav_bar <- function(ns, current_pkg, all_pkgs, suffix = "top") {
   # Determine position for prev/next button state
   idx <- if (!is.null(all_pkgs)) match(current_pkg, all_pkgs) else NA
   is_first <- is.na(idx) || idx == 1
@@ -166,7 +164,7 @@ build_nav_bar <- function(ns, current_pkg, all_pkgs) {
 
     # Back button
     shiny::actionButton(
-      ns("back_btn"),
+      ns(paste0("back_btn_", suffix)),
       label = htmltools::tagList(
         htmltools::HTML("&larr;"), " Back to all packages"
       ),
@@ -175,7 +173,7 @@ build_nav_bar <- function(ns, current_pkg, all_pkgs) {
 
     # Prev button
     shiny::actionButton(
-      ns("prev_btn"),
+      ns(paste0("prev_btn_", suffix)),
       label = htmltools::tagList(htmltools::HTML("&larr;"), " Prev"),
       class = paste("btn btn-outline-secondary", if (is_first) "disabled" else ""),
       disabled = if (is_first) NA else NULL
@@ -183,7 +181,7 @@ build_nav_bar <- function(ns, current_pkg, all_pkgs) {
 
     # Next button
     shiny::actionButton(
-      ns("next_btn"),
+      ns(paste0("next_btn_", suffix)),
       label = htmltools::tagList("Next ", htmltools::HTML("&rarr;")),
       class = paste("btn btn-outline-secondary", if (is_last) "disabled" else ""),
       disabled = if (is_last) NA else NULL
@@ -435,7 +433,8 @@ build_example_card <- function(example) {
   btn_id <- paste0("copy-btn-", example$package_name)
 
   display_code <- paste0(
-    "install.packages(\"", example$package_name, "\")\n",
+    "# Install if needed:\n",
+    "# install.packages(\"", example$package_name, "\")\n",
     "library(", example$package_name, ")\n\n",
     "# Example:\n",
     example$example_code

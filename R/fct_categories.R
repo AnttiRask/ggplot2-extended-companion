@@ -19,7 +19,17 @@
 #'   values are display names.
 #'
 #' @noRd
+# Module-level cache for display names (avoids re-reading CSV on every call).
+# Populated on first access, then reused for the lifetime of the R session.
+.category_cache <- new.env(parent = emptyenv())
+
 get_category_display_names <- function() {
+  # Return cached result if available
+
+  if (!is.null(.category_cache$display_names)) {
+    return(.category_cache$display_names)
+  }
+
   csv_path <- app_sys("../data-raw/categories.csv")
 
   # Fallback: try project root (for tests and non-golem contexts)
@@ -30,7 +40,12 @@ get_category_display_names <- function() {
   # na.strings = "" prevents R from converting the literal "NA" display
   # name into an R NA value
   cats <- read.csv(csv_path, stringsAsFactors = FALSE, na.strings = "")
-  stats::setNames(cats$display_name, cats$category)
+  result <- stats::setNames(cats$display_name, cats$category)
+
+  # Cache for subsequent calls
+  .category_cache$display_names <- result
+
+  result
 }
 
 #' Convert a single category technical name to its display name
