@@ -33,61 +33,21 @@ jobs:
           r-version: '4.5.3'
           use-public-rspm: true
 
-      # Cache R packages in a plain library (not renv's symlink-based layout).
-      # renv's project library uses symlinks to a global cache, which breaks
-      # when R CMD check runs with --vanilla (no .Rprofile = no renv activation).
-      # Instead, use renv::restore() to install into a plain library directory
-      # that R CMD check can access directly via R_LIBS_USER.
-      - name: Cache R library
-        uses: actions/cache@v4
+      # Use setup-r-dependencies with a cache-version keyed on renv.lock
+      # to stabilize the cache key. Without this, pak::lockfile_create()
+      # generates a different hash each run, causing perpetual cache misses
+      # and ~53-minute reinstalls.
+      - name: Setup R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          path: ~/R/lib
-          key: r-lib-${{ runner.os }}-r-4.5.3-${{ hashFiles('renv.lock') }}
-          restore-keys: |
-            r-lib-${{ runner.os }}-r-4.5.3-
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libcurl4-openssl-dev \
-            libssl-dev \
-            libxml2-dev \
-            libfontconfig1-dev \
-            libfreetype6-dev \
-            libpng-dev \
-            libtiff5-dev \
-            libjpeg-dev \
-            libharfbuzz-dev \
-            libfribidi-dev
-
-      - name: Restore packages into plain library
-        env:
-          R_LIBS_USER: ~/R/lib
-        run: |
-          mkdir -p ~/R/lib
-          Rscript -e '
-            lib <- Sys.getenv("R_LIBS_USER")
-            if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv", lib = lib)
-            renv::restore(prompt = FALSE, library = lib)
-            # Also install check tools
-            pkgs <- c("rcmdcheck", "pkgload")
-            for (p in pkgs) {
-              if (!requireNamespace(p, quietly = TRUE)) install.packages(p, lib = lib)
-            }
-          '
+          extra-packages: any::rcmdcheck, any::pkgload
+          needs: check
+          cache-version: ${{ hashFiles('renv.lock') }}
 
       - name: R CMD check
-        env:
-          R_LIBS_USER: ~/R/lib
-        run: |
-          Rscript -e '
-            rcmdcheck::rcmdcheck(
-              args = c("--no-manual", "--as-cran"),
-              error_on = "warning",
-              check_dir = "check"
-            )
-          '
+        uses: r-lib/actions/check-r-package@v2
+        with:
+          args: 'c("--no-manual", "--as-cran")'
 
       - name: Validate packages_curated.csv
         run: |
