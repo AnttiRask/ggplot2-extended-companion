@@ -115,7 +115,7 @@ app_server <- function(input, output, session) {
   )
 
   # -------------------------------------------------------------------------
-  # Browse/Detail toggle (M5)
+  # Browse/Detail toggle (M5) & URL routing
   # -------------------------------------------------------------------------
 
   # Output flag for conditionalPanel -- TRUE when a package is selected
@@ -124,6 +124,28 @@ app_server <- function(input, output, session) {
   })
   # Allow conditionalPanel to access this output
   outputOptions(output, "show_detail", suspendWhenHidden = FALSE)
+
+  # Parse URL query parameter on startup: ?package={name}
+  shiny::observe({
+    query <- shiny::parseQueryString(session$clientData$url_search)
+    if (!is.null(query$package) && nchar(query$package) > 0) {
+      # Validate the package name exists in the data
+      if (!is.null(app_data_raw) &&
+          query$package %in% app_data_raw$package_name) {
+        selected_package(query$package)
+      }
+    }
+  }) |> shiny::bindEvent(session$clientData$url_search, once = TRUE)
+
+  # Update URL when selected_package changes
+  shiny::observe({
+    pkg <- selected_package()
+    if (!is.null(pkg)) {
+      shiny::updateQueryString(paste0("?package=", pkg), mode = "push")
+    } else {
+      shiny::updateQueryString("?", mode = "push")
+    }
+  })
 
   # Header module (M7) -- static intro content, no server logic needed
   mod_header_server("header")
