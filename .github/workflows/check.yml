@@ -74,10 +74,14 @@ jobs:
       - name: R CMD check
         run: |
           Rscript -e '
+            # Add the renv library to .libPaths so R CMD check can find
+            # Suggests packages (ggplot2, testthat, targets, withr)
+            lib <- renv::paths$library()
             rcmdcheck::rcmdcheck(
               args = c("--no-manual", "--as-cran"),
               error_on = "warning",
-              check_dir = "check"
+              check_dir = "check",
+              libpath = c(lib, .libPaths())
             )
           '
 
