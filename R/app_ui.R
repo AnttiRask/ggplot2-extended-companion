@@ -53,13 +53,9 @@ app_ui <- function(request) {
         # Header: collapsible intro accordion (M7)
         mod_header_ui("header"),
 
-        # Browse view: recent lists + package table (M3, M7)
+        # Browse view: package table (M3)
         shiny::conditionalPanel(
           condition = "!output.show_detail",
-          # Recently added/updated cards above the table
-          mod_recent_ui("recent"),
-          htmltools::tags$div(class = "my-4"),
-          # Package table
           mod_browse_ui("browse")
         ),
 
