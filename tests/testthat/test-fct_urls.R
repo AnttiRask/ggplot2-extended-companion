@@ -12,6 +12,7 @@ test_that("construct_urls builds correct URLs for CRAN packages", {
   df <- data.frame(
     package_name = c("ggrepel", "patchwork"),
     on_cran = c(TRUE, TRUE),
+    has_vignettes = c(TRUE, TRUE),
     stringsAsFactors = FALSE
   )
 
@@ -35,6 +36,7 @@ test_that("construct_urls returns NA URLs for non-CRAN packages", {
   df <- data.frame(
     package_name = c("gg3D", "bbplot"),
     on_cran = c(FALSE, FALSE),
+    has_vignettes = c(FALSE, FALSE),
     stringsAsFactors = FALSE
   )
 
@@ -49,6 +51,7 @@ test_that("construct_urls handles mixed CRAN and non-CRAN packages", {
   df <- data.frame(
     package_name = c("ggrepel", "bbplot", "patchwork"),
     on_cran = c(TRUE, FALSE, TRUE),
+    has_vignettes = c(TRUE, FALSE, TRUE),
     stringsAsFactors = FALSE
   )
 
@@ -63,6 +66,7 @@ test_that("construct_urls returns tibble with expected columns", {
   df <- data.frame(
     package_name = c("ggrepel"),
     on_cran = c(TRUE),
+    has_vignettes = c(TRUE),
     stringsAsFactors = FALSE
   )
 
@@ -70,4 +74,23 @@ test_that("construct_urls returns tibble with expected columns", {
 
   expect_true(tibble::is_tibble(result))
   expect_true(all(c("package_name", "cran_url", "manual_url", "vignettes_url") %in% names(result)))
+})
+
+test_that("construct_urls sets vignettes_url to NA when has_vignettes is FALSE", {
+  df <- data.frame(
+    package_name = c("pkg_with", "pkg_without"),
+    on_cran = c(TRUE, TRUE),
+    has_vignettes = c(TRUE, FALSE),
+    stringsAsFactors = FALSE
+  )
+
+  result <- construct_urls(df)
+
+  # Package with vignettes gets a URL
+  expect_false(is.na(result$vignettes_url[1]))
+  # Package without vignettes gets NA even though on CRAN
+  expect_true(is.na(result$vignettes_url[2]))
+  # Both still get cran_url and manual_url
+  expect_false(is.na(result$cran_url[2]))
+  expect_false(is.na(result$manual_url[2]))
 })

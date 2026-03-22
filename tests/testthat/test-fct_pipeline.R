@@ -43,6 +43,27 @@ test_that("fetch_cran_metadata_single returns correct fields for CRAN package", 
   expect_true(!is.na(result$cran_published))
 })
 
+test_that("parse_cran_response splits Title and Description into separate fields", {
+  mock_response <- readRDS(test_path("fixtures", "cran_response_ggrepel.rds"))
+
+  result <- parse_cran_response("ggrepel", mock_response)
+
+  # title comes from response$Title, description from response$Description
+  expect_true("title" %in% names(result))
+  expect_true("description" %in% names(result))
+  expect_equal(result$title, mock_response$Title)
+  expect_equal(result$description, mock_response$Description)
+})
+
+test_that("parse_cran_response detects has_vignettes from response", {
+  mock_response <- readRDS(test_path("fixtures", "cran_response_ggrepel.rds"))
+
+  result <- parse_cran_response("ggrepel", mock_response)
+
+  expect_true("has_vignettes" %in% names(result))
+  expect_type(result$has_vignettes, "logical")
+})
+
 test_that("parse_cran_response returns NA fields for NULL response", {
   result <- parse_cran_response("fake_package", NULL)
 
@@ -50,7 +71,9 @@ test_that("parse_cran_response returns NA fields for NULL response", {
   expect_equal(result$on_cran, FALSE)
   expect_true(is.na(result$cran_version))
   expect_true(is.na(result$license))
+  expect_true(is.na(result$title))
   expect_true(is.na(result$description))
+  expect_equal(result$has_vignettes, FALSE)
 })
 
 # --- parse_github_response() ------------------------------------------------
@@ -143,12 +166,14 @@ test_that("merge_package_data joins all data sources", {
 
   cran_meta <- tibble::tibble(
     package_name = c("ggrepel", "bbplot"),
-    description = c("Text labels", "BBC style"),
+    title = c("Text labels", "BBC style"),
+    description = c("Repel overlapping text", "BBC plot theme"),
     maintainer = c("Kamil", NA),
     license = c("GPL-3", NA),
     cran_version = c("0.9.6", NA),
     cran_published = as.Date(c("2024-09-07", NA)),
-    on_cran = c(TRUE, FALSE)
+    on_cran = c(TRUE, FALSE),
+    has_vignettes = c(TRUE, FALSE)
   )
 
   github_meta <- tibble::tibble(
@@ -171,10 +196,10 @@ test_that("merge_package_data joins all data sources", {
 
   # Check all expected columns are present (no download columns)
   expected_cols <- c(
-    "package_name", "description", "maintainer", "categories", "is_essential",
-    "on_cran", "license", "cran_version", "cran_published", "github_updated",
-    "cran_url", "website_url", "repo_url", "manual_url", "vignettes_url",
-    "date_added", "last_checked"
+    "package_name", "title", "description", "maintainer", "categories",
+    "is_essential", "on_cran", "has_vignettes", "license", "cran_version",
+    "cran_published", "github_updated", "cran_url", "website_url", "repo_url",
+    "manual_url", "vignettes_url", "date_added", "last_checked"
   )
   expect_true(all(expected_cols %in% names(result)))
 

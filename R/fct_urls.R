@@ -12,16 +12,24 @@
 #'
 #' Builds CRAN page, reference manual, and vignettes directory URLs using
 #' the patterns defined in SPEC Appendix B. Only generates URLs for packages
-#' that are on CRAN (`on_cran == TRUE`); others get NA.
+#' that are on CRAN (`on_cran == TRUE`); others get NA. Vignettes URL is
+#' also set to NA when `has_vignettes == FALSE` (package has no vignettes).
 #'
-#' @param df A data frame with `package_name` (character) and `on_cran`
-#'   (logical) columns.
+#' @param df A data frame with `package_name` (character), `on_cran`
+#'   (logical), and `has_vignettes` (logical) columns.
 #'
 #' @return A tibble with columns: `package_name`, `cran_url`, `manual_url`,
 #'   `vignettes_url`.
 #'
 #' @noRd
 construct_urls <- function(df) {
+  # has_vignettes may not be present in older data — default to TRUE
+  has_vignettes <- if ("has_vignettes" %in% names(df)) {
+    df$has_vignettes
+  } else {
+    rep(TRUE, nrow(df))
+  }
+
   tibble::tibble(
     package_name = df$package_name,
 
@@ -42,9 +50,9 @@ construct_urls <- function(df) {
       NA_character_
     ),
 
-    # Vignettes directory: https://cran.r-project.org/web/packages/{name}/vignettes/
+    # Vignettes directory: only if on CRAN AND has vignettes
     vignettes_url = ifelse(
-      df$on_cran,
+      df$on_cran & has_vignettes,
       paste0(
         "https://cran.r-project.org/web/packages/",
         df$package_name, "/vignettes/"

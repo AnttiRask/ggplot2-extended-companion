@@ -45,12 +45,14 @@ parse_cran_response <- function(package_name, response) {
   if (is.null(response)) {
     return(tibble::tibble(
       package_name   = package_name,
+      title          = NA_character_,
       description    = NA_character_,
       maintainer     = NA_character_,
       license        = NA_character_,
       cran_version   = NA_character_,
       cran_published = as.Date(NA),
-      on_cran        = FALSE
+      on_cran        = FALSE,
+      has_vignettes  = FALSE
     ))
   }
 
@@ -58,14 +60,19 @@ parse_cran_response <- function(package_name, response) {
   maintainer_raw <- response$Maintainer %||% NA_character_
   maintainer <- sub("\\s*<.*>$", "", maintainer_raw)
 
+  # Detect vignettes: pkgsearch includes a vignettes field when available
+  has_vignettes <- !is.null(response$vignettes) && length(response$vignettes) > 0
+
   tibble::tibble(
     package_name   = package_name,
-    description    = response$Title %||% NA_character_,
+    title          = response$Title %||% NA_character_,
+    description    = response$Description %||% NA_character_,
     maintainer     = maintainer,
     license        = response$License %||% NA_character_,
     cran_version   = response$Version %||% NA_character_,
     cran_published = as.Date(response$Published %||% NA_character_),
-    on_cran        = TRUE
+    on_cran        = TRUE,
+    has_vignettes  = has_vignettes
   )
 }
 
@@ -466,6 +473,7 @@ export_json <- function(packages, downloads, output_path = "inst/app/www/data/pa
     row <- combined[i, ]
     list(
       name           = row$package_name,
+      title          = if ("title" %in% names(row) && !is.na(row$title)) row$title else NULL,
       description    = if (is.na(row$description)) NULL else row$description,
       categories     = strsplit(row$categories, "\\|")[[1]],
       is_essential   = row$is_essential,
