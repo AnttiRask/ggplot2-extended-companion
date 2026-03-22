@@ -81,11 +81,23 @@ load_app_data <- function(
     return(packages)
   }
 
-  # Join packages with downloads, then compute derived recent flags.
-  # These flags are relative to the current date (7-day window), so they
-  # must be computed at app startup, not stored in Parquet.
+  # Join packages with downloads, then ensure all expected columns exist.
+  # Old Parquet files (pre-title/description split) may lack title and
+  # has_vignettes columns — add defaults so the app doesn't crash.
   result <- packages |>
-    dplyr::left_join(downloads, by = "package_name") |>
+    dplyr::left_join(downloads, by = "package_name")
+
+  if (!"title" %in% names(result)) {
+    # Old schema: description actually contains the CRAN Title
+    result$title <- result$description
+    result$description <- NA_character_
+  }
+  if (!"has_vignettes" %in% names(result)) {
+    result$has_vignettes <- TRUE
+  }
+
+  # Compute derived recent flags (7-day window relative to current date)
+  result <- result |>
     dplyr::mutate(
       recently_added = !is.na(.data$date_added) &
         as.Date(.data$date_added) >= (Sys.Date() - 7),
