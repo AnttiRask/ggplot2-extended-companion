@@ -81,9 +81,26 @@ load_app_data <- function(
     return(packages)
   }
 
-  # Join packages with downloads
-  packages |>
-    dplyr::left_join(downloads, by = "package_name")
+  # Join packages with downloads, then compute derived recent flags.
+  # These flags are relative to the current date (7-day window), so they
+  # must be computed at app startup, not stored in Parquet.
+  result <- packages |>
+    dplyr::left_join(downloads, by = "package_name") |>
+    dplyr::mutate(
+      recently_added = !is.na(.data$date_added) &
+        as.Date(.data$date_added) >= (Sys.Date() - 7),
+      recently_updated = pmax(
+        as.Date(.data$cran_published),
+        as.Date(.data$github_updated),
+        na.rm = TRUE
+      ) >= (Sys.Date() - 7)
+    )
+
+  # pmax returns -Inf when both dates are NA; replace with FALSE
+  result$recently_updated[is.na(result$recently_updated) |
+                           is.infinite(result$recently_updated)] <- FALSE
+
+  result
 }
 
 #' Load code examples data from Parquet

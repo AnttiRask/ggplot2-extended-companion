@@ -10,15 +10,19 @@
 
 #' Filter packages by sidebar criteria
 #'
-#' Applies category, CRAN status, license, and essential-only filters to the
-#' package dataset. All filters default to "show everything" so they compose
-#' cleanly -- any combination of filters can be applied.
+#' Applies category, CRAN status, license, essential-only, and recently
+#' added/updated filters to the package dataset. All filters default to
+#' "show everything" so they compose cleanly via AND logic. The recently
+#' added and recently updated filters use OR logic between themselves
+#' (union), but AND with all other filters.
 #'
 #' @param data A tibble of package data.
 #' @param category Category to filter by, or "All" for no category filter.
 #' @param cran_status One of "All", "On CRAN", "Not on CRAN".
 #' @param license_filter License to filter by, or "All" for no license filter.
 #' @param essential_only Logical. If TRUE, show only essential packages.
+#' @param recently_added Logical. If TRUE, include recently added packages.
+#' @param recently_updated Logical. If TRUE, include recently updated packages.
 #'
 #' @return A filtered tibble.
 #'
@@ -28,7 +32,9 @@ filter_packages <- function(
   category = "All",
   cran_status = "All",
   license_filter = "All",
-  essential_only = FALSE
+  essential_only = FALSE,
+  recently_added = FALSE,
+  recently_updated = FALSE
 ) {
   result <- data
 
@@ -63,33 +69,15 @@ filter_packages <- function(
       dplyr::filter(.data$is_essential == TRUE)
   }
 
-  result
-}
+  # Filter by recently added / recently updated (OR logic between them)
+  # Only apply if at least one checkbox is checked
+  if (isTRUE(recently_added) || isTRUE(recently_updated)) {
+    result <- result |>
+      dplyr::filter(
+        (.data$recently_added & recently_added) |
+        (.data$recently_updated & recently_updated)
+      )
+  }
 
-#' Sort packages by the selected sort option
-#'
-#' Sorts the package dataset according to the sort-by dropdown value from
-#' the sidebar. Handles all 10 sort options from SPEC section 5.3.
-#'
-#' @param data A tibble of package data.
-#' @param sort_by The sort option string from the dropdown.
-#'
-#' @return A sorted tibble.
-#'
-#' @noRd
-sort_packages <- function(data, sort_by = "Name (A\u2013Z)") {
-  switch(sort_by,
-    "Name (A\u2013Z)" = dplyr::arrange(data, .data$package_name),
-    "Name (Z\u2013A)" = dplyr::arrange(data, dplyr::desc(.data$package_name)),
-    "Creator (A\u2013Z)" = dplyr::arrange(data, .data$maintainer),
-    "Creator (Z\u2013A)" = dplyr::arrange(data, dplyr::desc(.data$maintainer)),
-    "Downloads (30d) \u2193" = dplyr::arrange(data, dplyr::desc(.data$downloads_30d)),
-    "Downloads (All) \u2193" = dplyr::arrange(data, dplyr::desc(.data$downloads_all)),
-    "CRAN Published (newest)" = dplyr::arrange(data, dplyr::desc(.data$cran_published)),
-    "CRAN Published (oldest)" = dplyr::arrange(data, .data$cran_published),
-    "GitHub Updated (newest)" = dplyr::arrange(data, dplyr::desc(.data$github_updated)),
-    "GitHub Updated (oldest)" = dplyr::arrange(data, .data$github_updated),
-    # Default fallback
-    dplyr::arrange(data, .data$package_name)
-  )
+  result
 }

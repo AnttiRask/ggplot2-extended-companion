@@ -61,29 +61,33 @@ app_server <- function(input, output, session) {
   # Filtered and sorted data
   # -------------------------------------------------------------------------
 
-  # Apply sidebar filters and sorting to produce the dataset for the table
+  # Apply sidebar filters to produce the dataset for the table.
+  # Sorting is handled client-side by reactable column headers.
   filtered_data <- reactive({
     if (is.null(app_data_raw)) return(NULL)
 
     # Get current filter values (with defaults for initial render before
     # sidebar inputs are available)
-    category       <- sidebar_values$category()       %||% "All"
-    cran_status    <- sidebar_values$cran_status()     %||% "All"
-    license_filter <- sidebar_values$license()         %||% "All"
-    essential_only <- sidebar_values$essential_only()   %||% FALSE
-    sort_by        <- sidebar_values$sort_by()         %||% "Name (A\u2013Z)"
+    category         <- sidebar_values$category()         %||% "All"
+    cran_status      <- sidebar_values$cran_status()      %||% "All"
+    license_filter   <- sidebar_values$license()          %||% "All"
+    essential_only   <- sidebar_values$essential_only()    %||% FALSE
+    recently_added   <- sidebar_values$recently_added()    %||% FALSE
+    recently_updated <- sidebar_values$recently_updated()  %||% FALSE
 
-    # Apply filters
+    # Apply filters (sorting handled by reactable column headers)
     result <- filter_packages(
       app_data_raw,
-      category       = category,
-      cran_status    = cran_status,
-      license_filter = license_filter,
-      essential_only = essential_only
+      category         = category,
+      cran_status      = cran_status,
+      license_filter   = license_filter,
+      essential_only   = essential_only,
+      recently_added   = recently_added,
+      recently_updated = recently_updated
     )
 
-    # Apply sorting
-    result <- sort_packages(result, sort_by)
+    # Default order: alphabetical by package_name
+    result <- dplyr::arrange(result, .data$package_name)
 
     result
   })

@@ -1,16 +1,19 @@
 # =============================================================================
 # mod_sidebar.R
 #
-# Shiny module for the sidebar filter and sort controls. Provides category
-# dropdown, CRAN status radio buttons, license dropdown, essential-only
-# checkbox, sort-by dropdown, and package submission link.
+# Shiny module for the sidebar filter controls. Provides category dropdown
+# (with display names), CRAN status radio buttons, license dropdown,
+# essential-only checkbox, recently added/updated checkboxes, and package
+# submission link.
 #
-# Part of Milestone 4: Sidebar Filters & Sorting
+# Part of production-fix-polish: Sidebar Overhaul
 # =============================================================================
 
 #' Sidebar Module -- UI
 #'
-#' Renders all sidebar filter and sort controls as defined in SPEC section 5.3.
+#' Renders all sidebar filter controls. Category dropdown uses display names
+#' from categories.csv. Sorting is handled by reactable column headers, not
+#' a sidebar dropdown.
 #'
 #' @param id Module namespace ID.
 #' @param categories Character vector of available category identifiers.
@@ -22,29 +25,19 @@
 mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0)) {
   ns <- shiny::NS(id)
 
-  # Build category choices: "All" + sorted display-name versions
-  category_choices <- c("All", sort(categories))
+  # Build category choices using display names
+  display_names <- get_category_display_names()
+  # Filter to only categories present in the data, then sort by display name
+  available <- categories[categories %in% names(display_names)]
+  sorted_display <- sort(display_names[available])
+  # Named vector: display name shown to user, technical name as value
+  category_choices <- c("All" = "All", sorted_display)
 
   # Build license choices: "All" + sorted unique licenses
   license_choices <- c("All", sort(licenses))
 
-  # Sort options from SPEC section 5.3
-
-  sort_choices <- c(
-    "Name (A\u2013Z)",
-    "Name (Z\u2013A)",
-    "Creator (A\u2013Z)",
-    "Creator (Z\u2013A)",
-    "Downloads (30d) \u2193",
-    "Downloads (All) \u2193",
-    "CRAN Published (newest)",
-    "CRAN Published (oldest)",
-    "GitHub Updated (newest)",
-    "GitHub Updated (oldest)"
-  )
-
   htmltools::tagList(
-    # Category filter
+    # Category filter (display names, technical name as value)
     shiny::selectInput(
       ns("category"),
       label = "Category",
@@ -68,19 +61,25 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
       selected = "All"
     ),
 
-    # Essential only checkbox
+    # Essential only checkbox (capitalized "Only")
     shiny::checkboxInput(
       ns("essential_only"),
-      label = "Essential Extensions only",
+      label = "Essential Extensions Only",
       value = FALSE
     ),
 
-    # Sort by dropdown
-    shiny::selectInput(
-      ns("sort_by"),
-      label = "Sort by",
-      choices = sort_choices,
-      selected = "Name (A\u2013Z)"
+    # Recently Added checkbox
+    shiny::checkboxInput(
+      ns("recently_added"),
+      label = "Recently Added",
+      value = FALSE
+    ),
+
+    # Recently Updated checkbox
+    shiny::checkboxInput(
+      ns("recently_updated"),
+      label = "Recently Updated",
+      value = FALSE
     ),
 
     # Divider
@@ -100,28 +99,30 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
 #' Sidebar Module -- Server
 #'
 #' Returns a list of reactive values representing the current state of all
-#' sidebar filter and sort controls. The parent server uses these to filter
-#' and sort the package data before passing it to the browse module.
+#' sidebar filter controls. The parent server uses these to filter the
+#' package data before passing it to the browse module.
 #'
 #' @param id Module namespace ID.
 #'
 #' @return A list of reactive expressions:
-#'   - `category`: selected category (or "All")
+#'   - `category`: selected category technical name (or "All")
 #'   - `cran_status`: selected CRAN status (or "All")
 #'   - `license`: selected license (or "All")
 #'   - `essential_only`: logical
-#'   - `sort_by`: selected sort option string
+#'   - `recently_added`: logical
+#'   - `recently_updated`: logical
 #'
 #' @noRd
 mod_sidebar_server <- function(id) {
   shiny::moduleServer(id, function(input, output, session) {
-    # Return all filter/sort values as reactives for the parent server
+    # Return all filter values as reactives for the parent server
     list(
-      category       = shiny::reactive(input$category),
-      cran_status    = shiny::reactive(input$cran_status),
-      license        = shiny::reactive(input$license),
-      essential_only = shiny::reactive(input$essential_only),
-      sort_by        = shiny::reactive(input$sort_by)
+      category         = shiny::reactive(input$category),
+      cran_status      = shiny::reactive(input$cran_status),
+      license          = shiny::reactive(input$license),
+      essential_only   = shiny::reactive(input$essential_only),
+      recently_added   = shiny::reactive(input$recently_added),
+      recently_updated = shiny::reactive(input$recently_updated)
     )
   })
 }

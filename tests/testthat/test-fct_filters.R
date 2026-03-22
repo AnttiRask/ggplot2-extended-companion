@@ -143,38 +143,63 @@ test_that("filter_packages with all filters returns correct subset", {
   expect_equal(nrow(result), 2)
 })
 
-# --- sort_packages() --------------------------------------------------------
+# --- recently_added / recently_updated filters --------------------------------
 
-test_that("sort_packages sorts by name ascending", {
+test_that("filter_packages filters by recently_added", {
   data <- make_test_data()
+  data$recently_added <- c(TRUE, FALSE, FALSE, TRUE, FALSE)
+  data$recently_updated <- c(FALSE, FALSE, FALSE, FALSE, FALSE)
 
-  result <- sort_packages(data, "Name (A\u2013Z)")
+  result <- filter_packages(data, recently_added = TRUE)
 
-  expect_equal(result$package_name[1], "bbplot")
+  expect_equal(nrow(result), 2)
+  expect_true(all(c("ggrepel", "gganimate") %in% result$package_name))
 })
 
-test_that("sort_packages sorts by name descending", {
+test_that("filter_packages filters by recently_updated", {
   data <- make_test_data()
+  data$recently_added <- c(FALSE, FALSE, FALSE, FALSE, FALSE)
+  data$recently_updated <- c(FALSE, TRUE, FALSE, FALSE, TRUE)
 
-  result <- sort_packages(data, "Name (Z\u2013A)")
+  result <- filter_packages(data, recently_updated = TRUE)
 
-  expect_equal(result$package_name[1], "patchwork")
+  expect_equal(nrow(result), 2)
+  expect_true(all(c("patchwork", "ggthemes") %in% result$package_name))
 })
 
-test_that("sort_packages sorts by downloads descending", {
+test_that("filter_packages uses OR logic between recently_added and recently_updated", {
   data <- make_test_data()
+  # ggrepel: recently added only
+  # patchwork: recently updated only
+  # gganimate: both
+  data$recently_added <- c(TRUE, FALSE, FALSE, TRUE, FALSE)
+  data$recently_updated <- c(FALSE, TRUE, FALSE, TRUE, FALSE)
 
-  result <- sort_packages(data, "Downloads (30d) \u2193")
+  result <- filter_packages(data, recently_added = TRUE, recently_updated = TRUE)
 
-  # ggrepel has 20000, should be first
-  expect_equal(result$package_name[1], "ggrepel")
+  # Should return union: ggrepel, patchwork, gganimate (3 packages)
+  expect_equal(nrow(result), 3)
+  expect_true(all(c("ggrepel", "patchwork", "gganimate") %in% result$package_name))
 })
 
-test_that("sort_packages sorts by CRAN published newest first", {
+test_that("filter_packages recent filters compose with other filters via AND", {
   data <- make_test_data()
-  data$cran_published <- as.Date(c("2024-09-07", "2025-08-25", NA, "2025-09-04", "2024-01-01"))
+  data$recently_added <- c(TRUE, TRUE, TRUE, TRUE, TRUE)
+  data$recently_updated <- c(FALSE, FALSE, FALSE, FALSE, FALSE)
 
-  result <- sort_packages(data, "CRAN Published (newest)")
+  # Recently added AND on CRAN — bbplot is not on CRAN
+  result <- filter_packages(data, cran_status = "On CRAN", recently_added = TRUE)
 
-  expect_equal(result$package_name[1], "gganimate")
+  expect_equal(nrow(result), 4)
+  expect_false("bbplot" %in% result$package_name)
+})
+
+test_that("filter_packages with recently_added FALSE has no effect", {
+  data <- make_test_data()
+  data$recently_added <- c(TRUE, FALSE, FALSE, TRUE, FALSE)
+  data$recently_updated <- c(FALSE, FALSE, FALSE, FALSE, FALSE)
+
+  result <- filter_packages(data, recently_added = FALSE, recently_updated = FALSE)
+
+  expect_equal(nrow(result), 5)
 })
