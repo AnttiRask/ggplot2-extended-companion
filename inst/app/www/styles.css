@@ -31,13 +31,15 @@
 @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap");
 
 /* ---------------------------------------------------------------------------
- * Dark mode card styling
+ * Card styling — dark mode gets subtle border + shadow,
+ * light mode gets standard card appearance
  * --------------------------------------------------------------------------- */
 [data-bs-theme="dark"] .card {
   background-color: #2a2a2e;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  color: #FFFFFF;
 }
 
 /* ---------------------------------------------------------------------------
@@ -230,37 +232,14 @@ footer {
 }
 
 /* ---------------------------------------------------------------------------
- * Light mode body — ensure white background, not grey
- * --------------------------------------------------------------------------- */
-[data-bs-theme="light"] body {
-  background-color: #FFFFFF !important;
-  color: #1a1a1a;
-}
-
-/* ---------------------------------------------------------------------------
- * Light mode — ensure main content area has white background
- * --------------------------------------------------------------------------- */
-[data-bs-theme="light"] .bslib-page-sidebar .main {
-  background-color: #FFFFFF !important;
-}
-
-/* ---------------------------------------------------------------------------
- * Light mode muted text — darker for readability on white
- * --------------------------------------------------------------------------- */
-[data-bs-theme="light"] .text-muted {
-  color: #6b7280 !important;
-}
-
-/* ---------------------------------------------------------------------------
- * Light mode value boxes — ensure readable with proper borders
+ * Light mode — value boxes need explicit border for visibility
  * --------------------------------------------------------------------------- */
 [data-bs-theme="light"] .bslib-value-box {
   border-color: rgba(0, 0, 0, 0.1);
-  background-color: #FFFFFF;
 }
 
 /* ---------------------------------------------------------------------------
- * Light mode table striped rows and hover
+ * Light mode — table striped rows use subtle grey
  * --------------------------------------------------------------------------- */
 [data-bs-theme="light"] .rt-table .rt-tr-striped {
   background-color: rgba(0, 0, 0, 0.02);

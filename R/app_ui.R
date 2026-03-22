@@ -84,12 +84,16 @@ app_theme <- function() {
   bslib::bs_theme(
     version = 5,
 
-    # Colour palette from SPEC section 7
-    bg       = "#191414",
-    fg       = "#FFFFFF",
+    # Colour palette from SPEC section 7.
+    # IMPORTANT: Do NOT set bg/fg here — that sets the BASE (light) theme,
+    # and Bootstrap 5.3 auto-inverts it for dark mode, causing the modes
+    # to be flipped. Instead, set dark-mode colours via body-bg-dark/
+    # body-color-dark and let Bootstrap handle light mode defaults (white).
     primary  = "#C1272D",
     success  = "#22c55e",
     warning  = "#f59e0b",
+    "body-bg-dark"    = "#191414",
+    "body-color-dark" = "#FFFFFF",
 
     # Typography — Montserrat for headings (clean geometric sans-serif,
     # replaces Gotham which had unverified licensing)
