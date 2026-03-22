@@ -102,15 +102,29 @@ app_server <- function(input, output, session) {
   # Load examples data (M6) -- may be NULL if examples haven't been rendered
   examples_data_raw <- load_examples()
 
+  # Alphabetically sorted list of all package names (for prev/next navigation)
+  all_packages_alpha <- reactive({
+    if (!is.null(app_data_raw)) {
+      sort(app_data_raw$package_name)
+    } else {
+      character(0)
+    }
+  })
+
   # Detail view module (M5+M6) -- receives selected package, full data, examples
   mod_detail_server(
     "detail",
     selected_package = selected_package,
     app_data = reactive({ app_data_raw }),
     examples_data = reactive({ examples_data_raw }),
+    all_packages_alpha = all_packages_alpha,
     on_back = function() {
       # Clear selected package to return to browse view
       selected_package(NULL)
+    },
+    on_navigate = function(pkg_name) {
+      # Navigate to a different package (updates URL via the observer)
+      selected_package(pkg_name)
     }
   )
 

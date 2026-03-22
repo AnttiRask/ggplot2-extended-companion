@@ -41,7 +41,10 @@ mod_detail_ui <- function(id) {
 #'   (clears selected_package to return to browse view).
 #'
 #' @noRd
-mod_detail_server <- function(id, selected_package, app_data, examples_data = reactive(NULL), on_back) {
+mod_detail_server <- function(id, selected_package, app_data,
+                              examples_data = reactive(NULL),
+                              all_packages_alpha = reactive(NULL),
+                              on_back, on_navigate = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -69,10 +72,14 @@ mod_detail_server <- function(id, selected_package, app_data, examples_data = re
         if (nrow(ex) > 0) ex else NULL
       }
 
+      # Determine prev/next package for navigation arrows
+      all_pkgs <- all_packages_alpha()
+      nav_bar <- build_nav_bar(ns, pkg_name, all_pkgs)
+
       # Build the detail view as a stack of cards with consistent spacing
       htmltools::tagList(
-        # Back button (top)
-        build_back_button(ns),
+        # Navigation bar: back + prev/next (top)
+        nav_bar,
 
         # Card stack with consistent gap-3 spacing
         htmltools::tags$div(
@@ -94,14 +101,41 @@ mod_detail_server <- function(id, selected_package, app_data, examples_data = re
           build_example_card(example_row)
         ),
 
-        # Back button (bottom — so user doesn't have to scroll back up)
-        htmltools::tags$div(class = "mt-3", build_back_button(ns))
+        # Navigation bar (bottom — so user doesn't have to scroll back up)
+        htmltools::tags$div(class = "mt-3", nav_bar)
       )
     })
 
     # Handle back button click
     shiny::observeEvent(input$back_btn, {
       on_back()
+    })
+
+    # Handle prev/next navigation
+    shiny::observeEvent(input$prev_btn, {
+      pkg_name <- selected_package()
+      all_pkgs <- all_packages_alpha()
+      if (!is.null(pkg_name) && !is.null(all_pkgs)) {
+        idx <- match(pkg_name, all_pkgs)
+        if (!is.na(idx) && idx > 1) {
+          new_pkg <- all_pkgs[idx - 1]
+          if (!is.null(on_navigate)) on_navigate(new_pkg)
+          else selected_package(new_pkg)
+        }
+      }
+    })
+
+    shiny::observeEvent(input$next_btn, {
+      pkg_name <- selected_package()
+      all_pkgs <- all_packages_alpha()
+      if (!is.null(pkg_name) && !is.null(all_pkgs)) {
+        idx <- match(pkg_name, all_pkgs)
+        if (!is.na(idx) && idx < length(all_pkgs)) {
+          new_pkg <- all_pkgs[idx + 1]
+          if (!is.null(on_navigate)) on_navigate(new_pkg)
+          else selected_package(new_pkg)
+        }
+      }
     })
   })
 }
@@ -110,15 +144,50 @@ mod_detail_server <- function(id, selected_package, app_data, examples_data = re
 # Card builder functions (internal helpers)
 # =============================================================================
 
-#' Build the back button
+#' Build the navigation bar with back, prev, and next buttons
+#'
+#' Renders a horizontal flex row with "Back to all packages",
+#' "← Prev", and "Next →" buttons. Prev/next are disabled at
+#' the boundaries of the alphabetical package list.
+#'
+#' @param ns The module's namespace function.
+#' @param current_pkg The currently selected package name.
+#' @param all_pkgs Character vector of all package names (alphabetically sorted).
+#' @return An htmltools tag with the navigation bar.
 #' @noRd
-build_back_button <- function(ns) {
-  shiny::actionButton(
-    ns("back_btn"),
-    label = htmltools::tagList(
-      htmltools::HTML("&larr;"), " Back to all packages"
+build_nav_bar <- function(ns, current_pkg, all_pkgs) {
+  # Determine position for prev/next button state
+  idx <- if (!is.null(all_pkgs)) match(current_pkg, all_pkgs) else NA
+  is_first <- is.na(idx) || idx == 1
+  is_last <- is.na(idx) || idx == length(all_pkgs)
+
+  htmltools::tags$div(
+    class = "d-flex gap-2 mb-3",
+
+    # Back button
+    shiny::actionButton(
+      ns("back_btn"),
+      label = htmltools::tagList(
+        htmltools::HTML("&larr;"), " Back to all packages"
+      ),
+      class = "btn btn-back"
     ),
-    class = "btn btn-back mb-3"
+
+    # Prev button
+    shiny::actionButton(
+      ns("prev_btn"),
+      label = htmltools::tagList(htmltools::HTML("&larr;"), " Prev"),
+      class = paste("btn btn-outline-secondary", if (is_first) "disabled" else ""),
+      disabled = if (is_first) NA else NULL
+    ),
+
+    # Next button
+    shiny::actionButton(
+      ns("next_btn"),
+      label = htmltools::tagList("Next ", htmltools::HTML("&rarr;")),
+      class = paste("btn btn-outline-secondary", if (is_last) "disabled" else ""),
+      disabled = if (is_last) NA else NULL
+    )
   )
 }
 
