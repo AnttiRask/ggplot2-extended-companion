@@ -33,14 +33,18 @@ jobs:
           r-version: '4.5.3'
           use-public-rspm: true
 
-      # Cache the renv library using renv.lock as the key (same as pipeline.yml).
-      - name: Cache renv library
+      # Cache R packages in a plain library (not renv's symlink-based layout).
+      # renv's project library uses symlinks to a global cache, which breaks
+      # when R CMD check runs with --vanilla (no .Rprofile = no renv activation).
+      # Instead, use renv::restore() to install into a plain library directory
+      # that R CMD check can access directly via R_LIBS_USER.
+      - name: Cache R library
         uses: actions/cache@v4
         with:
-          path: ~/.cache/R/renv
-          key: renv-${{ runner.os }}-r-4.5.3-${{ hashFiles('renv.lock') }}
+          path: ~/R/lib
+          key: r-lib-${{ runner.os }}-r-4.5.3-${{ hashFiles('renv.lock') }}
           restore-keys: |
-            renv-${{ runner.os }}-r-4.5.3-
+            r-lib-${{ runner.os }}-r-4.5.3-
 
       - name: Install system dependencies
         run: |
@@ -57,28 +61,25 @@ jobs:
             libharfbuzz-dev \
             libfribidi-dev
 
-      - name: Restore renv packages
+      - name: Restore packages into plain library
+        env:
+          R_LIBS_USER: ~/R/lib
         run: |
+          mkdir -p ~/R/lib
           Rscript -e '
-            if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
-            renv::restore(prompt = FALSE)
-          '
-
-      - name: Install check dependencies
-        run: |
-          Rscript -e '
-            if (!requireNamespace("rcmdcheck", quietly = TRUE)) install.packages("rcmdcheck")
-            if (!requireNamespace("pkgload", quietly = TRUE)) install.packages("pkgload")
-          '
-
-      - name: Set renv library on R_LIBS_USER
-        run: |
-          Rscript -e '
-            lib <- renv::paths$library()
-            cat("R_LIBS_USER=", lib, "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
+            lib <- Sys.getenv("R_LIBS_USER")
+            if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv", lib = lib)
+            renv::restore(prompt = FALSE, library = lib)
+            # Also install check tools
+            pkgs <- c("rcmdcheck", "pkgload")
+            for (p in pkgs) {
+              if (!requireNamespace(p, quietly = TRUE)) install.packages(p, lib = lib)
+            }
           '
 
       - name: R CMD check
+        env:
+          R_LIBS_USER: ~/R/lib
         run: |
           Rscript -e '
             rcmdcheck::rcmdcheck(
