@@ -53,6 +53,9 @@ app_ui <- function(request) {
         # Header: collapsible intro accordion (M7)
         mod_header_ui("header"),
 
+        # Spacer between header and content
+        htmltools::tags$div(class = "mb-3"),
+
         # Browse view: package table (M3)
         shiny::conditionalPanel(
           condition = "!output.show_detail",
