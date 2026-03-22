@@ -428,9 +428,18 @@ build_example_card <- function(example) {
     ))
   }
 
-  # Build the code block with copy button
+  # Build the code block with copy button.
+  # Prepend install.packages() and library() lines for display and copy,
+  # but do NOT modify the stored example_code in Parquet.
   code_id <- paste0("code-", example$package_name)
   btn_id <- paste0("copy-btn-", example$package_name)
+
+  display_code <- paste0(
+    "install.packages(\"", example$package_name, "\")\n",
+    "library(", example$package_name, ")\n\n",
+    "# Example:\n",
+    example$example_code
+  )
 
   code_block <- htmltools::tagList(
     # Copy to clipboard button
@@ -441,12 +450,12 @@ build_example_card <- function(example) {
       "\U0001F4CB Copy to clipboard"
     ),
 
-    # Syntax-highlighted code block
+    # Syntax-highlighted code block (includes install/library preamble)
     htmltools::tags$pre(
       htmltools::tags$code(
         id = code_id,
         class = "language-r",
-        example$example_code
+        display_code
       )
     )
   )
