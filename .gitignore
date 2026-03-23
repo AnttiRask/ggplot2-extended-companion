@@ -45,3 +45,13 @@ data-raw/notion_export_*.csv
 
 # Environment files
 .env
+
+# Internal review and workflow documents (kept locally, not in public repo)
+COMMENTS.md
+DESIGN_FIXES.md
+BUGS.md
+DESIGNER.md
+REQUESTS.MD
+DEVELOPER.md
+ANALYST.md
+REVIEWER.md

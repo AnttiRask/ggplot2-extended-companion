@@ -17,14 +17,21 @@ _targets/
 # Data raw (curated CSVs needed, but not migration scripts)
 data-raw/migrate_notion.R
 
-# Spec documents
+# Spec and review documents (not needed in container)
 SPEC.md
 REQUIREMENTS.md
 ANALYST.md
 ARCHITECT.md
 DEVELOPER.md
 REVIEWER.md
+DESIGNER.md
 CLAUDE.md
+COMMENTS.md
+DESIGN_FIXES.md
+BUGS.md
+REQUESTS.MD
+README.md
+*.png
 
 # IDE and OS files
 .vscode/

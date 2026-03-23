@@ -89,6 +89,11 @@ COPY data-raw/license_allowlist.csv data-raw/license_allowlist.csv
 # Install the app package itself
 RUN Rscript -e 'install.packages(".", repos = NULL, type = "source")'
 
+# Create non-root user for security (don't run Shiny as root)
+RUN useradd -m -u 1000 shinyuser && \
+    chown -R shinyuser:shinyuser /app
+USER shinyuser
+
 # Expose the Shiny port
 ENV SHINY_PORT=3838
 EXPOSE ${SHINY_PORT}
