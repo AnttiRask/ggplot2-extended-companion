@@ -47,9 +47,10 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libcurl4-openssl-dev libssl-dev libxml2-dev cmake \
             libfontconfig1-dev libfreetype6-dev libpng-dev \
-            libtiff5-dev libjpeg-dev libharfbuzz-dev libfribidi-dev
+            libtiff-dev libjpeg-dev libwebp-dev libicu-dev \
+            libharfbuzz-dev libfribidi-dev libglpk-dev
 
       # Same renv cache as pipeline.yml — shared between workflows
       - name: Cache renv packages

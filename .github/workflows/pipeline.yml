@@ -52,14 +52,16 @@ jobs:
           r-version: '4.5.3'
           use-public-rspm: true
 
-      # Install system libraries required by R packages (arrow, curl, etc.)
+      # Install system libraries required by R packages.
+      # List from: pak::pkg_sysreqs(renv packages, "ubuntu-22.04")
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libcurl4-openssl-dev libssl-dev libxml2-dev cmake \
             libfontconfig1-dev libfreetype6-dev libpng-dev \
-            libtiff5-dev libjpeg-dev libharfbuzz-dev libfribidi-dev
+            libtiff-dev libjpeg-dev libwebp-dev libicu-dev \
+            libharfbuzz-dev libfribidi-dev libglpk-dev
 
       # Cache the renv global package cache. This is where renv stores
       # downloaded/compiled packages. renv::restore() checks this cache
