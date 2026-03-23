@@ -69,14 +69,19 @@ filter_packages <- function(
       dplyr::filter(.data$is_essential == TRUE)
   }
 
-  # Filter by recently added / recently updated (OR logic between them)
-  # Only apply if at least one checkbox is checked
-  if (isTRUE(recently_added) || isTRUE(recently_updated)) {
+
+  # Filter by recently added / recently updated.
+  # When BOTH are checked: show union (OR) — packages matching either flag.
+  # When only one is checked: show only that flag's matches.
+  if (isTRUE(recently_added) && isTRUE(recently_updated)) {
     result <- result |>
-      dplyr::filter(
-        (.data$recently_added & recently_added) |
-        (.data$recently_updated & recently_updated)
-      )
+      dplyr::filter(.data$recently_added | .data$recently_updated)
+  } else if (isTRUE(recently_added)) {
+    result <- result |>
+      dplyr::filter(.data$recently_added)
+  } else if (isTRUE(recently_updated)) {
+    result <- result |>
+      dplyr::filter(.data$recently_updated)
   }
 
   result
