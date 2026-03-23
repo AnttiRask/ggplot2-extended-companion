@@ -83,7 +83,10 @@ jobs:
           Rscript -e '
             if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
             renv::restore(prompt = FALSE)
-            if (!requireNamespace("targets", quietly = TRUE)) install.packages("targets")
+            # Install Suggests deps not in renv.lock (needed by _targets.R)
+            for (pkg in c("targets", "pkgload")) {
+              if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
+            }
           '
 
       # Cache targets metadata and outputs between runs.
