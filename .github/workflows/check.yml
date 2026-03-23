@@ -22,6 +22,11 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      # Override renv's project library to a plain directory that
+      # R CMD check can access (renv's default symlink layout doesn't
+      # work with R CMD check's --vanilla subprocess)
+      RENV_PATHS_LIBRARY: /home/runner/R/lib
+      R_LIBS_USER: /home/runner/R/lib
 
     steps:
       - name: Checkout code
@@ -33,21 +38,49 @@ jobs:
           r-version: '4.5.3'
           use-public-rspm: true
 
-      # Use setup-r-dependencies with a cache-version keyed on renv.lock
-      # to stabilize the cache key. Without this, pak::lockfile_create()
-      # generates a different hash each run, causing perpetual cache misses
-      # and ~53-minute reinstalls.
-      - name: Setup R dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev libssl-dev libxml2-dev cmake \
+            libfontconfig1-dev libfreetype6-dev libpng-dev \
+            libtiff-dev libjpeg-dev libwebp-dev libicu-dev \
+            libharfbuzz-dev libfribidi-dev libglpk-dev pandoc
+
+      # Cache the renv global cache + the plain library directory
+      - name: Cache R packages
+        uses: actions/cache@v4
         with:
-          extra-packages: any::rcmdcheck, any::pkgload
-          needs: check
-          cache-version: ${{ hashFiles('renv.lock') }}
+          path: |
+            ~/.cache/R/renv
+            /home/runner/R/lib
+          key: renv-check-${{ runner.os }}-${{ hashFiles('renv.lock') }}
+          restore-keys: |
+            renv-check-${{ runner.os }}-
+
+      # Install packages into the plain library via renv::restore().
+      # RENV_PATHS_LIBRARY tells renv to install here instead of
+      # its default symlink-based project library.
+      - name: Restore R packages
+        run: |
+          mkdir -p /home/runner/R/lib
+          Rscript -e '
+            if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+            renv::restore(prompt = FALSE)
+            for (pkg in c("rcmdcheck", "pkgload")) {
+              if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
+            }
+          '
 
       - name: R CMD check
-        uses: r-lib/actions/check-r-package@v2
-        with:
-          args: 'c("--no-manual", "--as-cran")'
+        run: |
+          Rscript -e '
+            rcmdcheck::rcmdcheck(
+              args = c("--no-manual", "--as-cran"),
+              error_on = "warning",
+              check_dir = "check"
+            )
+          '
 
       - name: Validate packages_curated.csv
         run: |
