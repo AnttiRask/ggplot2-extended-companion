@@ -67,7 +67,8 @@ jobs:
           Rscript -e '
             if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
             renv::restore(prompt = FALSE)
-            for (pkg in c("rcmdcheck", "pkgload")) {
+            # Install Suggests deps (not in renv.lock) + check tools
+            for (pkg in c("rcmdcheck", "pkgload", "ggplot2", "targets", "testthat", "withr")) {
               if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
             }
           '
