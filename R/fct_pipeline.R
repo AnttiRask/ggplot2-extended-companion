@@ -9,6 +9,34 @@
 # Part of Milestone 2: Data Pipeline (Core) / Milestone 6: Code Examples
 # =============================================================================
 
+#' Check if a CRAN package has vignettes
+#'
+#' Makes a lightweight HTTP request to the package's CRAN vignettes
+#' directory. Returns TRUE if the page exists and contains links to
+#' .html, .pdf, or .Rmd files. Returns FALSE for 404s, non-CRAN
+#' packages, or network errors.
+#'
+#' @param package_name Name of the CRAN package.
+#'
+#' @return Logical. TRUE if the package has vignettes on CRAN.
+#'
+#' @noRd
+check_cran_vignettes <- function(package_name) {
+  url <- paste0(
+    "https://cran.r-project.org/web/packages/",
+    package_name, "/vignettes/"
+  )
+  tryCatch(
+    {
+      con <- url(url)
+      on.exit(close(con), add = TRUE)
+      lines <- readLines(con, warn = FALSE, n = 50)
+      any(grepl("\\.html|\\.pdf|\\.Rmd", lines))
+    },
+    error = function(e) FALSE
+  )
+}
+
 #' Read the curated package list
 #'
 #' Reads `data-raw/packages_curated.csv` and returns it as a tibble.
@@ -60,8 +88,10 @@ parse_cran_response <- function(package_name, response) {
   maintainer_raw <- response$Maintainer %||% NA_character_
   maintainer <- sub("\\s*<.*>$", "", maintainer_raw)
 
-  # Detect vignettes: pkgsearch includes a vignettes field when available
-  has_vignettes <- !is.null(response$vignettes) && length(response$vignettes) > 0
+  # Detect vignettes: check the CRAN vignettes directory URL directly.
+  # pkgsearch's vignettes field is unreliable (always empty for most packages).
+  # A quick HTTP check of the vignettes directory is more accurate.
+  has_vignettes <- check_cran_vignettes(package_name)
 
   # Published date: prefer response$Published, fall back to response$date
   # (pkgsearch sometimes returns an empty string for Published while
