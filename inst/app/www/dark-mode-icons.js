@@ -8,55 +8,52 @@
 // bslib's default shows the current mode icon (moon = dark active,
 // sun = light active). Users expect the target mode icon instead.
 //
-// The toggle uses shadow DOM, so we inject CSS directly into it.
+// Approach: observe data-bs-theme changes on <html> and override
+// the toggle button's internal data-theme attribute to the opposite
+// value, which tricks the component into showing the "wrong" icon
+// (which is actually the one the user expects).
 // =============================================================================
 
 document.addEventListener("DOMContentLoaded", function() {
-  // Wait for the custom element to be defined and rendered
-  function injectSwapCSS() {
+  function swapToggleIcon() {
     var toggle = document.querySelector("bslib-input-dark-mode");
     if (!toggle || !toggle.shadowRoot) {
-      // Retry until the component is ready
-      setTimeout(injectSwapCSS, 100);
+      setTimeout(swapToggleIcon, 100);
       return;
     }
 
-    var style = document.createElement("style");
-    style.textContent = [
-      // In dark mode: show sun (the "switch to light" icon)
-      '[data-theme="dark"] .sun-and-moon > .sun {',
-      '  transform: scale(1) !important;',
-      '}',
-      '[data-theme="dark"] .sun-and-moon > .sun-beams {',
-      '  opacity: 1 !important;',
-      '}',
-      '[data-theme="dark"] .sun-and-moon > .moon > circle {',
-      '  transform: translateX(0) !important;',
-      '}',
-      '@supports (cx: 1) {',
-      '  [data-theme="dark"] .sun-and-moon > .moon > circle {',
-      '    cx: 25 !important;',
-      '  }',
-      '}',
-      // In light mode: show moon (the "switch to dark" icon)
-      '[data-theme="light"] .sun-and-moon > .sun {',
-      '  transform: scale(1.6) !important;',
-      '}',
-      '[data-theme="light"] .sun-and-moon > .sun-beams {',
-      '  opacity: 0 !important;',
-      '}',
-      '[data-theme="light"] .sun-and-moon > .moon > circle {',
-      '  transform: translateX(-10px) !important;',
-      '}',
-      '@supports (cx: 1) {',
-      '  [data-theme="light"] .sun-and-moon > .moon > circle {',
-      '    cx: 15 !important;',
-      '  }',
-      '}'
-    ].join("\n");
+    var button = toggle.shadowRoot.querySelector("button");
+    if (!button) {
+      setTimeout(swapToggleIcon, 100);
+      return;
+    }
 
-    toggle.shadowRoot.appendChild(style);
+    // Swap the button's data-theme to the opposite of the actual theme.
+    // This makes the component render the "target" icon instead of "current".
+    function updateIcon() {
+      var currentTheme = document.documentElement.getAttribute("data-bs-theme");
+      var opposite = (currentTheme === "dark") ? "light" : "dark";
+      button.setAttribute("data-theme", opposite);
+    }
+
+    // Initial swap
+    updateIcon();
+
+    // Watch for theme changes
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.attributeName === "data-bs-theme") {
+          // Small delay to let the component update first, then override
+          setTimeout(updateIcon, 50);
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-bs-theme"]
+    });
   }
 
-  injectSwapCSS();
+  swapToggleIcon();
 });

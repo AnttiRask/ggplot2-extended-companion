@@ -63,6 +63,7 @@ list(
       data.frame(
         package_name = cran_metadata$package_name,
         on_cran = cran_metadata$on_cran,
+        has_vignettes = cran_metadata$has_vignettes,
         stringsAsFactors = FALSE
       )
     ),
