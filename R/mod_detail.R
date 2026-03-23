@@ -398,21 +398,7 @@ build_version_card <- function(pkg) {
 build_example_card <- function(example) {
   if (is.null(example)) return(NULL)
 
-  # License not allowed -- show message, no code
-
-  if (!isTRUE(example$license_allowed)) {
-    return(bslib::card(
-      bslib::card_header("Code Example"),
-      bslib::card_body(
-        htmltools::tags$p(
-          class = "text-muted",
-          "Code example not available \u2014 package license could not be verified."
-        )
-      )
-    ))
-  }
-
-  # No example code available
+  # No example code available (skip license check — show code for all packages)
   if (is.na(example$example_code)) {
     return(bslib::card(
       bslib::card_header("Code Example"),
@@ -440,10 +426,10 @@ build_example_card <- function(example) {
   )
 
   code_block <- htmltools::tagList(
-    # Copy to clipboard button
+    # Copy to clipboard button (red btn-back styling, matching nav buttons)
     htmltools::tags$button(
       id = btn_id,
-      class = "btn btn-outline-secondary btn-sm mb-2",
+      class = "btn btn-back btn-sm mb-2",
       onclick = sprintf("copyCodeToClipboard('%s', '%s')", code_id, btn_id),
       "\U0001F4CB Copy to clipboard"
     ),
@@ -458,38 +444,10 @@ build_example_card <- function(example) {
     ))
   )
 
-  # Image (if render succeeded)
-  image_block <- if (isTRUE(example$example_success) && !is.na(example$example_image)) {
-    htmltools::tags$div(
-      class = "mt-3",
-      htmltools::tags$img(
-        src = paste0("www/examples/", example$example_image),
-        alt = paste("Example output for", example$package_name),
-        class = "img-fluid rounded",
-        style = "max-width: 800px; width: 100%;"
-      )
-    )
-  } else {
-    htmltools::tags$p(
-      class = "text-muted mt-2",
-      "Output preview not available for this package."
-    )
-  }
-
-  # Timestamp
-  timestamp <- if (!is.na(example$example_rendered_at)) {
-    htmltools::tags$p(
-      class = "text-muted small mt-2",
-      paste("Example last rendered:", example$example_rendered_at)
-    )
-  }
-
   bslib::card(
     bslib::card_header("Code Example"),
     bslib::card_body(
-      code_block,
-      image_block,
-      timestamp
+      code_block
     )
   )
 }

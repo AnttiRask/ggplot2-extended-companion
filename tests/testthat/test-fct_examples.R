@@ -330,10 +330,11 @@ test_that("build_example_card shows code and image for successful example", {
 
   expect_true(grepl("ggrepel", html))
   expect_true(grepl("geom_point", html))
-  expect_true(grepl("ggrepel.png", html))
+  # Image preview removed — code-only display
+  expect_false(grepl("ggrepel.png", html))
 })
 
-test_that("build_example_card shows fallback for failed render", {
+test_that("build_example_card shows code without output preview", {
   example <- data.frame(
     package_name = "test_pkg",
     example_code = "some_code()",
@@ -347,14 +348,15 @@ test_that("build_example_card shows fallback for failed render", {
   result <- build_example_card(example)
   html <- as.character(result)
 
+  # Code is shown, but no output preview message (removed)
   expect_true(grepl("some_code", html))
-  expect_true(grepl("Output preview not available", html))
+  expect_false(grepl("Output preview", html))
 })
 
-test_that("build_example_card shows license message when not allowed", {
+test_that("build_example_card shows code regardless of license_allowed", {
   example <- data.frame(
     package_name = "test_pkg",
-    example_code = NA_character_,
+    example_code = "library(test_pkg)\ntest_function()",
     example_image = NA_character_,
     example_success = FALSE,
     example_rendered_at = NA_character_,
@@ -365,8 +367,9 @@ test_that("build_example_card shows license message when not allowed", {
   result <- build_example_card(example)
   html <- as.character(result)
 
-  expect_true(grepl("license could not be verified", html))
-  expect_false(grepl("<code", html))
+  # Code is shown even when license_allowed is FALSE (license check removed)
+  expect_true(grepl("test_function", html))
+  expect_false(grepl("license", html))
 })
 
 test_that("build_example_card returns NULL when no example data", {

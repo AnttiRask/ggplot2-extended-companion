@@ -414,9 +414,6 @@ render_examples <- function(
   allowlist_path = "data-raw/license_allowlist.csv",
   output_dir = "inst/app/www/examples"
 ) {
-  # Read allowlist
-  allowlist <- read.csv(allowlist_path, stringsAsFactors = FALSE)
-
   # Ensure output directory exists
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -432,24 +429,10 @@ render_examples <- function(
 
   results <- lapply(seq_len(nrow(packages_combined)), function(i) {
     pkg_name <- packages_combined$package_name[i]
-    pkg_license <- packages_combined$license[i]
-
-    # Check license
-    license_ok <- check_license_allowed(pkg_license, allowlist)
-
-    if (!license_ok) {
-      return(tibble::tibble(
-        package_name        = pkg_name,
-        example_code        = NA_character_,
-        example_image       = NA_character_,
-        example_success     = FALSE,
-        example_rendered_at = NA_character_,
-        license_allowed     = FALSE
-      ))
-    }
 
     # Extract example code by downloading the CRAN source tarball and
-    # parsing the Rd files directly — no installation or compilation needed
+    # parsing the Rd files directly — no installation or compilation needed.
+    # No license check — all CRAN packages have open-source examples.
     code <- extract_example_from_cran(pkg_name, download_dir = download_dir)
 
     if (is.na(code)) {
