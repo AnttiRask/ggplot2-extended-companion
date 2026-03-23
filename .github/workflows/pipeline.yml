@@ -62,16 +62,15 @@ jobs:
           cache-version: ${{ hashFiles('renv.lock') }}
 
       # Cache targets metadata and outputs between runs.
-      # Key includes R source hash so code changes invalidate the cache —
-      # otherwise targets thinks everything is up-to-date even when
-      # parse_cran_response() or other pipeline functions change.
+      # Key includes R source hash so code changes invalidate the cache.
+      # No restore-keys fallback — stale metadata causes targets to skip
+      # re-running even when pipeline functions change. Better to re-run
+      # from scratch (~10 min) than deploy stale data.
       - name: Cache targets
         uses: actions/cache@v4
         with:
           path: _targets/
           key: targets-${{ hashFiles('data-raw/packages_curated.csv', 'R/**') }}-${{ github.run_id }}
-          restore-keys: |
-            targets-${{ hashFiles('data-raw/packages_curated.csv', 'R/**') }}-
 
       # Restore examples data produced by the weekly examples pipeline.
       # The daily pipeline skips example rendering (RENDER_EXAMPLES not set),
