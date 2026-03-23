@@ -43,13 +43,30 @@ jobs:
           r-version: '4.5.3'
           use-public-rspm: true
 
-      # Use setup-r-dependencies with a cache-version keyed on renv.lock
-      # to stabilize the cache key (same approach as pipeline.yml and check.yml).
-      - name: Setup R dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libfontconfig1-dev libfreetype6-dev libpng-dev \
+            libtiff5-dev libjpeg-dev libharfbuzz-dev libfribidi-dev
+
+      # Same renv cache as pipeline.yml — shared between workflows
+      - name: Cache renv packages
+        uses: actions/cache@v4
         with:
-          extra-packages: any::targets
-          cache-version: ${{ hashFiles('renv.lock') }}
+          path: ~/.cache/R/renv
+          key: renv-pipeline-${{ runner.os }}-${{ hashFiles('renv.lock') }}
+          restore-keys: |
+            renv-pipeline-${{ runner.os }}-
+
+      - name: Restore R packages
+        run: |
+          Rscript -e '
+            if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+            renv::restore(prompt = FALSE)
+            if (!requireNamespace("targets", quietly = TRUE)) install.packages("targets")
+          '
 
       - name: Run targets pipeline with examples
         env:

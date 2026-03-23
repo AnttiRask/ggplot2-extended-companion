@@ -52,14 +52,37 @@ jobs:
           r-version: '4.5.3'
           use-public-rspm: true
 
-      # Use setup-r-dependencies with a cache-version keyed on renv.lock
-      # to stabilize the cache key. Without this, pak::lockfile_create()
-      # generates a different hash each run, causing perpetual cache misses.
-      - name: Setup R dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
+      # Install system libraries required by R packages (arrow, curl, etc.)
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev libssl-dev libxml2-dev \
+            libfontconfig1-dev libfreetype6-dev libpng-dev \
+            libtiff5-dev libjpeg-dev libharfbuzz-dev libfribidi-dev
+
+      # Cache the renv global package cache. This is where renv stores
+      # downloaded/compiled packages. renv::restore() checks this cache
+      # before downloading, making subsequent runs near-instant.
+      # Key is based on renv.lock — only changes when dependencies change.
+      - name: Cache renv packages
+        uses: actions/cache@v4
         with:
-          extra-packages: any::targets
-          cache-version: ${{ hashFiles('renv.lock') }}
+          path: ~/.cache/R/renv
+          key: renv-pipeline-${{ runner.os }}-${{ hashFiles('renv.lock') }}
+          restore-keys: |
+            renv-pipeline-${{ runner.os }}-
+
+      # Restore packages from renv.lock into the project library.
+      # With a warm cache, this takes ~10 seconds (symlinks from cache).
+      # Cold cache: downloads from RSPM (binary packages, ~2–3 minutes).
+      - name: Restore R packages
+        run: |
+          Rscript -e '
+            if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+            renv::restore(prompt = FALSE)
+            if (!requireNamespace("targets", quietly = TRUE)) install.packages("targets")
+          '
 
       # Cache targets metadata and outputs between runs.
       # Key includes R source hash so code changes invalidate the cache.
