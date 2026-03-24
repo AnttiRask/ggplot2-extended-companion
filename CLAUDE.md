@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Setup
+
+When creating CLAUDE.md files for repositories, always analyze the codebase first, add the file to .Rbuildignore for R packages, commit, and push in one workflow.
+
 ## Project Overview
 
 **ggplot2 Extended Companion** — A searchable, filterable directory of ~455 ggplot2 extension packages with daily-refreshed metadata, download statistics, and pre-rendered code examples. Built as a Shiny app using the golem framework.
@@ -106,7 +110,11 @@ Managed by renv. Key packages:
 - **Logging**: logger
 - **Testing**: testthat, withr
 
-## Conventions
+## Tech Stack & Conventions
+
+This project ecosystem primarily uses R/Shiny, CSS, YAML, and Markdown. When making changes, always check for: bs_theme() dark/light mode configuration, renv.lock consistency, and .Rbuildignore updates.
+
+### Coding Conventions
 
 - Use Tidyverse syntax and packages
 - Follow tidyverse style guide (snake_case, pipe operators)
@@ -117,6 +125,18 @@ Managed by renv. Key packages:
 - Shiny modules: `mod_<name>_ui()` / `mod_<name>_server()` in `R/mod_<name>.R`
 - Validation functions return `list(valid = TRUE/FALSE, errors = character())`
 - Pipeline functions use `tryCatch` per-package with `logger::log_warn` on failure
+
+## Git Workflow
+
+When reviewing code or fixing bugs, always use feature branches — never commit directly to main. Follow the pattern: create branch, make changes, push, open PR.
+
+## Debugging Guidelines
+
+Before attempting fixes, diagnose the root cause fully. Do not patch around symptoms — especially for CSS/theming issues (e.g., bs_theme dark/light mode) and CI pipeline failures. State your diagnosis before making changes.
+
+## Deployment
+
+When deploying to Google Cloud Run, reuse the existing GCP project ID from the codebase rather than asking the user. Check Dockerfiles for duckdb compilation issues, non-ASCII characters, and system dependency requirements before building.
 
 ## Environment Variables
 
