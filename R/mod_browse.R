@@ -121,16 +121,25 @@ build_package_table <- function(data, ns) {
         minWidth = 150,
         cell = function(value, index) {
           # Bold text, styled as clickable link
-          # Essential packages get a star badge
+          # Essential packages get a star badge, archived get a folder badge
           is_essential <- data$is_essential[index]
+          is_archived <- if ("is_archived" %in% names(data)) data$is_archived[index] else FALSE
+
           essential_badge <- if (isTRUE(is_essential)) {
             htmltools::span(class = "badge-essential", "\u2B50 ")
           } else {
             NULL
           }
 
+          archived_badge <- if (isTRUE(is_archived)) {
+            htmltools::span(class = "badge-archived", "\U0001F4C1 ")
+          } else {
+            NULL
+          }
+
           htmltools::tagList(
             essential_badge,
+            archived_badge,
             htmltools::tags$a(
               class = "package-link",
               href = "#",
@@ -238,6 +247,7 @@ build_package_table <- function(data, ns) {
       # Hidden columns -- present in data but not displayed in table
       description = reactable::colDef(show = FALSE),
       is_essential = reactable::colDef(show = FALSE),
+      is_archived = reactable::colDef(show = FALSE),
       on_cran = reactable::colDef(show = FALSE),
       has_vignettes = reactable::colDef(show = FALSE),
       maintainer = reactable::colDef(show = FALSE),
