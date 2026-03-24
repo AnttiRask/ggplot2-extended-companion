@@ -84,6 +84,13 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
       value = FALSE
     ),
 
+    # Show Archived Packages checkbox (v1.1 — last checkbox position)
+    shiny::checkboxInput(
+      ns("show_archived"),
+      label = "Show Archived Packages",
+      value = FALSE
+    ),
+
     # Divider
     htmltools::hr(),
 
@@ -124,7 +131,8 @@ mod_sidebar_server <- function(id) {
       license          = shiny::reactive(input$license),
       essential_only   = shiny::reactive(input$essential_only),
       recently_added   = shiny::reactive(input$recently_added),
-      recently_updated = shiny::reactive(input$recently_updated)
+      recently_updated = shiny::reactive(input$recently_updated),
+      show_archived    = shiny::reactive(input$show_archived)
     )
   })
 }

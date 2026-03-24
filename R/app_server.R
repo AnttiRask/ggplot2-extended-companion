@@ -74,6 +74,7 @@ app_server <- function(input, output, session) {
     essential_only   <- sidebar_values$essential_only()    %||% FALSE
     recently_added   <- sidebar_values$recently_added()    %||% FALSE
     recently_updated <- sidebar_values$recently_updated()  %||% FALSE
+    show_archived    <- sidebar_values$show_archived()     %||% FALSE
 
     # Apply filters (sorting handled by reactable column headers)
     result <- filter_packages(
@@ -83,7 +84,8 @@ app_server <- function(input, output, session) {
       license_filter   = license_filter,
       essential_only   = essential_only,
       recently_added   = recently_added,
-      recently_updated = recently_updated
+      recently_updated = recently_updated,
+      show_archived    = show_archived
     )
 
     # Default order: alphabetical by package_name
