@@ -384,6 +384,21 @@ test_that("validate_curated_csv catches missing is_archived column", {
 
 # --- Integration test: real packages_curated.csv ----------------------------
 
+test_that("packages_curated.csv has valid is_archived column", {
+  csv_path <- file.path(testthat::test_path(), "..", "..", "data-raw", "packages_curated.csv")
+  skip_if_not(file.exists(csv_path), "packages_curated.csv not found")
+
+  df <- read.csv(csv_path, stringsAsFactors = FALSE)
+  result <- validate_is_archived(df)
+
+  expect_true(result$valid, info = paste(result$errors, collapse = "\n"))
+  # Verify column is logical type
+
+  expect_true(is.logical(df$is_archived))
+  # Verify no NAs
+  expect_false(any(is.na(df$is_archived)))
+})
+
 test_that("packages_curated.csv passes all validation checks", {
   # Skip if the CSV doesn't exist (e.g., in CI before migration runs)
   csv_path <- file.path(testthat::test_path(), "..", "..", "data-raw", "packages_curated.csv")
