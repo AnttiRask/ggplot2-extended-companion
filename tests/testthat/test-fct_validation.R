@@ -324,6 +324,7 @@ test_that("validate_curated_csv passes for a valid data frame", {
     package_name = c("ggrepel", "patchwork"),
     categories = c("annotations", "geoms|stats"),
     is_essential = c(TRUE, FALSE),
+    is_archived = c(FALSE, FALSE),
     website_url = c("https://example.com", NA),
     repo_url = c("https://github.com/a/b", "https://github.com/c/d"),
     date_added = c("2026-03-17", "2026-03-17"),
@@ -345,6 +346,7 @@ test_that("validate_curated_csv collects errors from all checks", {
     package_name = c("ggrepel", "ggrepel", "pkg3"),
     categories = c("animation", "geoms", "bad_cat|"),
     is_essential = c(TRUE, FALSE, FALSE),
+    is_archived = c(FALSE, FALSE, FALSE),
     website_url = c(NA, NA, NA),
     repo_url = c(NA, NA, NA),
     date_added = c("2026-03-17", "2026-03-17", "2026-03-17"),
@@ -357,6 +359,27 @@ test_that("validate_curated_csv collects errors from all checks", {
   expect_false(result$valid)
   # Should have errors from multiple checks (duplicate + trailing pipe + invalid cat)
   expect_true(length(result$errors) >= 2)
+})
+
+test_that("validate_curated_csv catches missing is_archived column", {
+  valid_cats <- c("animation", "geoms")
+
+  # Valid data but missing is_archived column entirely
+  df <- data.frame(
+    package_name = c("ggrepel", "patchwork"),
+    categories = c("animation", "geoms"),
+    is_essential = c(TRUE, FALSE),
+    website_url = c(NA, NA),
+    repo_url = c(NA, NA),
+    date_added = c("2026-03-17", "2026-03-17"),
+    notes = c("", ""),
+    stringsAsFactors = FALSE
+  )
+
+  result <- validate_curated_csv(df, valid_cats)
+
+  expect_false(result$valid)
+  expect_true(any(grepl("is_archived", result$errors)))
 })
 
 # --- Integration test: real packages_curated.csv ----------------------------
