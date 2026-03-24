@@ -108,6 +108,42 @@ validate_is_essential <- function(df) {
   validation_result(valid = length(errors) == 0, errors = errors)
 }
 
+#' Validate is_archived contains only TRUE/FALSE
+#'
+#' Checks that the `is_archived` column exists and contains only logical TRUE
+#' or FALSE values (not strings, not NA).
+#' SPEC-v1.1 section 9.1: "Every row has a valid logical value (TRUE or FALSE)
+#' for is_archived. NA values are not permitted."
+#'
+#' @param df A data frame with an `is_archived` column.
+#'
+#' @return A validation result list with `valid` and `errors`.
+#'
+#' @noRd
+validate_is_archived <- function(df) {
+  errors <- character(0)
+
+  # Check that the column exists
+
+  if (!"is_archived" %in% names(df)) {
+    errors <- c(errors, "Missing required column: is_archived")
+    return(validation_result(valid = FALSE, errors = errors))
+  }
+
+  # Must be logical type with no NAs
+  invalid_rows <- which(is.na(df$is_archived) | !is.logical(df$is_archived))
+
+  if (length(invalid_rows) > 0) {
+    bad_pkgs <- df$package_name[invalid_rows]
+    errors <- paste0(
+      "Invalid is_archived value for package '", bad_pkgs,
+      "' (must be TRUE or FALSE)"
+    )
+  }
+
+  validation_result(valid = length(errors) == 0, errors = errors)
+}
+
 #' Validate pipe-separated category format
 #'
 #' Checks that `categories` values are well-formed pipe-separated strings:
