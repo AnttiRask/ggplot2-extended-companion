@@ -75,10 +75,25 @@ mod_detail_server <- function(id, selected_package, app_data,
       # Determine prev/next package for navigation arrows
       all_pkgs <- all_packages_alpha()
 
+      # Warning banner for archived packages (v1.1 — above header card)
+      archived_banner <- if (isTRUE(pkg$is_archived)) {
+        htmltools::div(
+          class = "alert alert-warning d-flex flex-column mb-3",
+          role = "alert",
+          htmltools::tags$strong("This package is no longer actively maintained."),
+          if (!is.na(pkg$notes) && nchar(trimws(pkg$notes)) > 0) {
+            htmltools::tags$p(class = "mb-0 mt-2", pkg$notes)
+          }
+        )
+      }
+
       # Build the detail view as a stack of cards with consistent spacing
       htmltools::tagList(
         # Navigation bar: back + prev/next (top — distinct IDs from bottom)
         build_nav_bar(ns, pkg_name, all_pkgs, suffix = "top"),
+
+        # Archived warning banner (if applicable)
+        archived_banner,
 
         # Card stack with consistent gap-3 spacing
         htmltools::tags$div(
@@ -210,6 +225,14 @@ build_header_card <- function(pkg) {
     )
   }
 
+  # Archived badge (v1.1)
+  archived_badge <- if (isTRUE(pkg$is_archived)) {
+    htmltools::span(
+      class = "badge bg-secondary ms-2",
+      "\U0001F4C1 Archived Package"
+    )
+  }
+
   # Title (short one-liner from CRAN Title field)
   title_text <- if ("title" %in% names(pkg) && !is.na(pkg$title)) {
     pkg$title
@@ -231,7 +254,8 @@ build_header_card <- function(pkg) {
       # Package name heading
       htmltools::tags$h2(
         pkg$package_name,
-        essential_badge
+        essential_badge,
+        archived_badge
       ),
 
       # Title as lead subtitle
