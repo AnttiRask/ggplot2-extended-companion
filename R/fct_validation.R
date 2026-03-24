@@ -248,6 +248,7 @@ validate_curated_csv <- function(df, valid_categories) {
     validate_no_duplicates(df),
     validate_required_fields(df),
     validate_is_essential(df),
+    validate_is_archived(df),
     validate_category_format(df),
     validate_categories(df, valid_categories)
   )
