@@ -4,6 +4,7 @@
 # CSV validation functions for packages_curated.csv. Enforces data integrity
 # rules defined in SPEC section 4.4: no duplicates, valid categories, required
 # fields, boolean is_essential, well-formed pipe-separated categories.
+# v1.1: Added validate_is_archived() per SPEC-v1.1 §9.1.
 #
 # These functions are used by the migration script (data-raw/migrate_notion.R)
 # and can be called in CI (e.g., GitHub Actions check.yml) to validate the
@@ -124,7 +125,6 @@ validate_is_archived <- function(df) {
   errors <- character(0)
 
   # Check that the column exists
-
   if (!"is_archived" %in% names(df)) {
     errors <- c(errors, "Missing required column: is_archived")
     return(validation_result(valid = FALSE, errors = errors))

@@ -302,7 +302,7 @@ test_that("validate_is_archived detects NA values", {
   expect_true(any(grepl("patchwork", result$errors)))
 })
 
-test_that("validate_is_archived detects non-logical values", {
+test_that("validate_is_archived detects non-logical string values", {
   df <- data.frame(
     package_name = c("ggrepel", "patchwork"),
     is_archived = c("TRUE", "no"),
@@ -312,7 +312,24 @@ test_that("validate_is_archived detects non-logical values", {
   result <- validate_is_archived(df)
 
   expect_false(result$valid)
+  # Both rows should be flagged — character column is never logical
+  expect_length(result$errors, 2)
+  expect_true(any(grepl("ggrepel", result$errors)))
   expect_true(any(grepl("patchwork", result$errors)))
+})
+
+test_that("validate_is_archived detects numeric values", {
+  # Numeric 0/1 can appear if CSV is misread or manually edited
+  df <- data.frame(
+    package_name = c("ggrepel", "patchwork"),
+    is_archived = c(0, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- validate_is_archived(df)
+
+  expect_false(result$valid)
+  expect_length(result$errors, 2)
 })
 
 # --- validate_curated_csv() --------------------------------------------------
