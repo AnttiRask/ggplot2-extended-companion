@@ -10,11 +10,11 @@
 
 #' Filter packages by sidebar criteria
 #'
-#' Applies category, CRAN status, license, essential-only, and recently
-#' added/updated filters to the package dataset. All filters default to
-#' "show everything" so they compose cleanly via AND logic. The recently
-#' added and recently updated filters use OR logic between themselves
-#' (union), but AND with all other filters.
+#' Applies archived visibility, category, CRAN status, license,
+#' essential-only, and recently added/updated filters to the package dataset.
+#' All filters default to "show everything" so they compose cleanly via AND
+#' logic. The recently added and recently updated filters use OR logic
+#' between themselves (union), but AND with all other filters.
 #'
 #' @param data A tibble of package data.
 #' @param category Category to filter by, or "All" for no category filter.
@@ -23,6 +23,7 @@
 #' @param essential_only Logical. If TRUE, show only essential packages.
 #' @param recently_added Logical. If TRUE, include recently added packages.
 #' @param recently_updated Logical. If TRUE, include recently updated packages.
+#' @param show_archived Logical. If FALSE (default), hide archived packages.
 #'
 #' @return A filtered tibble.
 #'
@@ -34,9 +35,17 @@ filter_packages <- function(
   license_filter = "All",
   essential_only = FALSE,
   recently_added = FALSE,
-  recently_updated = FALSE
+  recently_updated = FALSE,
+  show_archived = FALSE
 ) {
   result <- data
+
+
+  # Filter archived packages (default: hidden) — applied first per SPEC-v1.1 §5.5.1
+  if (isFALSE(show_archived)) {
+    result <- result |>
+      dplyr::filter(.data$is_archived == FALSE | is.na(.data$is_archived))
+  }
 
   # Filter by category (check if category appears in pipe-separated list)
   if (!is.null(category) && category != "All") {
