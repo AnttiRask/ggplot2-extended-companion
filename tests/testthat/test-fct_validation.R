@@ -261,6 +261,60 @@ test_that("validate_categories detects invalid category in pipe-separated list",
   expect_true(any(grepl("fake_cat", result$errors)))
 })
 
+# --- validate_is_archived() --------------------------------------------------
+
+test_that("validate_is_archived returns no errors for valid booleans", {
+  df <- data.frame(
+    package_name = c("ggrepel", "patchwork", "gganimate"),
+    is_archived = c(TRUE, FALSE, FALSE),
+    stringsAsFactors = FALSE
+  )
+
+  result <- validate_is_archived(df)
+
+  expect_true(result$valid)
+  expect_length(result$errors, 0)
+})
+
+test_that("validate_is_archived detects missing column", {
+  df <- data.frame(
+    package_name = c("ggrepel", "patchwork"),
+    stringsAsFactors = FALSE
+  )
+
+  result <- validate_is_archived(df)
+
+  expect_false(result$valid)
+  expect_length(result$errors, 1)
+  expect_true(grepl("Missing required column: is_archived", result$errors[[1]]))
+})
+
+test_that("validate_is_archived detects NA values", {
+  df <- data.frame(
+    package_name = c("ggrepel", "patchwork"),
+    is_archived = c(FALSE, NA),
+    stringsAsFactors = FALSE
+  )
+
+  result <- validate_is_archived(df)
+
+  expect_false(result$valid)
+  expect_true(any(grepl("patchwork", result$errors)))
+})
+
+test_that("validate_is_archived detects non-logical values", {
+  df <- data.frame(
+    package_name = c("ggrepel", "patchwork"),
+    is_archived = c("TRUE", "no"),
+    stringsAsFactors = FALSE
+  )
+
+  result <- validate_is_archived(df)
+
+  expect_false(result$valid)
+  expect_true(any(grepl("patchwork", result$errors)))
+})
+
 # --- validate_curated_csv() --------------------------------------------------
 
 test_that("validate_curated_csv passes for a valid data frame", {
