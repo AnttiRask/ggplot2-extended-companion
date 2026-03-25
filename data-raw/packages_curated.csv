@@ -15,7 +15,6 @@ NatParksPalettes,scales_and_guides,FALSE,NA,https://github.com/kevinsblake/NatPa
 PerformanceAnalytics,stats,FALSE,NA,https://github.com/braverock/PerformanceAnalytics,1900-01-01,,FALSE
 PrettyCols,scales_and_guides,FALSE,https://nrennie.github.io/PrettyCols/,https://github.com/nrennie/PrettyCols/,1900-01-01,,FALSE
 RColorBrewer,scales_and_guides,FALSE,NA,NA,1900-01-01,Only CRAN,FALSE
-RtutoR,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
 Rtutor,interactive_tools,FALSE,https://skranz.github.io/RTutor/,https://github.com/skranz/RTutor/,1900-01-01,,FALSE
 SBC,stats,FALSE,https://hyunjimoon.github.io/SBC/,https://github.com/hyunjimoon/SBC/,1900-01-01,,FALSE
 SBpitch,sports,FALSE,NA,https://github.com/FCrSTATS/SBpitch/,1900-01-01,,FALSE
@@ -62,7 +61,7 @@ explore,data|interactive_tools,FALSE,https://rolkra.github.io/explore/,https://g
 exploreR,data|helpers|stats,FALSE,NA,NA,1900-01-01,Only CRAN,FALSE
 extrafont,themes,FALSE,NA,https://github.com/wch/extrafont/,1900-01-01,,FALSE
 facetious,facets,FALSE,NA,https://github.com/coolbutuseless/facetious/,1900-01-01,,FALSE
-facetscales,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+facetscales,na,FALSE,NA,https://github.com/zeehio/facetscales/,1900-01-01,"This repository was archived by the owner on Nov 7, 2022.",TRUE
 factoextra,stats,FALSE,https://rpkgs.datanovia.com/factoextra/,https://github.com/kassambara/factoextra/,1900-01-01,,FALSE
 fc.rstats,sports,FALSE,NA,https://github.com/FCrSTATS/fc.rstats/,1900-01-01,,FALSE
 figpatch,arranging_plots,FALSE,https://bradyajohnston.github.io/figpatch/,https://github.com/BradyAJohnston/figpatch/,1900-01-01,,FALSE
@@ -72,7 +71,7 @@ ganttrify,geoms,FALSE,https://ganttrify.europeandatajournalism.eu/,https://githu
 geofacet,maps,FALSE,https://hafen.github.io/geofacet/,https://github.com/hafen/geofacet/,1900-01-01,,FALSE
 geomnet,geoms,FALSE,http://sctyner.github.io/geomnet/,https://github.com/sctyner/geomnet/,1900-01-01,,FALSE
 geomtextpath,annotations,FALSE,https://allancameron.github.io/geomtextpath/,https://github.com/AllanCameron/geomtextpath/,1900-01-01,,FALSE
-gg3D,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+gg3D,na,FALSE,NA,https://github.com/AckerDWM/gg3D/,1900-01-01,This project is no longer maintained.,TRUE
 ggChernoff,geoms,FALSE,NA,https://github.com/Selbosh/ggChernoff/,1900-01-01,,FALSE
 ggCyberPunk,geoms|themes,FALSE,NA,https://github.com/delabj/ggCyberPunk/,1900-01-01,,FALSE
 ggDoE,stats,FALSE,https://ggdoe.netlify.app/,https://github.com/toledo60/ggDoE/,1900-01-01,,FALSE
@@ -178,7 +177,7 @@ gginnards,geoms|stats,FALSE,https://docs.r4photobiology.info/gginnards/,https://
 ggip,maps,FALSE,https://davidchall.github.io/ggip/,https://github.com/davidchall/ggip/,1900-01-01,,FALSE
 ggiraph,interactive_tools,FALSE,https://davidgohel.github.io/ggiraph/,https://github.com/davidgohel/ggiraph/,1900-01-01,,FALSE
 ggiraphExtra,interactive_tools,FALSE,NA,https://github.com/cardiomoon/ggiraphExtra/,1900-01-01,,FALSE
-ggjoy,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+ggjoy,na,FALSE,NA,https://github.com/clauswilke/ggjoy,1900-01-01,Deprecated. Please use ggridges. ,TRUE
 ggkeyboard,geoms,FALSE,NA,https://github.com/sharlagelfand/ggkeyboard/,1900-01-01,,FALSE
 ggkm,geoms|stats,FALSE,https://statbandit.wordpress.com/2011/03/08/an-enhanced-kaplan-meier-plot/,https://github.com/michaelway/ggkm/,1900-01-01,,FALSE
 gglabeller,annotations|interactive_tools,FALSE,NA,https://github.com/AliciaSchep/gglabeller/,1900-01-01,,FALSE
@@ -218,7 +217,7 @@ ggpattern,geoms|scales_and_guides,FALSE,https://coolbutuseless.github.io/package
 ggpcp,geoms,FALSE,https://yaweige.github.io/ggpcp/,https://github.com/yaweige/ggpcp/,1900-01-01,,FALSE
 ggpercentogram,geoms,FALSE,NA,https://github.com/eliocamp/ggpercentogram/,1900-01-01,,FALSE
 ggperiodic,scales_and_guides,FALSE,NA,https://github.com/eliocamp/ggperiodic/,1900-01-01,,FALSE
-ggphylo,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+ggphylo,na,FALSE,NA,https://github.com/gjuggler/ggphylo/,1900-01-01,Package appears unmaintained,TRUE
 ggpicrust2,stats,FALSE,https://cafferychen777.github.io/ggpicrust2/,https://github.com/cafferychen777/ggpicrust2/,1900-01-01,,FALSE
 ggpie,geoms,FALSE,https://showteeth.github.io/ggpie/,https://github.com/showteeth/ggpie/,1900-01-01,,FALSE
 ggpirate,geoms,FALSE,NA,https://github.com/mikabr/ggpirate/,1900-01-01,,FALSE
@@ -258,7 +257,7 @@ ggreverse,helpers,FALSE,NA,https://github.com/coolbutuseless/ggreverse/,1900-01-
 ggrgl,interactive_tools,FALSE,https://coolbutuseless.github.io/package/ggrgl/,https://github.com/coolbutuseless/ggrgl/,1900-01-01,,FALSE
 ggridges,geoms|scales_and_guides|themes,TRUE,https://wilkelab.org/ggridges/,https://github.com/wilkelab/ggridges/,1900-01-01,,FALSE
 ggrisk,stats,FALSE,NA,https://github.com/yikeshu0611/ggrisk/,1900-01-01,,FALSE
-ggrough,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+ggrough,na,FALSE,xvrdm.github.io/ggrough/,https://github.com/xvrdm/ggrough/,1900-01-01,{ggrough} is in a dormant state,TRUE
 ggrounded,geoms,FALSE,https://botan.github.io/ggrounded/,https://github.com/botan/ggrounded/,1900-01-01,,FALSE
 ggsankey,networks,FALSE,NA,https://github.com/davidsjoberg/ggsankey/,1900-01-01,,FALSE
 ggsci,scales_and_guides,FALSE,https://nanx.me/ggsci/,https://github.com/nanxstats/ggsci/,1900-01-01,,FALSE
@@ -267,7 +266,7 @@ ggsector,geoms,FALSE,NA,https://github.com/yanpd01/ggsector/,1900-01-01,,FALSE
 ggseg,geoms,FALSE,https://ggseg.github.io/ggseg/,https://github.com/ggseg/ggseg/,1900-01-01,,FALSE
 ggseqlogo,geoms,FALSE,https://omarwagih.github.io/ggseqlogo/,https://github.com/omarwagih/ggseqlogo/,1900-01-01,,FALSE
 ggseqplot,geoms,FALSE,https://maraab23.github.io/ggseqplot/,https://github.com/maraab23/ggseqplot/,1900-01-01,,FALSE
-ggsflabel,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+ggsflabel,na,FALSE,https://yutannihilation.github.io/ggsflabel/,https://github.com/yutannihilation/ggsflabel/,1900-01-01,"This repository was archived by the owner on Feb 3, 2023",TRUE
 ggshadow,geoms,FALSE,NA,https://github.com/marcmenem/ggshadow/,1900-01-01,,FALSE
 ggshakeR,sports,FALSE,https://abhiamishra.github.io/ggshakeR/,https://github.com/abhiamishra/ggshakeR/,1900-01-01,,FALSE
 ggside,arranging_plots,FALSE,NA,https://github.com/jtlandis/ggside/,1900-01-01,,FALSE
@@ -281,13 +280,13 @@ ggspatial,maps,FALSE,https://paleolimbot.github.io/ggspatial/,https://github.com
 ggspavis,geoms,FALSE,NA,https://github.com/lmweber/ggspavis/,1900-01-01,,FALSE
 ggspectra,scales_and_guides,FALSE,https://docs.r4photobiology.info/ggspectra/,https://github.com/aphalo/ggspectra/,1900-01-01,,FALSE
 ggstamp,annotations,FALSE,https://evamaerey.github.io/ggstamp/,https://github.com/evamaerey/ggstamp/,1900-01-01,,FALSE
-ggstance,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+ggstance,na,FALSE,NA,https://github.com/lionel-/ggstance/,1900-01-01,"This package has been superseded by ggplot2 3.3.0, which now has full native support for horizontality",TRUE
 ggstar,finishing_touches,FALSE,NA,https://github.com/xiangpin/ggstar/,1900-01-01,,FALSE
 ggstats,geoms|stats,TRUE,https://larmarange.github.io/ggstats/,https://github.com/larmarange/ggstats/,1900-01-01,,FALSE
 ggstatsplot,stats,FALSE,https://indrajeetpatil.github.io/ggstatsplot/,https://github.com/IndrajeetPatil/ggstatsplot/,1900-01-01,,FALSE
 ggstraw,geoms,FALSE,NA,https://github.com/nacnudus/ggstraw/,1900-01-01,,FALSE
 ggstream,geoms,TRUE,NA,https://github.com/davidsjoberg/ggstream/,1900-01-01,,FALSE
-ggsubplot,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+ggsubplot,na,FALSE,NA,https://github.com/garrettgman/ggsubplot/,1900-01-01,Package appears unmaintained,TRUE
 ggsunburst,python,FALSE,NA,https://github.com/didacs/ggsunburst/,1900-01-01,,FALSE
 ggsurvey,stats,FALSE,NA,https://github.com/5ayat/ggsurvey/,1900-01-01,,FALSE
 ggsurvfit,stats,FALSE,https://www.danieldsjoberg.com/ggsurvfit/,https://github.com/pharmaverse/ggsurvfit/,1900-01-01,,FALSE
@@ -318,7 +317,7 @@ ggupset,geoms,FALSE,NA,https://github.com/const-ae/ggupset/,1900-01-01,,FALSE
 ggvanced,geoms,FALSE,https://medium.com/towards-data-science/ggvanced-a-package-for-generating-advanced-data-visualizations-on-top-of-the-ggplot2-package-2a935763a4b/,https://github.com/Ringomed/ggvanced/,1900-01-01,,FALSE
 ggvenn,geoms,FALSE,NA,https://github.com/yanlinlin82/ggvenn/,1900-01-01,,FALSE
 ggview,finishing_touches,FALSE,NA,https://github.com/idmn/ggview/,1900-01-01,,FALSE
-ggvis,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+ggvis,na,FALSE,https://ggvis.rstudio.com/,https://github.com/rstudio/ggvis/,1900-01-01,"This repository was archived by the owner on Feb 10, 2026",TRUE
 ggvolc,stats,FALSE,NA,https://github.com/loukesio/ggvolc/,1900-01-01,,FALSE
 ggvoronoi,maps,FALSE,NA,https://github.com/garretrc/ggvoronoi/,1900-01-01,,FALSE
 ggvwline,geoms,FALSE,NA,https://github.com/Hy4m/ggvwline/,1900-01-01,,FALSE
@@ -443,7 +442,7 @@ unikn,scales_and_guides,FALSE,NA,https://github.com/hneth/unikn/,1900-01-01,,FAL
 urbnmapr,maps,FALSE,https://urbaninstitute.github.io/urbnmapr/,https://github.com/UrbanInstitute/urbnmapr/,1900-01-01,,FALSE
 urbnthemes,themes,FALSE,https://urbaninstitute.github.io/urbnthemes/,https://github.com/UrbanInstitute/urbnthemes/,1900-01-01,,FALSE
 vapoRwave,themes,FALSE,NA,https://github.com/moldach/vapoRwave/,1900-01-01,,FALSE
-vdmR,na,FALSE,NA,NA,1900-01-01,Package appears unmaintained,FALSE
+vdmR,na,FALSE,NA,NA,1900-01-01,Archived on 2019-12-05,TRUE
 viridis,scales_and_guides,FALSE,https://sjmgarnier.github.io/viridis/,https://github.com/sjmgarnier/viridis/,1900-01-01,,FALSE
 viridisLite,scales_and_guides,FALSE,https://sjmgarnier.github.io/viridisLite/,https://github.com/sjmgarnier/viridisLite/,1900-01-01,,FALSE
 visR,stats,FALSE,https://openpharma.github.io/visR/,https://github.com/openpharma/visR/,1900-01-01,,FALSE
