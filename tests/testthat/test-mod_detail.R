@@ -31,7 +31,11 @@ make_test_pkg <- function(
   downloads_30d = 20000L,
   downloads_365d = 200000L,
   downloads_all = 1500000L,
-  version = cran_version
+  version = cran_version,
+  github_title = NA_character_,
+  github_description = NA_character_,
+  github_maintainer = NA_character_,
+  github_license = NA_character_
 ) {
   data.frame(
     package_name = package_name,
@@ -56,6 +60,10 @@ make_test_pkg <- function(
     downloads_365d = downloads_365d,
     downloads_all = downloads_all,
     version = version,
+    github_title = github_title,
+    github_description = github_description,
+    github_maintainer = github_maintainer,
+    github_license = github_license,
     stringsAsFactors = FALSE
   )
 }
@@ -122,6 +130,54 @@ test_that("build_header_card shows title as lead and description as body", {
 
   expect_true(grepl("My Package Title", html))
   expect_true(grepl("A longer description", html))
+})
+
+test_that("build_header_card falls back to GitHub fields when CRAN fields are NA", {
+  pkg <- make_test_pkg(
+    title = NA,
+    description = NA,
+    maintainer = NA,
+    license = NA,
+    on_cran = FALSE,
+    github_title = "GitHub Package Title",
+    github_description = "A description from GitHub DESCRIPTION file.",
+    github_maintainer = "Jane Doe",
+    github_license = "MIT + file LICENSE"
+  )
+
+  result <- build_header_card(pkg)
+  html <- as.character(result)
+
+  # GitHub values should appear in rendered HTML
+  expect_true(grepl("GitHub Package Title", html))
+  expect_true(grepl("A description from GitHub", html))
+  expect_true(grepl("Jane Doe", html))
+  expect_true(grepl("MIT \\+ file LICENSE", html))
+})
+
+test_that("build_header_card prefers CRAN data over GitHub when both exist", {
+  pkg <- make_test_pkg(
+    title = "CRAN Title",
+    description = "CRAN description.",
+    maintainer = "CRAN Maintainer",
+    license = "GPL-3",
+    on_cran = TRUE,
+    github_title = "GitHub Title",
+    github_description = "GitHub description.",
+    github_maintainer = "GitHub Maintainer",
+    github_license = "MIT"
+  )
+
+  result <- build_header_card(pkg)
+  html <- as.character(result)
+
+  # CRAN values should appear (not GitHub)
+  expect_true(grepl("CRAN Title", html))
+  expect_true(grepl("CRAN description", html))
+  expect_true(grepl("CRAN Maintainer", html))
+  expect_true(grepl("GPL-3", html))
+  expect_false(grepl("GitHub Title", html))
+  expect_false(grepl("GitHub Maintainer", html))
 })
 
 # --- build_links_card() -----------------------------------------------------

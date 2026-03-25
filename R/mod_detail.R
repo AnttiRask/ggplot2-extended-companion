@@ -234,6 +234,8 @@ build_header_card <- function(pkg) {
   }
 
   # Title: prefer CRAN title, fall back to GitHub title (v1.1 §5.4.4)
+  # Extra fallback levels vs other fields because title is always displayed
+  # as lead subtitle — we need a value even if both CRAN and GitHub are NA
   display_title <- if ("title" %in% names(pkg) && !is.na(pkg$title)) {
     pkg$title
   } else if ("github_title" %in% names(pkg) && !is.na(pkg$github_title)) {
