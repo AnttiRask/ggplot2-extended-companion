@@ -394,7 +394,8 @@ parse_github_description_response <- function(package_name, response) {
   tryCatch(
     {
       # Decode base64 content from the API response
-      raw_content <- base64enc::base64decode(response$content)
+      # Use jsonlite (already a dependency) instead of base64enc
+      raw_content <- jsonlite::base64_dec(response$content)
       desc_text <- rawToChar(raw_content)
 
       # Write to temp file for desc package to parse

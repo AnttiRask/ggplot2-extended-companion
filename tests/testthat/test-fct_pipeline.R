@@ -222,6 +222,38 @@ test_that("fetch_github_descriptions fetches for non-CRAN GitHub packages", {
   expect_equal(result$github_version[result$package_name == "fakepkg"], "0.2.1")
 })
 
+test_that("fetch_github_descriptions returns NA for non-GitHub repo URLs", {
+  tmp_cache <- withr::local_tempfile(fileext = ".rds")
+
+  result <- fetch_github_descriptions(
+    package_names = c("gitlab_pkg"),
+    repo_urls = c("https://gitlab.com/user/gitlab_pkg"),
+    on_cran = c(FALSE),
+    cache_path = tmp_cache,
+    .fetch_fn = function(owner, repo) stop("Should not be called for non-GitHub")
+  )
+
+  expect_equal(nrow(result), 1)
+  expect_true(is.na(result$github_title))
+  expect_true(is.na(result$github_version))
+})
+
+test_that("fetch_github_descriptions returns NA for malformed GitHub URLs", {
+  tmp_cache <- withr::local_tempfile(fileext = ".rds")
+
+  result <- fetch_github_descriptions(
+    package_names = c("bad_url_pkg"),
+    repo_urls = c("https://github.com"),
+    on_cran = c(FALSE),
+    cache_path = tmp_cache,
+    .fetch_fn = function(owner, repo) stop("Should not be called for bad URL")
+  )
+
+  expect_equal(nrow(result), 1)
+  expect_true(is.na(result$github_title))
+  expect_true(is.na(result$github_version))
+})
+
 test_that("fetch_github_descriptions handles API errors gracefully", {
   tmp_cache <- withr::local_tempfile(fileext = ".rds")
 
@@ -467,10 +499,11 @@ test_that("merge_package_data works without cache file", {
                                 github_desc = NULL,
                                 github_desc_cache_path = "/tmp/nonexistent_cache.rds")
 
-  # Should still work — no github_* fields, but version should still be derivable
-  # from cran_version alone
+  # Should still work — no github_* or version fields without enrichment
   expect_true(tibble::is_tibble(result))
   expect_equal(nrow(result), 1)
+  expect_false("version" %in% names(result))
+  expect_false("github_title" %in% names(result))
 })
 
 # --- fix_non_cran_downloads() -----------------------------------------------
