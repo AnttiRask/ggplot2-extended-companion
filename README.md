@@ -19,7 +19,7 @@ ggplot2 extensions are R packages that build on top of ggplot2 to add new geoms,
 - **Shareable links** to individual packages via `?package={name}`
 - **Package submission** via Google Form ("Suggest a Package" in sidebar and footer)
 - **Archived packages** toggle — packages no longer maintained are hidden by default, with visual indicators when shown
-- **Non-CRAN enrichment** — packages not on CRAN get title, description, license, maintainer, and version from their GitHub DESCRIPTION file
+- **Non-CRAN enrichment** — packages not on CRAN get title, description, license, maintainer, and version from their GitHub DESCRIPTION file, displayed in both the browse table and detail view
 
 ## Tech stack
 
