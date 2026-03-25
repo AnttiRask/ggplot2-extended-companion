@@ -112,9 +112,12 @@ mod_browse_server <- function(id, app_data) {
 #'
 #' @noRd
 build_package_table <- function(data, ns) {
-  reactable::reactable(
-    data,
-    columns = list(
+  # Build the full column definitions list, then filter to only columns
+
+  # that exist in the data. This prevents reactable errors when the parquet
+  # is missing v1.1 columns (e.g., version, is_archived, github_*) during
+  # transitional pipeline runs.
+  all_columns <- list(
       # Name -- clickable, bold, 150px
       package_name = reactable::colDef(
         name = "Name",
@@ -272,7 +275,14 @@ build_package_table <- function(data, ns) {
       downloads_365d = reactable::colDef(show = FALSE),
       recently_added = reactable::colDef(show = FALSE),
       recently_updated = reactable::colDef(show = FALSE)
-    ),
+    )
+
+  # Filter to only columns that exist in the data
+  columns <- all_columns[names(all_columns) %in% names(data)]
+
+  reactable::reactable(
+    data,
+    columns = columns,
 
     # Table options
     searchable = TRUE,

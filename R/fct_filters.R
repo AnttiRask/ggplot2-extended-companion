@@ -41,7 +41,8 @@ filter_packages <- function(
   result <- data
 
   # Filter archived packages (default: hidden) — applied first per SPEC-v1.1 §5.5.1
-  if (isFALSE(show_archived)) {
+  # Defensive: only filter if is_archived column exists (transitional data may lack it)
+  if (isFALSE(show_archived) && "is_archived" %in% names(result)) {
     result <- result |>
       dplyr::filter(.data$is_archived == FALSE | is.na(.data$is_archived))
   }
