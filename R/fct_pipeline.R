@@ -516,20 +516,28 @@ fetch_github_descriptions <- function(package_names, repo_urls, on_cran,
 
 #' Merge all data sources into a single tibble
 #'
-#' Joins curated data, CRAN metadata, download stats, GitHub metadata, and
-#' constructed URLs into a single tibble with all fields from the Package
-#' Entity data model (SPEC section 3.1).
+#' Joins curated data, CRAN metadata, GitHub metadata, constructed URLs,
+#' and (optionally) GitHub DESCRIPTION enrichment into a single tibble.
+#' Derives a unified `version` field from CRAN or GitHub source.
+#'
+#' v1.1: Added `github_desc` parameter for non-CRAN enrichment and
+#' `version` derivation per SPEC-v1.1 §4.4.
 #'
 #' @param curated Tibble from `read_curated_csv()`.
 #' @param cran_meta Tibble from `fetch_cran_metadata()`.
 #' @param github_meta Tibble from `fetch_github_metadata()`.
 #' @param urls Tibble from `construct_urls()`.
+#' @param github_desc Tibble from `fetch_github_descriptions()`, or NULL.
+#'   If NULL (daily run), attempts to load from `github_desc_cache_path`.
+#' @param github_desc_cache_path Path to cached GitHub DESCRIPTION enrichment.
 #'
 #' @return A tibble with one row per package and all merged fields (excluding
 #'   download stats, which go in downloads.parquet separately per SPEC section 3.6).
 #'
 #' @noRd
-merge_package_data <- function(curated, cran_meta, github_meta, urls) {
+merge_package_data <- function(curated, cran_meta, github_meta, urls,
+                                github_desc = NULL,
+                                github_desc_cache_path = "data/github_descriptions.rds") {
   result <- curated |>
     dplyr::left_join(cran_meta, by = "package_name") |>
     dplyr::left_join(github_meta, by = "package_name") |>
@@ -537,6 +545,35 @@ merge_package_data <- function(curated, cran_meta, github_meta, urls) {
     dplyr::mutate(
       last_checked = Sys.Date()
     )
+
+  # Join GitHub DESCRIPTION enrichment if available
+  # If github_desc is NULL (daily run), try loading from cache
+  if (is.null(github_desc) && file.exists(github_desc_cache_path)) {
+    github_desc <- tryCatch(
+      readRDS(github_desc_cache_path),
+      error = function(e) {
+        logger::log_warn("Failed to load github_desc cache: {e$message}")
+        NULL
+      }
+    )
+  }
+
+  if (!is.null(github_desc)) {
+    result <- result |>
+      dplyr::left_join(github_desc, by = "package_name")
+  }
+
+  # Derive unified version field (CRAN takes priority)
+  if ("github_version" %in% names(result)) {
+    result <- result |>
+      dplyr::mutate(
+        version = dplyr::case_when(
+          .data$on_cran & !is.na(.data$cran_version) ~ .data$cran_version,
+          !.data$on_cran & !is.na(.data$github_version) ~ .data$github_version,
+          TRUE ~ NA_character_
+        )
+      )
+  }
 
   result
 }
