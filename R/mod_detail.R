@@ -233,20 +233,46 @@ build_header_card <- function(pkg) {
     )
   }
 
-  # Title (short one-liner from CRAN Title field)
-  title_text <- if ("title" %in% names(pkg) && !is.na(pkg$title)) {
+  # Title: prefer CRAN title, fall back to GitHub title (v1.1 §5.4.4)
+  display_title <- if ("title" %in% names(pkg) && !is.na(pkg$title)) {
     pkg$title
+  } else if ("github_title" %in% names(pkg) && !is.na(pkg$github_title)) {
+    pkg$github_title
   } else if (!is.na(pkg$description)) {
-    # Fallback for data without separate title field
+    # Last resort fallback for data without separate title field
     pkg$description
   } else {
     "No title available."
   }
 
-  # Description (longer paragraph from CRAN Description field)
-  desc_block <- if ("description" %in% names(pkg) && !is.na(pkg$description) &&
-                     "title" %in% names(pkg)) {
-    htmltools::tags$p(pkg$description)
+  # Description: prefer CRAN, fall back to GitHub (v1.1 §5.4.4)
+  display_description <- if ("description" %in% names(pkg) && !is.na(pkg$description)) {
+    pkg$description
+  } else if ("github_description" %in% names(pkg) && !is.na(pkg$github_description)) {
+    pkg$github_description
+  } else {
+    NULL
+  }
+  desc_block <- if (!is.null(display_description)) {
+    htmltools::tags$p(display_description)
+  }
+
+  # Maintainer: prefer CRAN, fall back to GitHub (v1.1 §5.4.4)
+  display_maintainer <- if (!is.na(pkg$maintainer)) {
+    pkg$maintainer
+  } else if ("github_maintainer" %in% names(pkg) && !is.na(pkg$github_maintainer)) {
+    pkg$github_maintainer
+  } else {
+    NULL
+  }
+
+  # License: prefer CRAN, fall back to GitHub (v1.1 §5.4.4)
+  display_license <- if (!is.na(pkg$license)) {
+    pkg$license
+  } else if ("github_license" %in% names(pkg) && !is.na(pkg$github_license)) {
+    pkg$github_license
+  } else {
+    NULL
   }
 
   bslib::card(
@@ -259,16 +285,16 @@ build_header_card <- function(pkg) {
       ),
 
       # Title as lead subtitle
-      htmltools::tags$p(class = "lead", title_text),
+      htmltools::tags$p(class = "lead", display_title),
 
       # Full description as body text
       desc_block,
 
       # Maintainer
-      if (!is.na(pkg$maintainer)) {
+      if (!is.null(display_maintainer)) {
         htmltools::tags$p(
           htmltools::tags$strong("Maintainer: "),
-          pkg$maintainer
+          display_maintainer
         )
       },
 
@@ -276,10 +302,10 @@ build_header_card <- function(pkg) {
       htmltools::tags$div(class = "d-flex flex-wrap gap-1 mb-2", cat_badges),
 
       # License (same colour as other text in the card)
-      if (!is.na(pkg$license)) {
+      if (!is.null(display_license)) {
         htmltools::tags$p(
           htmltools::tags$strong("License: "),
-          pkg$license
+          display_license
         )
       }
     )
@@ -376,30 +402,38 @@ build_downloads_card <- function(pkg) {
 }
 
 #' Build the version info card
+#'
+#' v1.1: Source-agnostic labels. Uses derived `version` field (CRAN or GitHub).
+#' Removed "Not available on CRAN." text — non-CRAN packages now show GitHub
+#' version when available, or em dash when not.
+#'
 #' @noRd
 build_version_card <- function(pkg) {
+  # Determine version to display (CRAN or GitHub via derived field)
+  display_version <- if ("version" %in% names(pkg) && !is.na(pkg$version)) {
+    pkg$version
+  } else {
+    NA_character_
+  }
+
   bslib::card(
     bslib::card_header("Version Info"),
     bslib::card_body(
-      if (isTRUE(pkg$on_cran)) {
-        htmltools::tagList(
-          htmltools::tags$p(
-            htmltools::tags$strong("Latest CRAN version: "),
-            if (is.na(pkg$cran_version)) "\u2014" else pkg$cran_version
-          ),
-          htmltools::tags$p(
-            htmltools::tags$strong("Published: "),
-            if (is.na(pkg$cran_published)) {
-              "\u2014"
-            } else {
-              format(as.Date(pkg$cran_published), "%Y-%m-%d")
-            }
-          )
+      # Version line (source-agnostic)
+      htmltools::tags$p(
+        htmltools::tags$strong("Latest Version: "),
+        if (is.na(display_version)) "\u2014" else display_version
+      ),
+
+      # Published date (CRAN only — meaningful date)
+      if (isTRUE(pkg$on_cran) && !is.na(pkg$cran_published)) {
+        htmltools::tags$p(
+          htmltools::tags$strong("Published: "),
+          format(as.Date(pkg$cran_published), "%Y-%m-%d")
         )
-      } else {
-        htmltools::tags$p(class = "text-muted", "Not available on CRAN.")
       },
 
+      # GitHub last updated (shown for all packages with GitHub data)
       if (!is.na(pkg$github_updated)) {
         htmltools::tags$p(
           htmltools::tags$strong("GitHub last updated: "),
