@@ -17,6 +17,9 @@ ggplot2 extensions are R packages that build on top of ggplot2 to add new geoms,
 - **Direct links** to CRAN, GitHub, reference manuals, and vignettes
 - **Dark and light mode** with persistent toggle
 - **Shareable links** to individual packages via `?package={name}`
+- **Package submission** via Google Form ("Suggest a Package" in sidebar and footer)
+- **Archived packages** toggle — packages no longer maintained are hidden by default, with visual indicators when shown
+- **Non-CRAN enrichment** — packages not on CRAN get title, description, license, maintainer, and version from their GitHub DESCRIPTION file
 
 ## Tech stack
 
@@ -42,7 +45,7 @@ run_app()
 The data is refreshed daily via GitHub Actions:
 
 - **Daily pipeline** (`pipeline.yml`): Fetches CRAN metadata, download stats, and GitHub activity for all 450+ packages. Builds and deploys the Docker image.
-- **Weekly examples** (`examples.yml`): Extracts code examples from CRAN package documentation (Rd files). Runs Sundays.
+- **Weekly examples & enrichment** (`examples.yml`): Extracts code examples from CRAN package documentation (Rd files) and fetches DESCRIPTION files from GitHub for non-CRAN packages. Runs Sundays.
 
 To run the pipeline locally:
 
@@ -55,11 +58,12 @@ targets::tar_make()
 
 | Source | What | How |
 |---|---|---|
-| `data-raw/packages_curated.csv` | Package list, categories, essential flags | Manually curated |
+| `data-raw/packages_curated.csv` | Package list, categories, essential/archived flags | Manually curated |
 | `data-raw/categories.csv` | 19 category definitions with display names | Manually curated |
 | CRAN (pkgsearch) | Title, description, license, version, published date, vignettes | Daily pipeline |
 | cranlogs | Download counts (7d, 30d, 365d, all-time since 2015) | Daily pipeline |
 | GitHub API | Last push date | Daily pipeline |
+| GitHub Contents API | DESCRIPTION file for non-CRAN packages (title, version, license, maintainer) | Weekly pipeline |
 
 ## Project structure
 
@@ -79,7 +83,7 @@ R/
   fct_urls.R            # Construct CRAN-derived URLs
   fct_examples.R        # Extract and render code examples
   fct_validation.R      # CSV validation
-tests/testthat/         # 366 tests
+tests/testthat/         # 457 tests
 data-raw/               # Curated CSVs (source of truth)
 data/                   # Generated Parquet files (gitignored)
 inst/app/www/           # CSS, JS, examples
@@ -90,7 +94,7 @@ Dockerfile              # Multi-stage Docker build
 
 ## Contributing
 
-Know a ggplot2 extension we're missing? Open an issue or submit a PR adding it to `data-raw/packages_curated.csv`.
+Know a ggplot2 extension we're missing? [Suggest it via our Google Form](https://forms.gle/RkviFqae7aAdUA4q9), or open an issue / submit a PR adding it to `data-raw/packages_curated.csv`.
 
 ## License
 
