@@ -152,6 +152,95 @@ test_that("aggregate_downloads returns NA for empty data", {
   expect_true(is.na(result$downloads_all))
 })
 
+# --- parse_github_description_response() ------------------------------------
+
+test_that("parse_github_description_response extracts fields from mock API response", {
+  mock_response <- readRDS(test_path("fixtures", "github_description_response.rds"))
+
+  result <- parse_github_description_response("fakepkg", mock_response)
+
+  expect_equal(result$package_name, "fakepkg")
+  expect_equal(result$github_title, "A Fake Package for Testing")
+  expect_equal(result$github_version, "0.2.1")
+  expect_equal(result$github_license, "MIT + file LICENSE")
+  expect_true(!is.na(result$github_description))
+  expect_true(!is.na(result$github_maintainer))
+})
+
+test_that("parse_github_description_response returns NA row for NULL response", {
+  result <- parse_github_description_response("missing_pkg", NULL)
+
+  expect_equal(result$package_name, "missing_pkg")
+  expect_true(is.na(result$github_title))
+  expect_true(is.na(result$github_version))
+  expect_true(is.na(result$github_license))
+  expect_true(is.na(result$github_description))
+  expect_true(is.na(result$github_maintainer))
+})
+
+# --- fetch_github_descriptions() (unit-level) --------------------------------
+
+test_that("fetch_github_descriptions returns NA for CRAN packages", {
+  tmp_cache <- withr::local_tempfile(fileext = ".rds")
+
+  # Mock: 2 packages, first is on CRAN, second is not but has no GitHub URL
+  result <- fetch_github_descriptions(
+    package_names = c("ggrepel", "cran_only"),
+    repo_urls = c("https://github.com/slowkow/ggrepel", NA),
+    on_cran = c(TRUE, TRUE),
+    cache_path = tmp_cache,
+    .fetch_fn = function(owner, repo) stop("Should not be called")
+  )
+
+  expect_equal(nrow(result), 2)
+  expect_true(all(is.na(result$github_title)))
+  expect_true(all(is.na(result$github_version)))
+  # Cache should be written
+  expect_true(file.exists(tmp_cache))
+})
+
+test_that("fetch_github_descriptions fetches for non-CRAN GitHub packages", {
+  mock_response <- readRDS(test_path("fixtures", "github_description_response.rds"))
+  tmp_cache <- withr::local_tempfile(fileext = ".rds")
+
+  # Mock fetch function returns our fixture
+  mock_fetch <- function(owner, repo) mock_response
+
+  result <- fetch_github_descriptions(
+    package_names = c("ggrepel", "fakepkg"),
+    repo_urls = c("https://github.com/slowkow/ggrepel", "https://github.com/user/fakepkg"),
+    on_cran = c(TRUE, FALSE),
+    cache_path = tmp_cache,
+    .fetch_fn = mock_fetch
+  )
+
+  expect_equal(nrow(result), 2)
+  # CRAN package: all NA
+  expect_true(is.na(result$github_title[result$package_name == "ggrepel"]))
+  # Non-CRAN package: parsed from mock
+  expect_equal(result$github_title[result$package_name == "fakepkg"], "A Fake Package for Testing")
+  expect_equal(result$github_version[result$package_name == "fakepkg"], "0.2.1")
+})
+
+test_that("fetch_github_descriptions handles API errors gracefully", {
+  tmp_cache <- withr::local_tempfile(fileext = ".rds")
+
+  # Mock fetch function that always errors
+  mock_fetch <- function(owner, repo) stop("404 Not Found")
+
+  result <- fetch_github_descriptions(
+    package_names = c("broken_pkg"),
+    repo_urls = c("https://github.com/user/broken_pkg"),
+    on_cran = c(FALSE),
+    cache_path = tmp_cache,
+    .fetch_fn = mock_fetch
+  )
+
+  expect_equal(nrow(result), 1)
+  expect_true(is.na(result$github_title))
+  expect_true(is.na(result$github_version))
+})
+
 # --- merge_package_data() ---------------------------------------------------
 
 test_that("merge_package_data joins all data sources", {
