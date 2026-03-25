@@ -94,12 +94,12 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
     # Divider
     htmltools::hr(),
 
-    # Submit a package link (disabled until Google Form is created)
+    # Submit a package link (v1.1 — activated with Google Form URL)
     htmltools::tags$a(
-      href = "javascript:void(0)",
-      class = "btn btn-outline-primary w-100 disabled",
-      `aria-disabled` = "true",
-      title = "Package submission form coming soon",
+      href = get_golem_config("google_form_url"),
+      target = "_blank",
+      rel = "noopener noreferrer",
+      class = "btn btn-outline-primary w-100",
       "Suggest a Package"
     )
   )

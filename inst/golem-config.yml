@@ -2,6 +2,7 @@ default:
   golem_name: ggplot2.extended.companion
   golem_version: 0.0.0.9000
   app_prod: no
+  google_form_url: "https://forms.gle/RkviFqae7aAdUA4q9"
 
 production:
   app_prod: yes

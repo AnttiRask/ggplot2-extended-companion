@@ -35,14 +35,14 @@ mod_footer_ui <- function(id) {
         "to have it corrected or removed."
       ),
 
-      # Submission link (disabled until Google Form is created)
+      # Submission link (v1.1 — activated with Google Form URL)
       htmltools::tags$p(
         class = "text-muted small",
         "Know a ggplot2 extension we're missing? ",
-        htmltools::tags$span(
-          class = "text-muted",
-          title = "Package submission form coming soon",
-          style = "text-decoration: underline dotted; cursor: default;",
+        htmltools::tags$a(
+          href = get_golem_config("google_form_url"),
+          target = "_blank",
+          rel = "noopener noreferrer",
           "Submit it here"
         ),
         "."
