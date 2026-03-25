@@ -216,15 +216,19 @@ build_package_table <- function(data, ns) {
         }
       ),
 
-      # CRAN Version -- 90px, not sortable
-      cran_version = reactable::colDef(
-        name = "CRAN Version",
+      # Version -- source-agnostic (CRAN or GitHub), 90px, not sortable
+      # v1.1: renamed from "CRAN Version", uses derived version field
+      version = reactable::colDef(
+        name = "Version",
         minWidth = 90,
         sortable = FALSE,
         cell = function(value) {
           if (is.na(value)) "\u2014" else value
         }
       ),
+
+      # cran_version hidden — version column shows derived value instead
+      cran_version = reactable::colDef(show = FALSE),
 
       # CRAN Published -- date, 110px
       cran_published = reactable::colDef(
@@ -248,6 +252,11 @@ build_package_table <- function(data, ns) {
       description = reactable::colDef(show = FALSE),
       is_essential = reactable::colDef(show = FALSE),
       is_archived = reactable::colDef(show = FALSE),
+      github_title = reactable::colDef(show = FALSE),
+      github_description = reactable::colDef(show = FALSE),
+      github_license = reactable::colDef(show = FALSE),
+      github_maintainer = reactable::colDef(show = FALSE),
+      github_version = reactable::colDef(show = FALSE),
       on_cran = reactable::colDef(show = FALSE),
       has_vignettes = reactable::colDef(show = FALSE),
       maintainer = reactable::colDef(show = FALSE),
