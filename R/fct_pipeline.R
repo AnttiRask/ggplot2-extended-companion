@@ -361,6 +361,156 @@ fetch_github_metadata <- function(package_names, repo_urls) {
 }
 
 # -----------------------------------------------------------------------------
+# GitHub DESCRIPTION Enrichment (v1.1)
+# -----------------------------------------------------------------------------
+
+#' Parse a GitHub Contents API response for a DESCRIPTION file
+#'
+#' Decodes the base64 content from a GitHub Contents API response, writes it
+#' to a temp file, and parses it with the `desc` package. Returns a one-row
+#' tibble with github_title, github_description, github_license,
+#' github_maintainer, and github_version. Returns NA fields for NULL response.
+#'
+#' @param package_name The package name.
+#' @param response A list from the GitHub Contents API, or NULL.
+#'
+#' @return A one-row tibble with enrichment fields.
+#'
+#' @noRd
+parse_github_description_response <- function(package_name, response) {
+  na_row <- tibble::tibble(
+    package_name       = package_name,
+    github_title       = NA_character_,
+    github_description = NA_character_,
+    github_license     = NA_character_,
+    github_maintainer  = NA_character_,
+    github_version     = NA_character_
+  )
+
+  if (is.null(response)) {
+    return(na_row)
+  }
+
+  tryCatch(
+    {
+      # Decode base64 content from the API response
+      raw_content <- base64enc::base64decode(response$content)
+      desc_text <- rawToChar(raw_content)
+
+      # Write to temp file for desc package to parse
+      tmp <- tempfile(fileext = "DESCRIPTION")
+      on.exit(unlink(tmp), add = TRUE)
+      writeLines(desc_text, tmp)
+
+      d <- desc::desc(file = tmp)
+
+      # Extract maintainer: try get_maintainer() first (handles Authors@R),
+      # fall back to Maintainer field
+      maintainer <- tryCatch(
+        {
+          m <- d$get_maintainer()
+          if (is.na(m) || nchar(trimws(m)) == 0) d$get("Maintainer")[[1]] else m
+        },
+        error = function(e) {
+          tryCatch(d$get("Maintainer")[[1]], error = function(e2) NA_character_)
+        }
+      )
+
+      # Clean maintainer: remove email addresses and trim
+      if (!is.na(maintainer)) {
+        maintainer <- sub("\\s*<[^>]+>\\s*$", "", trimws(maintainer))
+      }
+
+      tibble::tibble(
+        package_name       = package_name,
+        github_title       = trimws(d$get("Title")[[1]]) %||% NA_character_,
+        github_description = trimws(d$get("Description")[[1]]) %||% NA_character_,
+        github_license     = trimws(d$get("License")[[1]]) %||% NA_character_,
+        github_maintainer  = maintainer,
+        github_version     = trimws(d$get("Version")[[1]]) %||% NA_character_
+      )
+    },
+    error = function(e) {
+      logger::log_warn("Failed to parse DESCRIPTION for '{package_name}': {e$message}")
+      na_row
+    }
+  )
+}
+
+#' Fetch DESCRIPTION files from GitHub for non-CRAN packages
+#'
+#' For packages where `on_cran` is FALSE and `repo_url` points to GitHub,
+#' fetches the DESCRIPTION file via the GitHub Contents API and parses it
+#' with the `desc` package to extract Title, Description, License,
+#' Maintainer, and Version.
+#'
+#' Results are cached to `cache_path` so that daily pipeline runs can
+#' reuse the last weekly enrichment without additional API calls.
+#'
+#' @param package_names Character vector of all package names.
+#' @param repo_urls Character vector of repository URLs (same length).
+#' @param on_cran Logical vector indicating CRAN availability (same length).
+#' @param cache_path Path to write the cached RDS file.
+#' @param .fetch_fn Internal: override the GitHub API fetch function for testing.
+#'
+#' @return A tibble with columns: package_name, github_title,
+#'   github_description, github_license, github_maintainer, github_version.
+#'
+#' @noRd
+fetch_github_descriptions <- function(package_names, repo_urls, on_cran,
+                                       cache_path = "data/github_descriptions.rds",
+                                       .fetch_fn = NULL) {
+  # Default fetch function uses the GitHub Contents API
+  if (is.null(.fetch_fn)) {
+    .fetch_fn <- function(owner, repo) {
+      gh::gh(
+        "GET /repos/{owner}/{repo}/contents/DESCRIPTION",
+        owner = owner,
+        repo = repo,
+        .token = Sys.getenv("GITHUB_PAT", "")
+      )
+    }
+  }
+
+  results <- lapply(seq_along(package_names), function(i) {
+    pkg <- package_names[i]
+    url <- repo_urls[i]
+    is_cran <- on_cran[i]
+
+    # Skip CRAN packages and non-GitHub repos — return NA row
+    if (isTRUE(is_cran) || is.na(url) || !grepl("github\\.com", url)) {
+      return(parse_github_description_response(pkg, NULL))
+    }
+
+    # Parse GitHub URL to get owner/repo
+    parsed <- parse_github_url(url)
+    if (is.null(parsed)) {
+      return(parse_github_description_response(pkg, NULL))
+    }
+
+    # Fetch DESCRIPTION file via GitHub Contents API
+    tryCatch(
+      {
+        response <- .fetch_fn(parsed$owner, parsed$repo)
+        parse_github_description_response(pkg, response)
+      },
+      error = function(e) {
+        logger::log_warn("GitHub DESCRIPTION failed for '{pkg}': {e$message}")
+        parse_github_description_response(pkg, NULL)
+      }
+    )
+  })
+
+  result <- dplyr::bind_rows(results)
+
+  # Cache to disk for daily pipeline reuse
+  dir.create(dirname(cache_path), showWarnings = FALSE, recursive = TRUE)
+  saveRDS(result, cache_path)
+
+  result
+}
+
+# -----------------------------------------------------------------------------
 # Merge and Output
 # -----------------------------------------------------------------------------
 
