@@ -157,17 +157,23 @@ build_package_table <- function(data, ns) {
       ),
 
       # Title -- flex width, truncated, sortable
+      # Falls back to github_title for non-CRAN packages
       title = reactable::colDef(
         name = "Title",
         minWidth = 200,
         sortable = TRUE,
-        cell = function(value) {
-          if (is.na(value)) return("\u2014")
+        cell = function(value, index) {
+          display_val <- value
+          # Fall back to GitHub title if CRAN title is NA
+          if (is.na(display_val) && "github_title" %in% names(data)) {
+            display_val <- data$github_title[index]
+          }
+          if (is.na(display_val)) return("\u2014")
           # Truncate to ~100 characters with ellipsis
-          if (nchar(value) > 100) {
-            paste0(substr(value, 1, 97), "...")
+          if (nchar(display_val) > 100) {
+            paste0(substr(display_val, 1, 97), "...")
           } else {
-            value
+            display_val
           }
         }
       ),
@@ -190,12 +196,18 @@ build_package_table <- function(data, ns) {
       ),
 
       # License -- plain text, 100px, sortable
+      # Falls back to github_license for non-CRAN packages
       license = reactable::colDef(
         name = "License",
         minWidth = 100,
         sortable = TRUE,
-        cell = function(value) {
-          if (is.na(value)) "\u2014" else value
+        cell = function(value, index) {
+          display_val <- value
+          # Fall back to GitHub license if CRAN license is NA
+          if (is.na(display_val) && "github_license" %in% names(data)) {
+            display_val <- data$github_license[index]
+          }
+          if (is.na(display_val)) "\u2014" else display_val
         }
       ),
 
