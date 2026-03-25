@@ -114,6 +114,47 @@ test_that("export_json converts pipe-separated categories to arrays", {
   expect_true("interactive_plots" %in% cats)
 })
 
+test_that("export_json includes is_archived and version fields", {
+  packages <- tibble::tibble(
+    package_name = c("ggrepel", "archived_pkg"),
+    description = c("Text labels", "Old package"),
+    categories = c("annotations", "themes"),
+    is_essential = c(TRUE, FALSE),
+    is_archived = c(FALSE, TRUE),
+    on_cran = c(TRUE, FALSE),
+    license = c("GPL-3", NA),
+    cran_version = c("0.9.6", NA),
+    cran_published = as.Date(c("2024-09-07", NA)),
+    github_updated = as.Date(c("2024-12-01", NA)),
+    cran_url = c("https://cran.r-project.org/package=ggrepel", NA),
+    website_url = c("https://ggrepel.slowkow.com/", NA),
+    repo_url = c("https://github.com/slowkow/ggrepel", NA),
+    version = c("0.9.6", NA)
+  )
+
+  downloads <- tibble::tibble(
+    package_name = c("ggrepel", "archived_pkg"),
+    downloads_30d = c(20000L, NA_integer_),
+    downloads_all = c(1500000L, NA_integer_)
+  )
+
+  tmp_file <- withr::local_tempfile(fileext = ".json")
+  export_json(packages, downloads, tmp_file)
+
+  result <- jsonlite::fromJSON(tmp_file)
+
+  # is_archived should be present
+  expect_true("is_archived" %in% names(result$packages))
+  expect_equal(result$packages$is_archived[result$packages$name == "ggrepel"], FALSE)
+  expect_equal(result$packages$is_archived[result$packages$name == "archived_pkg"], TRUE)
+
+  # version should be present
+  expect_true("version" %in% names(result$packages))
+  expect_equal(result$packages$version[result$packages$name == "ggrepel"], "0.9.6")
+  # NA version should be null in JSON (which becomes NA when read back)
+  expect_true(is.na(result$packages$version[result$packages$name == "archived_pkg"]))
+})
+
 test_that("export_json handles NA values correctly", {
   packages <- tibble::tibble(
     package_name = "bbplot",
