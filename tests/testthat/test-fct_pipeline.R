@@ -306,6 +306,173 @@ test_that("merge_package_data joins all data sources", {
   expect_true(is.na(bbplot$cran_version))
 })
 
+test_that("merge_package_data joins github_desc and derives version field", {
+  curated <- tibble::tibble(
+    package_name = c("ggrepel", "fakepkg"),
+    categories = c("annotations", "themes"),
+    is_essential = c(TRUE, FALSE),
+    is_archived = c(FALSE, FALSE),
+    website_url = c("https://ggrepel.slowkow.com/", NA),
+    repo_url = c("https://github.com/slowkow/ggrepel", "https://github.com/user/fakepkg"),
+    date_added = c("2026-03-17", "2026-03-17"),
+    notes = c("", "")
+  )
+
+  cran_meta <- tibble::tibble(
+    package_name = c("ggrepel", "fakepkg"),
+    title = c("Text labels", NA),
+    description = c("Repel overlapping text", NA),
+    maintainer = c("Kamil", NA),
+    license = c("GPL-3", NA),
+    cran_version = c("0.9.6", NA),
+    cran_published = as.Date(c("2024-09-07", NA)),
+    on_cran = c(TRUE, FALSE),
+    has_vignettes = c(TRUE, FALSE)
+  )
+
+  github_meta <- tibble::tibble(
+    package_name = c("ggrepel", "fakepkg"),
+    github_updated = as.Date(c("2024-12-01", "2025-01-15"))
+  )
+
+  urls <- tibble::tibble(
+    package_name = c("ggrepel", "fakepkg"),
+    cran_url = c("https://cran.r-project.org/package=ggrepel", NA),
+    manual_url = c("https://cran.r-project.org/web/packages/ggrepel/ggrepel.pdf", NA),
+    vignettes_url = c("https://cran.r-project.org/web/packages/ggrepel/vignettes/", NA)
+  )
+
+  github_desc <- tibble::tibble(
+    package_name = c("ggrepel", "fakepkg"),
+    github_title = c(NA, "A Fake Package"),
+    github_description = c(NA, "Fake description"),
+    github_license = c(NA, "MIT"),
+    github_maintainer = c(NA, "Jane Doe"),
+    github_version = c(NA, "0.2.1")
+  )
+
+  result <- merge_package_data(curated, cran_meta, github_meta, urls,
+                                github_desc = github_desc)
+
+  # version field should exist
+  expect_true("version" %in% names(result))
+
+  # CRAN package: version = cran_version
+  expect_equal(result$version[result$package_name == "ggrepel"], "0.9.6")
+
+  # Non-CRAN package: version = github_version
+  expect_equal(result$version[result$package_name == "fakepkg"], "0.2.1")
+
+  # github_* fields should be present
+  expect_true("github_title" %in% names(result))
+  expect_equal(result$github_title[result$package_name == "fakepkg"], "A Fake Package")
+})
+
+test_that("merge_package_data loads cached github_desc when NULL", {
+  curated <- tibble::tibble(
+    package_name = "ggrepel",
+    categories = "annotations",
+    is_essential = TRUE,
+    is_archived = FALSE,
+    website_url = "https://ggrepel.slowkow.com/",
+    repo_url = "https://github.com/slowkow/ggrepel",
+    date_added = "2026-03-17",
+    notes = ""
+  )
+
+  cran_meta <- tibble::tibble(
+    package_name = "ggrepel",
+    title = "Text labels",
+    description = "Repel overlapping text",
+    maintainer = "Kamil",
+    license = "GPL-3",
+    cran_version = "0.9.6",
+    cran_published = as.Date("2024-09-07"),
+    on_cran = TRUE,
+    has_vignettes = TRUE
+  )
+
+  github_meta <- tibble::tibble(
+    package_name = "ggrepel",
+    github_updated = as.Date("2024-12-01")
+  )
+
+  urls <- tibble::tibble(
+    package_name = "ggrepel",
+    cran_url = "https://cran.r-project.org/package=ggrepel",
+    manual_url = "https://cran.r-project.org/web/packages/ggrepel/ggrepel.pdf",
+    vignettes_url = "https://cran.r-project.org/web/packages/ggrepel/vignettes/"
+  )
+
+  # Create a cache file
+  cached_desc <- tibble::tibble(
+    package_name = "ggrepel",
+    github_title = NA_character_,
+    github_description = NA_character_,
+    github_license = NA_character_,
+    github_maintainer = NA_character_,
+    github_version = NA_character_
+  )
+  tmp_cache <- withr::local_tempfile(fileext = ".rds")
+  saveRDS(cached_desc, tmp_cache)
+
+  result <- merge_package_data(curated, cran_meta, github_meta, urls,
+                                github_desc = NULL,
+                                github_desc_cache_path = tmp_cache)
+
+  # Should have loaded from cache and joined
+  expect_true("github_title" %in% names(result))
+  expect_true("version" %in% names(result))
+  expect_equal(result$version, "0.9.6")  # CRAN version
+})
+
+test_that("merge_package_data works without cache file", {
+  curated <- tibble::tibble(
+    package_name = "ggrepel",
+    categories = "annotations",
+    is_essential = TRUE,
+    is_archived = FALSE,
+    website_url = "https://ggrepel.slowkow.com/",
+    repo_url = "https://github.com/slowkow/ggrepel",
+    date_added = "2026-03-17",
+    notes = ""
+  )
+
+  cran_meta <- tibble::tibble(
+    package_name = "ggrepel",
+    title = "Text labels",
+    description = "Repel overlapping text",
+    maintainer = "Kamil",
+    license = "GPL-3",
+    cran_version = "0.9.6",
+    cran_published = as.Date("2024-09-07"),
+    on_cran = TRUE,
+    has_vignettes = TRUE
+  )
+
+  github_meta <- tibble::tibble(
+    package_name = "ggrepel",
+    github_updated = as.Date("2024-12-01")
+  )
+
+  urls <- tibble::tibble(
+    package_name = "ggrepel",
+    cran_url = "https://cran.r-project.org/package=ggrepel",
+    manual_url = "https://cran.r-project.org/web/packages/ggrepel/ggrepel.pdf",
+    vignettes_url = "https://cran.r-project.org/web/packages/ggrepel/vignettes/"
+  )
+
+  # Non-existent cache path
+  result <- merge_package_data(curated, cran_meta, github_meta, urls,
+                                github_desc = NULL,
+                                github_desc_cache_path = "/tmp/nonexistent_cache.rds")
+
+  # Should still work — no github_* fields, but version should still be derivable
+  # from cran_version alone
+  expect_true(tibble::is_tibble(result))
+  expect_equal(nrow(result), 1)
+})
+
 # --- fix_non_cran_downloads() -----------------------------------------------
 
 test_that("fix_non_cran_downloads sets NA for non-CRAN packages", {
