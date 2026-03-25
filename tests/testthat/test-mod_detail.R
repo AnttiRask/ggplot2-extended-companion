@@ -30,7 +30,8 @@ make_test_pkg <- function(
   downloads_7d = 5000L,
   downloads_30d = 20000L,
   downloads_365d = 200000L,
-  downloads_all = 1500000L
+  downloads_all = 1500000L,
+  version = cran_version
 ) {
   data.frame(
     package_name = package_name,
@@ -54,6 +55,7 @@ make_test_pkg <- function(
     downloads_30d = downloads_30d,
     downloads_365d = downloads_365d,
     downloads_all = downloads_all,
+    version = version,
     stringsAsFactors = FALSE
   )
 }
@@ -210,22 +212,26 @@ test_that("build_downloads_card shows em-dash for NA downloads", {
 
 # --- build_version_card() ---------------------------------------------------
 
-test_that("build_version_card shows CRAN version for CRAN packages", {
-  pkg <- make_test_pkg(on_cran = TRUE, cran_version = "0.9.6")
+test_that("build_version_card shows Latest Version for CRAN packages", {
+  pkg <- make_test_pkg(on_cran = TRUE, cran_version = "0.9.6", version = "0.9.6")
 
   result <- build_version_card(pkg)
   html <- as.character(result)
 
+  expect_true(grepl("Latest Version", html))
   expect_true(grepl("0.9.6", html))
 })
 
-test_that("build_version_card shows not-on-CRAN message for non-CRAN packages", {
-  pkg <- make_test_pkg(on_cran = FALSE, cran_version = NA)
+test_that("build_version_card shows em dash for non-CRAN packages without version", {
+  pkg <- make_test_pkg(on_cran = FALSE, cran_version = NA, version = NA)
 
   result <- build_version_card(pkg)
   html <- as.character(result)
 
-  expect_true(grepl("Not available on CRAN", html))
+  # v1.1: "Not available on CRAN." removed, shows "Latest Version: —" instead
+  expect_true(grepl("Latest Version", html))
+  expect_true(grepl("\u2014", html))
+  expect_false(grepl("Not available on CRAN", html))
 })
 
 test_that("build_version_card shows GitHub updated date", {
