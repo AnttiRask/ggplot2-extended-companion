@@ -70,6 +70,25 @@ list(
     format = "rds"
   ),
 
+  # Step 4.5: Fetch DESCRIPTION from GitHub for non-CRAN packages (weekly only)
+  # Enriches non-CRAN packages with title, description, license, maintainer,
+  # and version from their GitHub DESCRIPTION file. Cached to disk so daily
+  # runs can reuse the last weekly enrichment.
+  if (should_render_examples()) {
+    tar_target(
+      github_descriptions,
+      fetch_github_descriptions(
+        curated_packages$package_name,
+        curated_packages$repo_url,
+        cran_metadata$on_cran,
+        cache_path = "data/github_descriptions.rds"
+      ),
+      format = "rds"
+    )
+  } else {
+    NULL
+  },
+
   # Step 5b: Fix non-CRAN downloads (set 0 -> NA for packages not on CRAN)
   tar_target(
     download_stats_fixed,
@@ -79,13 +98,16 @@ list(
 
   # Step 6: Merge all data sources (excluding downloads — those go in
   # downloads.parquet only, per SPEC §3.6)
+  # v1.1: Pass github_desc enrichment from weekly run (NULL on daily runs,
+  # merge_package_data loads cache internally)
   tar_target(
     packages_combined,
     merge_package_data(
       curated_packages,
       cran_metadata,
       github_metadata,
-      constructed_urls
+      constructed_urls,
+      github_desc = if (should_render_examples()) github_descriptions else NULL
     ),
     format = "rds"
   ),

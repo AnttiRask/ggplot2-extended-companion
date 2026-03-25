@@ -568,7 +568,29 @@ test_that("weekly pipeline includes code_examples -> pipeline_metadata dependenc
   )
 })
 
-test_that("daily pipeline excludes code_examples and examples_parquet targets", {
+test_that("weekly pipeline includes github_descriptions target", {
+  withr::local_envvar(RENDER_EXAMPLES = "true")
+
+  project_root <- file.path(test_path(), "..", "..")
+  skip_if_not(file.exists(file.path(project_root, "_targets.R")), "_targets.R not found")
+  withr::local_dir(project_root)
+
+  m <- targets::tar_manifest()
+
+  # github_descriptions target should exist in weekly mode
+  expect_true("github_descriptions" %in% m$name,
+    info = "github_descriptions target missing from weekly pipeline")
+
+  # packages_combined should depend on github_descriptions
+  net <- targets::tar_network()
+  edges <- net$edges
+  expect_true(
+    any(edges$from == "github_descriptions" & edges$to == "packages_combined"),
+    info = "github_descriptions -> packages_combined edge missing"
+  )
+})
+
+test_that("daily pipeline excludes code_examples, examples_parquet, and github_descriptions", {
   withr::local_envvar(RENDER_EXAMPLES = NA)
 
   project_root <- file.path(test_path(), "..", "..")
@@ -579,6 +601,7 @@ test_that("daily pipeline excludes code_examples and examples_parquet targets", 
 
   expect_false("code_examples" %in% m$name)
   expect_false("examples_parquet" %in% m$name)
+  expect_false("github_descriptions" %in% m$name)
 })
 
 # --- should_render_examples() ------------------------------------------------
