@@ -40,7 +40,6 @@ filter_packages <- function(
 ) {
   result <- data
 
-
   # Filter archived packages (default: hidden) — applied first per SPEC-v1.1 §5.5.1
   if (isFALSE(show_archived)) {
     result <- result |>

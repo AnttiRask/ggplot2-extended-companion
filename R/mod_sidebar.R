@@ -120,6 +120,7 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
 #'   - `essential_only`: logical
 #'   - `recently_added`: logical
 #'   - `recently_updated`: logical
+#'   - `show_archived`: logical
 #'
 #' @noRd
 mod_sidebar_server <- function(id) {
