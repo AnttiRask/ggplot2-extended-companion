@@ -122,6 +122,7 @@ get_category_colours <- function() {
     animation         = "#8B5CF6",
     annotations       = "#3B82F6",
     arranging_plots   = "#06B6D4",
+    art               = "#E11D48",
     coords            = "#14B8A6",
     data              = "#10B981",
     facets            = "#22C55E",
