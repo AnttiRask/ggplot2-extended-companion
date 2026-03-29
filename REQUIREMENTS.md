@@ -1,261 +1,187 @@
 # REQUIREMENTS.md
-## ggplot2 extended (companion) — Production Fix & Polish Round
+## ggplot2 extended (companion) — v1.1
 
 ### 1. Overview
-- **Purpose**: This document captures the bugs, spec corrections, and feature additions needed to bring the ggplot2 extended (companion) Shiny app from its current state to a polished, correct release. The app is a searchable, filterable directory of ~455 ggplot2 extension packages with daily-refreshed metadata, download statistics, and pre-rendered code examples. These requirements address issues discovered during production use and stakeholder review.
-- **Target Users**: R developers and data analysts who use ggplot2 and want to discover extension packages that enhance their plots.
-- **Success Criteria**: All must-have items resolved. Dark/light mode works consistently across all views. Data displays correctly (Title vs. Description). Filters (including sort) are fully functional. The app looks and feels correct in both color modes.
-- **Context**: The app is already built and deployed. This is a bug-fix and polish round, not a greenfield build. The existing SPEC.md remains the source of truth for overall architecture — this document captures **corrections to the spec** and **new requirements** discovered during production review.
+- **Purpose**: Version 1.1 adds three planned features that were intentionally deferred from v1: a package submission flow via Google Form, an archived packages system to transparently surface packages that are no longer actively maintained, and data enrichment for non-CRAN packages by pulling metadata from GitHub repositories. These are not bug fixes — they are capabilities the stakeholder always intended to add.
+- **Target Users**: R developers and data analysts who use ggplot2 and want to discover extension packages. No change from v1.
+- **Success Criteria**: All three features are functional — the "Suggest a Package" button and footer link connect to a live Google Form, archived packages can be toggled on/off with clear visual indicators, and non-CRAN packages display richer metadata (Title, License, and ideally Maintainer and Description). Version labels are source-agnostic.
 
 ### 2. Functional Requirements
 
-#### 2.1 App Title
-- **Requirement**: Rename the app from "ggplot2 Extended Companion" to **"ggplot2 extended (companion)"** everywhere it appears — header, meta tags, page title, any internal references.
-- **Priority**: Must-have
+#### 2.1 Suggest a Package (Google Form)
 
-#### 2.2 Recently Added / Recently Updated → Filter Checkboxes
-- **Current behavior**: Two separate cards above the main table showing lists of recently added and recently updated packages.
-- **Required behavior**:
-  - Remove the Recently Added and Recently Updated cards entirely.
-  - Add two **checkbox filters** to the sidebar: "Recently Added" and "Recently Updated".
-  - A package is flagged as `recently_added` if its `date_added` is within the past 7 days.
-  - A package is flagged as `recently_updated` if `max(cran_published, github_updated)` is within the past 7 days.
-  - These checkboxes are **stackable** with all other sidebar filters (category, CRAN status, license, essential).
-  - When checked, the table shows only packages matching the flag. Both can be checked simultaneously. **Open question for developer**: Confirm whether AND or OR logic is more useful when both are checked. Stakeholder preference: whichever is more practical.
-- **Layout impact**: The main table moves up to occupy the space previously held by the Recently Added/Updated cards.
-- **Priority**: Must-have
+##### 2.1.1 Google Form Creation
+- Create a Google Form with the following fields:
+  - **Package name** (required, short text)
+  - **CRAN URL** (optional, short text)
+  - **GitHub URL** (optional, short text)
+  - **Suggested category/categories** (required, checklist of the 19 existing categories + "Other" option that reveals a free-text field). The 19 categories are: Animation, Annotations, Arranging Plots, Coords, Data, Facets, Finishing Touches, Geoms, Helpers, Interactive Plots, Interactive Tools, Maps, Networks, Python, Scales & Guides, Sports, Stats, Themes, NA
+  - **Brief reason for suggesting** (required, long text)
+  - **Submitter name** (required, short text)
+  - **Submitter email** (required, short text with email validation)
 
-#### 2.3 "What are ggplot2 extensions?" Section
-- **Current behavior**: Collapsible `bslib::accordion()` panel, collapsed by default.
-- **Required behavior**:
-  - Convert to **plain text** — always visible, no accordion, no collapsible behavior.
-  - Update the links within the section:
-    - "ggplot2 extensions gallery" → **"ggplot2 extended (the book)"** with a link to https://ggplot2-extended-book.com/.
-    - Keep the **"ggplot2 documentation"** link.
-  - The section should remain understated — informative for newcomers, unobtrusive for regulars.
-- **Priority**: Must-have
+##### 2.1.2 UI Integration
+- **Sidebar**: The existing "Suggest a Package" button (currently disabled with `aria-disabled="true"` and tooltip "Package submission form coming soon" in `R/mod_sidebar.R`) must be activated and linked to the Google Form URL. It should open in a new browser tab.
+- **Footer**: The existing "Submit it here" link (currently disabled with dotted underline styling and tooltip "Package submission form coming soon" in `R/mod_footer.R`) must be activated and linked to the same Google Form URL. It should open in a new browser tab.
 
-#### 2.4 Sidebar Fixes
-- **Category dropdown**: Display **`display_name`** values (e.g., "Arranging Plots") instead of technical names (e.g., "arranging_plots").
-- **Essential checkbox label**: Change "Essential Extensions only" to **"Essential Extensions Only"** (capitalize the O).
-- **Sort by dropdown**: Currently non-functional. **Must be investigated** — determine whether this is a wiring bug or an unbuilt feature, then fix/build it so it works as specified in SPEC.md §5.3.
-- **Padding/margins**: Reduce sidebar padding/margins so the "Suggest a Package" button is visible without scrolling on a typical desktop viewport.
-- **Suggest a Package button**: Keep visible but **disabled** with a **"Coming soon" tooltip**. The Google Form has not been created yet.
-- **Priority**: All must-have except padding reduction (should-have)
+##### 2.1.3 Review Workflow
+- Manual process: the maintainer receives Google Forms email notifications, evaluates the submission, and either adds the package to `data-raw/packages_curated.csv` or declines it.
+- The maintainer may optionally email the submitter to communicate the decision.
+- No in-app automation, status tracking, or feedback loop is required.
 
-#### 2.5 Main Table Changes
+#### 2.2 Archived Packages
 
-##### 2.5.1 Title vs. Description (Data Correction)
-- **Current behavior**: The "Description" column shows the CRAN **Title** field (a short one-liner like "Animated Interactive Grammar of Graphics"), mislabeled as "Description".
-- **Required behavior**:
-  - Rename the table column from "Description" to **"Title"**.
-  - The data source for this column should be the CRAN **Title** field (which is what is currently being displayed — the label is wrong, not the data).
-  - In the **Package Detail view**, show:
-    - **Title** as a subtitle directly under the package name.
-    - **Description** (the longer CRAN Description field) as a paragraph below the Title.
-  - This may require fetching the CRAN Description field in the pipeline if it is not already being captured.
-- **Priority**: Must-have
+##### 2.2.1 Data Model
+- Add a new column `is_archived` to `data-raw/packages_curated.csv` (boolean, `TRUE`/`FALSE`).
+- Default value: `FALSE`.
+- Set manually by the maintainer — this is an editorial judgment, not an automated detection.
+- "Archived" means the package is no longer viable for use. This is **independent of CRAN archive status** — a CRAN-archived package with a working GitHub version is NOT necessarily archived in this system. The `is_archived` flag reflects the maintainer's judgment that the package should no longer be recommended.
+- The existing `notes` column is used to optionally provide context on why a package is archived (e.g., "Superseded by ggfoo", "Author has discontinued development").
+- Approximately 10 packages will be marked as archived initially.
 
-##### 2.5.2 Category Display
-- **Current behavior**: Shows the first category plus "+N" for packages with multiple categories (e.g., "animation +1").
-- **Required behavior**: Show **all categories** as separate badges. Since Title and other fields already allow multi-line rows, multiple category badges can wrap to additional lines within the cell.
-- **Category names**: Use **`display_name`** values, not technical names (consistent with sidebar fix in §2.4).
-- **Category-specific colors**: Each of the 19 categories should have a **distinct badge color**. The color palette should:
-  - Work well in both dark and light modes.
-  - Be proposed by the designer/developer (no specific palette mandated by stakeholder).
-- **Priority**: Must-have (display all categories + display names). Category-specific colors: must-have.
+##### 2.2.2 Sidebar Filter
+- Add a "Show Archived Packages" checkbox in the sidebar.
+- **Position**: last checkbox in the filter list (after the existing "Recently Updated" checkbox).
+- **Default state**: unchecked — archived packages are **hidden by default**.
+- When checked, archived packages appear in browse results alongside all other packages.
 
-##### 2.5.3 Table Position
-- The main table should occupy the space previously held by the Recently Added/Updated cards (i.e., higher up in the layout). See §2.2.
-- **Priority**: Must-have
+##### 2.2.3 Browse View
+- Archived packages display a 📁 (file folder) emoji next to the package name, mirroring the ⭐ (star) emoji used for essential packages.
+- No other visual differentiation — no greying out, no muted styling.
+- Archived packages sort and filter normally alongside other packages when visible (no special sort order).
 
-#### 2.6 Package Detail View Fixes
+##### 2.2.4 Detail View
+- Display 📁 emoji and "Archived Package" label next to the package name (mirroring the essential package pattern).
+- Display a warning banner: **"This package is no longer actively maintained."**
+- If the `notes` column contains text for the package, display the notes text below the warning banner as additional per-package context.
+- Download statistics are shown if available — no suppression needed.
 
-##### 2.6.1 Link Labels
-- **Current**: "GitHub/GitLab" label for the repository link.
-- **Required**: Change to **"Repo (GitHub, etc.)"**.
-- **Priority**: Must-have
+#### 2.3 Non-CRAN Package Data Enrichment
 
-##### 2.6.2 Vignettes Link
-- **Current behavior**: May show even when no vignettes exist.
-- **Required behavior**: **Hide the vignettes link entirely** when the package has no vignettes. This is consistent with the existing pattern where unavailable links are hidden (not greyed out), as specified in SPEC.md §5.4.
-- **Implementation note**: This requires a way to check whether vignettes actually exist for a given package. The developer should investigate the best approach (e.g., checking the CRAN page, using the `tools` package, or checking the constructed vignettes URL for a 404).
-- **Priority**: Must-have
+##### 2.3.1 Data Gap
+- Non-CRAN packages currently only have data from `packages_curated.csv`: `package_name`, `categories`, `is_essential`, `website_url`, `repo_url`, `date_added`, `notes`.
+- They are missing: Title, License, Maintainer, Description/Summary, and Version information that CRAN packages get automatically from the CRAN API.
 
-##### 2.6.3 Download Statistics Cards
-- Remove the **graph emoji** from the download statistics value boxes.
-- Rename **"All time (since 2015)"** to **"Since 2015"**.
-- **Priority**: Must-have
+##### 2.3.2 Automated Enrichment (Preferred Approach)
+- For packages with a `repo_url` pointing to GitHub, attempt to fetch the DESCRIPTION file from the repository via the GitHub API.
+- Extract the following fields from DESCRIPTION:
+  - `Title` (must-have)
+  - `License` (must-have)
+  - `Maintainer` or `Authors@R` (should-have)
+  - `Description` (should-have)
+  - `Version` (must-have, for version field renaming — see §2.3.4)
+- This enrichment should run as part of the **weekly pipeline run only** (not daily) to conserve GitHub API calls.
+- Use the existing `GITHUB_PAT` for authentication.
 
-##### 2.6.4 Back Button Styling
-- The "← Back to all packages" button should have a **red border** and turn **red on hover/active** state (using the app's primary accent color `#C1272D`).
-- **Priority**: Should-have
+##### 2.3.3 Fallback Strategy
+- If the automated approach yields too many missing values (excessive NAs or empty strings), consider adding manual columns to `packages_curated.csv` as a fallback.
+- **Stakeholder preference**: avoid manual CSV columns if possible — automated is strongly preferred.
+- The Solution Architect should investigate the feasibility and data coverage of the automated approach before deciding on the fallback.
 
-##### 2.6.5 Title and Description Layout
-- Show the CRAN **Title** as a subtitle directly under the package name (h2 heading).
-- Show the CRAN **Description** as a full paragraph below the Title.
-- See §2.5.1 for data source details.
-- **Priority**: Must-have
+##### 2.3.4 Version Field Renaming
+- Rename "CRAN Version" → **"Version"** and "Latest CRAN Version" → **"Latest Version"** throughout the app UI (browse table and detail view).
+- Logic: use CRAN version data when available; fall back to GitHub version (from DESCRIPTION) for non-CRAN packages.
 
-#### 2.7 Dark/Light Mode Consistency
-- **Current behavior**: Color mode breaks when navigating between browse view and detail view. Light mode shows dark-styled boxes in the detail view. Dark mode shows white boxes in the detail view.
-- **Required behavior**: The selected color mode (dark or light) must **persist consistently** across all views — browse, detail, sidebar, header, footer. No elements should render in the wrong mode.
-- **Additional light mode issues**:
-  - Search box renders in dark mode styling regardless of the active mode. Must respect the current color mode.
-  - Background color should be **white (`#FFFFFF`)**, not gray. Text color adjusted accordingly (per SPEC.md §7: foreground light is `#1a1a1a`).
-- **Priority**: Must-have
-
-#### 2.8 Footer Updates
-- **Current footer content** needs the following changes:
-  - **Email address**: Change from `antti@youcanbeapirate.com` to **`anttilennartrask@gmail.com`** (as a clickable mailto link).
-  - **Remove**: "ggplot2 extensions gallery | youcanbeapirate.com" line.
-  - **Add**: "Check out the book (in progress): **ggplot2 extended**" — link to https://ggplot2-extended-book.com/.
-  - **Keep** (with proper links):
-    - "Package data last updated: {timestamp}"
-    - Disclaimer with updated email
-    - "Know a ggplot2 extension we're missing? Submit it here." — already disabled with tooltip, no change needed.
-    - "Machine-readable data: packages.json" [LINK]
-    - "Created by Antti Rask | youcanbeapirate.com" [LINK]
-- **Priority**: Must-have
-
-#### 2.9 Shareable Package Links
-- **Requirement**: When a user is viewing a package detail page, the browser URL should update to include the package name (e.g., `?package=ggrepel` or a hash-based route like `#package/ggrepel`), so the URL can be shared and will open directly to that package's detail view.
-- **Note**: The current SPEC.md (§5.1) says "no URL routing in v1". This is a change from the spec.
-- **Priority**: Should-have
-
-#### 2.10 Navigation Arrows Between Packages
-- **Requirement**: In the package detail view, provide **next/previous navigation arrows** to move between packages. Navigation order should follow the current sort order of the table (e.g., if sorted alphabetically, arrows move to the next/previous package alphabetically).
-- **Priority**: Should-have
-
-#### 2.11 Code Example Enhancements
-- **Requirement**: Prepend the necessary `install.packages()` and `library()` calls at the beginning of each code example, so users can copy the full snippet and run it without manually installing dependencies.
-- **Feasibility check needed**: The developer should assess whether this is straightforward (the package name is known; `install.packages()` is simple) or whether dependency detection adds complexity.
-- **Priority**: Should-have (if feasible)
+#### 2.4 README Update
+- After all v1.1 features are implemented, update `README.md` to reflect the new capabilities.
+- This is the **final step** of the release.
 
 ### 3. Data Model
 
 #### 3.1 Changes to Package Entity
-- **Add field**: `title` (character) — sourced from the CRAN **Title** field. This is the short one-liner. Currently this data may already be captured but mislabeled as `description`.
-- **Clarify field**: `description` (character) — should contain the CRAN **Description** field (the longer paragraph). If this is not currently being fetched, it needs to be added to the pipeline.
-- **Add flags**: `recently_added` (logical) and `recently_updated` (logical) — derived fields, computed as:
-  - `recently_added`: `date_added` is within the past 7 days.
-  - `recently_updated`: `max(cran_published, github_updated)` is within the past 7 days.
-- **Add field (if not present)**: `has_vignettes` (logical) — to support conditional display of the vignettes link in the detail view.
 
-#### 3.2 Investigation Needed
-- **`github_updated` field**: The stakeholder asked which GitHub API field is being used. The developer should verify and document which field from the GitHub API populates `github_updated` (e.g., `pushed_at`, `updated_at`, or something else) and confirm it represents the most meaningful "last update" date.
-- **CRAN Title vs. Description**: Confirm which CRAN API field is currently being stored as `description` in the pipeline. Map the correct fields.
+| Field | Source | Change Type | Notes |
+|---|---|---|---|
+| `is_archived` | `packages_curated.csv` | New column | Boolean, manually curated, default `FALSE` |
+| `notes` | `packages_curated.csv` | Existing (new usage) | Now surfaced in detail view for archived packages |
+| `title` | CRAN API (existing) / GitHub DESCRIPTION (new fallback) | Extended source | New for non-CRAN packages |
+| `license` | CRAN API (existing) / GitHub DESCRIPTION (new fallback) | Extended source | New for non-CRAN packages |
+| `maintainer` | CRAN API (existing) / GitHub DESCRIPTION (new fallback) | Extended source | New for non-CRAN packages |
+| `description` | CRAN API (existing) / GitHub DESCRIPTION (new fallback) | Extended source | New for non-CRAN packages |
+| `version` | CRAN API (existing) / GitHub DESCRIPTION (new fallback) | Renamed + extended | Formerly "CRAN Version" |
+| `latest_version` | CRAN API (existing) / GitHub DESCRIPTION (new fallback) | Renamed + extended | Formerly "Latest CRAN Version" |
+
+#### 3.2 Data Sources
+- No new data sources. The GitHub API (already used via `gh` package) is extended to fetch DESCRIPTION files for non-CRAN packages.
+
+#### 3.3 Storage
+- No changes — Parquet files via the existing targets pipeline.
+
+#### 3.4 Refresh Pipeline
+- GitHub DESCRIPTION enrichment for non-CRAN packages added to the **weekly run only** (not the daily run).
+- All other pipeline behaviour unchanged.
 
 ### 4. Non-Functional Requirements
-- No changes from the existing SPEC.md. The app remains:
-  - **Public** (no authentication)
-  - **Desktop-first** (basic mobile responsiveness via bslib)
-  - **Deployed** on Google Cloud Run via Docker
-  - **Dark mode default** with light mode toggle
+- **Performance**: No significant change expected. ~10 archived packages and a limited number of non-CRAN packages add negligible overhead.
+- **Hosting**: No change (Docker on Google Cloud Run).
+- **Authentication**: No change (fully public, no login).
+- **Responsiveness**: No change (existing responsive behaviour).
+- **Accessibility**: The "Show Archived Packages" checkbox and warning banner should follow existing accessibility patterns in the app.
+- **Analytics**: No new tracking required.
+- **API rate limits**: Non-CRAN GitHub DESCRIPTION fetching runs weekly only to conserve the 5,000 req/hr GitHub API budget.
 
 ### 5. User Experience
-
-#### 5.1 Color Mode Consistency
-- This is the single most impactful UX issue. The app must feel like one cohesive experience regardless of which color mode is active. See §2.7 for details.
-
-#### 5.2 Category Badge Colors
-- 19 distinct colors is a significant design challenge. The palette should:
-  - Be visually distinguishable (not just slight hue shifts).
-  - Work on both dark and light backgrounds.
-  - Not be so saturated that they overwhelm the table layout.
-- **Stakeholder preference**: Left to designer/developer discretion. No specific colors mandated.
-
-#### 5.3 Sidebar Compactness
-- The sidebar should be compact enough that all controls and the "Suggest a Package" button are visible without scrolling on a standard desktop viewport (~900px height). Reducing padding/margins is the preferred approach.
+- **Archived packages design**: Mirrors the essential packages pattern but in reverse — subtle emoji markers (📁 vs ⭐), hidden by default rather than highlighted. No greying out or muted styling.
+- **Warning banner**: Appears only in the detail view for archived packages. Informative but not alarming.
+- **Per-package notes**: Displayed below the warning banner only when the `notes` column has content.
+- **"Show Archived Packages" checkbox**: Last in the sidebar filter list, unchecked by default.
+- **Version labels**: "CRAN Version" → "Version", "Latest CRAN Version" → "Latest Version" — making the UI source-agnostic.
+- **Google Form**: Opens in a new tab from both sidebar button and footer link.
 
 ### 6. Content
-
-#### 6.1 Header Section
-- "What are ggplot2 extensions?" becomes plain text (always visible).
-- Links updated: "ggplot2 extended (the book)" + "ggplot2 documentation".
-
-#### 6.2 Footer Section
-- See §2.8 for full updated footer content.
-- New addition: Link to the book (in progress).
-
-#### 6.3 Code Examples
-- If feasible, prepend `install.packages()` and `library()` calls to code snippets. See §2.11.
+- **Warning banner text**: "This package is no longer actively maintained."
+- **Per-package notes**: Sourced from the `notes` column in `packages_curated.csv`. Displayed below the warning banner in the detail view when populated; omitted when empty.
+- **Google Form**: Self-contained content within the form (field labels, descriptions, validation messages). Created as part of this project scope.
+- **README.md**: Updated as the final step of v1.1 to reflect all new features.
 
 ### 7. Maintenance & Operations
-- No changes from existing SPEC.md for this round.
-- **Google Form**: Not yet created. Parked for a future iteration. The "Suggest a Package" button shows as disabled with "Coming soon" tooltip in the interim.
+- **Maintainer**: Solo (Antti) — no change.
+- **Package submission handling**: Manual. Google Forms email notification → evaluate → add to `packages_curated.csv` or decline → optionally email submitter.
+- **Archiving workflow**: Manual. Edit `is_archived` in `packages_curated.csv` → re-run pipeline.
+- **Non-CRAN data**: Automated weekly via pipeline. No manual intervention unless fallback CSV approach is needed.
+- **Monitoring**: No change from v1.
 
 ### 8. Constraints
-- **Budget**: No change.
-- **Timeline**: These are production fixes — should be addressed promptly but no hard deadline specified.
-- **Technical constraints**: All changes should work within the existing golem/bslib/reactable architecture. No new framework dependencies expected.
-- **Scope**: This is a fix/polish round. The existing SPEC.md architecture remains intact. Changes are to the UI layer, data labels, and filter behavior.
+- **Budget**: No additional costs expected. Google Forms is free. GitHub API calls are within existing rate limits.
+- **Timeline**: No deadline — "when it's ready."
+- **Technical constraints**: Non-CRAN enrichment must run weekly only (not daily) to conserve API calls.
+- **Legal/licensing**: No new concerns.
 
 ### 9. Prioritisation
 
 | Requirement | Priority |
 |---|---|
-| App title rename to "ggplot2 extended (companion)" | Must-have |
-| Dark/light mode consistency across all views | Must-have |
-| Light mode: white background, search box styling | Must-have |
-| Sort by dropdown functional | Must-have |
-| Category display names in sidebar and table | Must-have |
-| Title vs. Description data correction | Must-have |
-| Show all categories in table (not "+N") | Must-have |
-| Category-specific badge colors (19 categories) | Must-have |
-| Recently Added/Updated → sidebar checkbox filters | Must-have |
-| Main table moved up (cards removed) | Must-have |
-| "What are ggplot2 extensions?" as plain text with updated links | Must-have |
-| Footer content updates (email, book link, removed gallery line) | Must-have |
-| Hide vignettes link when unavailable | Must-have |
-| Detail view: "Repo (GitHub, etc.)" link label | Must-have |
-| Detail view: remove graph emoji from download cards | Must-have |
-| Detail view: "Since 2015" label | Must-have |
-| Detail view: Title as subtitle, Description as paragraph | Must-have |
-| "Essential Extensions Only" capitalization | Must-have |
-| Suggest a Package button: disabled with "Coming soon" tooltip | Must-have |
-| Shareable links to package pages | Should-have |
-| Navigation arrows between packages in detail view | Should-have |
-| `install.packages()` / `library()` in code examples | Should-have (if feasible) |
-| Back button: red border and red on hover | Should-have |
-| Sidebar padding/margin reduction | Should-have |
+| Google Form creation with all specified fields | Must-have |
+| Activate sidebar "Suggest a Package" button → Google Form | Must-have |
+| Activate footer "Submit it here" link → Google Form | Must-have |
+| `is_archived` column in `packages_curated.csv` | Must-have |
+| "Show Archived Packages" sidebar checkbox (hidden by default, last position) | Must-have |
+| 📁 emoji in browse view for archived packages | Must-have |
+| 📁 emoji + "Archived Package" label in detail view | Must-have |
+| Warning banner in detail view for archived packages | Must-have |
+| `notes` displayed below warning banner when populated | Must-have |
+| Non-CRAN: fetch Title from GitHub DESCRIPTION | Must-have |
+| Non-CRAN: fetch License from GitHub DESCRIPTION | Must-have |
+| Non-CRAN: fetch Version from GitHub DESCRIPTION | Must-have |
+| Version field renaming ("CRAN Version" → "Version", etc.) | Must-have |
+| Weekly-only schedule for non-CRAN enrichment | Must-have |
+| Non-CRAN: fetch Maintainer from GitHub DESCRIPTION | Should-have |
+| Non-CRAN: fetch Description from GitHub DESCRIPTION | Should-have |
+| Fallback CSV columns for non-CRAN data (if automated approach fails) | Nice-to-have (contingency) |
+| README.md update | Must-have (final step) |
 
 ### 10. Parking Lot (Future Considerations)
-- **Google Form creation** and connection to "Suggest a Package" button/footer link.
-- **More information about non-CRAN packages** — automated or manual process for enriching metadata for packages not on CRAN.
-- **Download trend chart** (already noted as v1.1 in SPEC.md §5.4) — `plotly` or `echarts4r` line chart of monthly downloads.
+- Automated detection of CRAN-archived or GitHub-archived packages (currently manual editorial judgment only)
+- Automated GitHub issue creation from Google Form submissions
+- Feedback loop to submitters (in-app status tracking of their suggestion)
+- Spam protection on the Google Form (if submission volume increases)
+- Download trend chart (already noted as future in SPEC.md §5.4)
 
 ### 11. Open Questions
 
 | # | Question | Context | Who Resolves |
 |---|---|---|---|
-| 1 | Which GitHub API field populates `github_updated`? | Stakeholder flagged this as a data accuracy concern. Is it `pushed_at`, `updated_at`, or another field? | Developer |
-| 2 | Is the CRAN Description field currently fetched by the pipeline? | The table shows the CRAN Title. The longer Description may not be in the data model yet. | Developer |
-| 3 | Is the Sort by dropdown a bug or an unbuilt feature? | Dropdown exists in the UI but does nothing. | Developer |
-| 4 | How to check if a package has vignettes? | Needed to conditionally hide the vignettes link. Options: check CRAN page, use `tools` package, check URL for 404. | Developer |
-| 5 | Recently Added + Recently Updated checkboxes: AND or OR logic when both checked? | If both are checked, should the table show packages matching BOTH flags or EITHER flag? | Developer (stakeholder defers to practicality) |
-| 6 | Is prepending `install.packages()` / `library()` to examples straightforward? | Package name is known, but dependency detection may add complexity. | Developer |
-| ~~7~~ | ~~What is the book URL for "ggplot2 extended (the book)"?~~ | **Resolved**: https://ggplot2-extended-book.com/ | Stakeholder |
-| ~~8~~ | ~~What is the submission link URL for "Submit it here" in the footer?~~ | **Resolved**: Footer submission link is already disabled with tooltip. No change needed. | Stakeholder |
-
-### 12. SPEC.md Corrections Needed
-
-The following items in the existing SPEC.md should be updated to reflect these requirements:
-
-| Section | Current | Should Be |
-|---|---|---|
-| §1 App name | "ggplot2 Extended Companion" | "ggplot2 extended (companion)" |
-| §3.1 `description` field | "Short description" from CRAN API | Split into `title` (CRAN Title) and `description` (CRAN Description) |
-| §5.1 Navigation | "no URL routing in v1" | URL updates with package name for shareable links (if implemented) |
-| §5.2 Description column | Column labeled "Description" | Column labeled "Title", showing CRAN Title |
-| §5.2 Category column | "First category shown, '+N' if multiple" | All categories shown as separate badges with category-specific colors |
-| §5.3 Category dropdown | Implied technical names | Must use `display_name` values |
-| §5.3 Essential checkbox | "Essential Extensions only" | "Essential Extensions Only" |
-| §5.4 Links card | "GitHub/GitLab" | "Repo (GitHub, etc.)" |
-| §5.4 Vignettes link | Hidden when NA | Hidden when NA **and** when package has no vignettes |
-| §5.4 Download stats | "All time (since 2015)" with emoji | "Since 2015", no emoji |
-| §5.5 Recent lists | Separate cards above table | Removed — replaced by sidebar checkbox filters |
-| §5.6 Header/Intro | Collapsible accordion, collapsed by default | Plain text, always visible |
-| §5.6 Header links | "ggplot2 extensions gallery" | "ggplot2 extended (the book)" |
-| §5.7 Footer | See §2.8 of this document | Updated email, book link, removed gallery line |
-| §7 Light mode background | `#FFFFFF` (specified but not rendering correctly) | Confirm implementation matches spec |
+| 1 | What data coverage does the automated GitHub DESCRIPTION approach yield for non-CRAN packages? | Need to assess how many non-CRAN packages have parseable DESCRIPTION files and what percentage of Title, License, Maintainer, Description, Version fields are populated. This determines whether the fallback CSV approach is needed. | Solution Architect / Developer |
+| 2 | What is the best approach for parsing DESCRIPTION files fetched via the GitHub API? | Options include the `desc` package, raw text parsing, or `gh` content API. Need to handle encoding, `Authors@R` parsing, etc. | Solution Architect / Developer |
+| 3 | How should version comparison or "outdated" indicators work for GitHub-only packages? | When renaming version fields to be source-agnostic, the existing logic for comparing CRAN version vs. latest CRAN version may not apply to GitHub-only packages. | Solution Architect / Developer |
+| 4 | Which ~10 packages should be marked as `is_archived = TRUE` initially? | The maintainer needs to identify these and populate the CSV before launch. | Maintainer (Antti) |

@@ -454,3 +454,10 @@ wesanderson,scales_and_guides,FALSE,https://wesandersonpalettes.tumblr.com/,http
 xkcd,themes,FALSE,https://xkcd.r-forge.r-project.org/,https://github.com/ToledoEM/xkcd/,1900-01-01,,FALSE
 xmrr,stats,FALSE,NA,https://github.com/Zanidean/xmrr/,1900-01-01,,FALSE
 marimekko,geoms,FALSE,https://gogonzo.github.io/marimekko/,https://github.com/gogonzo/marimekko/,2026-03-22,,FALSE
+ggauto,helpers,FALSE,https://nrennie.rbind.io/ggauto/,https://github.com/nrennie/ggauto/,2026-03-28,,FALSE
+RSSthemes,themes,FALSE,https://royal-statistical-society.github.io/datavisguide/docs/tools.html#r,https://github.com/nrennie/RSSthemes/,2026-03-29,,FALSE
+aRt,art,FALSE,https://nrennie.rbind.io/aRt/,https://github.com/nrennie/aRt/,2026-03-29,,FALSE
+aRtData,art|data,FALSE,https://nrennie.rbind.io/aRtData/,https://github.com/nrennie/aRtData/,2026-03-29,,FALSE
+colorTools,scales_and_guides,FALSE,NA,https://gitlab.com/nrennie/colorTools/,2026-03-29,,FALSE
+ggalttext,annotations,FALSE,https://nrennie.rbind.io/ggalttext/,https://github.com/nrennie/ggalttext/,2026-03-29,,FALSE
+ggtextcircle,annotations,FALSE,NA,https://github.com/nrennie/ggtextcircle/,2026-03-29,,FALSE
