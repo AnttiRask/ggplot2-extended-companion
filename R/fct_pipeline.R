@@ -547,7 +547,6 @@ merge_package_data <- function(curated, cran_meta, github_meta, urls,
       last_checked = Sys.Date()
     )
 
-
   # Join GitHub DESCRIPTION enrichment if available.
 
   # If github_desc is NULL (daily run), try loading from the cache file

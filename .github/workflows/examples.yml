@@ -81,7 +81,7 @@ jobs:
       # pipeline can restore them. Without github_descriptions.rds, daily
       # runs would lose title/license/version for non-CRAN packages.
       # Uses the same cache key as pipeline.yml's "Cache examples data" step.
-      - name: Cache examples data
+      - name: Cache examples and enrichment data
         uses: actions/cache/save@v4
         with:
           path: |

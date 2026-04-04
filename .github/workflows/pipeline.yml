@@ -106,7 +106,7 @@ jobs:
       #   - examples.parquet + PNGs for the detail view
       #   - github_descriptions.rds so non-CRAN packages keep their
       #     title, license, version, etc.
-      - name: Cache examples data
+      - name: Restore examples and enrichment data
         uses: actions/cache@v4
         with:
           path: |
