@@ -547,15 +547,30 @@ merge_package_data <- function(curated, cran_meta, github_meta, urls,
       last_checked = Sys.Date()
     )
 
-  # Join GitHub DESCRIPTION enrichment if available
-  # If github_desc is NULL (daily run), try loading from cache
+
+  # Join GitHub DESCRIPTION enrichment if available.
+
+  # If github_desc is NULL (daily run), try loading from the cache file
+  # written by the weekly pipeline's fetch_github_descriptions().
+  # Without this cache, non-CRAN packages lose title, license, version, etc.
   if (is.null(github_desc) && file.exists(github_desc_cache_path)) {
+    logger::log_info(
+      "Loading cached GitHub DESCRIPTION enrichment from {github_desc_cache_path}"
+    )
     github_desc <- tryCatch(
       readRDS(github_desc_cache_path),
       error = function(e) {
         logger::log_warn("Failed to load github_desc cache: {e$message}")
         NULL
       }
+    )
+  } else if (is.null(github_desc)) {
+    logger::log_warn(
+      paste0(
+        "GitHub DESCRIPTION cache not found at {github_desc_cache_path}. ",
+        "Non-CRAN packages will be missing title, license, version, and ",
+        "other enrichment fields. Run the weekly pipeline to regenerate."
+      )
     )
   }
 

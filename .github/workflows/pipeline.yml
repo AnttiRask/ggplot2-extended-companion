@@ -100,15 +100,18 @@ jobs:
           path: _targets/
           key: targets-${{ hashFiles('data-raw/packages_curated.csv', 'R/**') }}-${{ github.run_id }}
 
-      # Restore examples data produced by the weekly examples pipeline.
-      # The daily pipeline skips example rendering (RENDER_EXAMPLES not set),
-      # but the Docker image needs examples.parquet and PNGs to display
-      # code examples in the detail view.
+      # Restore examples data and GitHub DESCRIPTION enrichment produced by
+      # the weekly pipeline. The daily pipeline skips example rendering and
+      # GitHub DESCRIPTION fetching, but needs:
+      #   - examples.parquet + PNGs for the detail view
+      #   - github_descriptions.rds so non-CRAN packages keep their
+      #     title, license, version, etc.
       - name: Cache examples data
         uses: actions/cache@v4
         with:
           path: |
             data/examples.parquet
+            data/github_descriptions.rds
             inst/app/www/examples/
           key: examples-data-${{ hashFiles('data-raw/packages_curated.csv') }}
           restore-keys: |
