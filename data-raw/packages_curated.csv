@@ -313,7 +313,7 @@ ggtreeExtra,geoms,FALSE,https://bioconductor.org/packages/devel/bioc/vignettes/g
 ggtrendline,stats,FALSE,NA,https://github.com/PhDMeiwp/ggtrendline/,1900-01-01,,FALSE
 ggtricks,geoms,FALSE,https://abdoulma.github.io/ggtricks/,https://github.com/AbdoulMa/ggtricks/,1900-01-01,,FALSE
 gguidance,scales_and_guides,FALSE,https://teunbrand.github.io/gguidance/,https://github.com/teunbrand/gguidance/,1900-01-01,,FALSE
-ggupset,geoms,FALSE,NA,https://github.com/const-ae/ggupset/,1900-01-01,,FALSE
+ggupset,geoms,TRUE,NA,https://github.com/const-ae/ggupset/,1900-01-01,,FALSE
 ggvanced,geoms,FALSE,https://medium.com/towards-data-science/ggvanced-a-package-for-generating-advanced-data-visualizations-on-top-of-the-ggplot2-package-2a935763a4b/,https://github.com/Ringomed/ggvanced/,1900-01-01,,FALSE
 ggvenn,geoms,FALSE,NA,https://github.com/yanlinlin82/ggvenn/,1900-01-01,,FALSE
 ggview,finishing_touches,FALSE,NA,https://github.com/idmn/ggview/,1900-01-01,,FALSE
@@ -453,7 +453,7 @@ waterfalls,geoms,FALSE,NA,github.com/hughparsonage/waterfalls/,1900-01-01,,FALSE
 wesanderson,scales_and_guides,FALSE,https://wesandersonpalettes.tumblr.com/,https://github.com/karthik/wesanderson/,1900-01-01,,FALSE
 xkcd,themes,FALSE,https://xkcd.r-forge.r-project.org/,https://github.com/ToledoEM/xkcd/,1900-01-01,,FALSE
 xmrr,stats,FALSE,NA,https://github.com/Zanidean/xmrr/,1900-01-01,,FALSE
-marimekko,geoms,FALSE,https://gogonzo.github.io/marimekko/,https://github.com/gogonzo/marimekko/,2026-03-22,,FALSE
+marimekko,geoms,TRUE,https://gogonzo.github.io/marimekko/,https://github.com/gogonzo/marimekko/,2026-03-22,,FALSE
 ggauto,helpers,FALSE,https://nrennie.rbind.io/ggauto/,https://github.com/nrennie/ggauto/,2026-03-28,,FALSE
 RSSthemes,themes,FALSE,https://royal-statistical-society.github.io/datavisguide/docs/tools.html#r,https://github.com/nrennie/RSSthemes/,2026-03-29,,FALSE
 aRt,art,FALSE,https://nrennie.rbind.io/aRt/,https://github.com/nrennie/aRt/,2026-03-29,,FALSE
@@ -461,3 +461,5 @@ aRtData,art|data,FALSE,https://nrennie.rbind.io/aRtData/,https://github.com/nren
 colorTools,scales_and_guides,FALSE,NA,https://gitlab.com/nrennie/colorTools/,2026-03-29,,FALSE
 ggalttext,annotations,FALSE,https://nrennie.rbind.io/ggalttext/,https://github.com/nrennie/ggalttext/,2026-03-29,,FALSE
 ggtextcircle,annotations,FALSE,NA,https://github.com/nrennie/ggtextcircle/,2026-03-29,,FALSE
+ggpop,geoms|themes,FALSE,https://jurjoroa.github.io/ggpop/,https://github.com/jurjoroa/ggpop/,2026-04-06,,FALSE
+UpSetR,geoms,FALSE,NA,https://github.com/hms-dbmi/UpSetR/,2026-04-06,,FALSE
