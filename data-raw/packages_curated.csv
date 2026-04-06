@@ -1,7 +1,7 @@
 package_name,categories,is_essential,website_url,repo_url,date_added,notes,is_archived
 ButterflyColors,scales_and_guides,FALSE,https://junqueiragaabi.github.io/ButterflyColors/,https://github.com/junqueiragaabi/ButterflyColors/,1900-01-01,,FALSE
 CGPfunctions,geoms|stats,FALSE,https://ibecav.github.io/CGPfunctions/,https://github.com/ibecav/CGPfunctions/,1900-01-01,,FALSE
-ComplexUpset,geoms,TRUE,https://krassowski.github.io/complex-upset/,https://github.com/krassowski/complex-upset/,1900-01-01,,FALSE
+ComplexUpset,geoms,FALSE,https://krassowski.github.io/complex-upset/,https://github.com/krassowski/complex-upset/,1900-01-01,,FALSE
 DataExplorer,data|interactive_tools,TRUE,https://boxuancui.github.io/DataExplorer/,https://github.com/boxuancui/DataExplorer/,1900-01-01,,FALSE
 ExPanDaR,data|interactive_tools,TRUE,https://trr266.github.io/ExPanDaR/,https://github.com/trr266/ExPanDaR/,1900-01-01,,FALSE
 FunnelPlotR,stats,FALSE,https://nhs-r-community.github.io/FunnelPlotR/,https://github.com/nhs-r-community/FunnelPlotR/,1900-01-01,,FALSE
@@ -313,7 +313,7 @@ ggtreeExtra,geoms,FALSE,https://bioconductor.org/packages/devel/bioc/vignettes/g
 ggtrendline,stats,FALSE,NA,https://github.com/PhDMeiwp/ggtrendline/,1900-01-01,,FALSE
 ggtricks,geoms,FALSE,https://abdoulma.github.io/ggtricks/,https://github.com/AbdoulMa/ggtricks/,1900-01-01,,FALSE
 gguidance,scales_and_guides,FALSE,https://teunbrand.github.io/gguidance/,https://github.com/teunbrand/gguidance/,1900-01-01,,FALSE
-ggupset,geoms,FALSE,NA,https://github.com/const-ae/ggupset/,1900-01-01,,FALSE
+ggupset,geoms,TRUE,NA,https://github.com/const-ae/ggupset/,1900-01-01,,FALSE
 ggvanced,geoms,FALSE,https://medium.com/towards-data-science/ggvanced-a-package-for-generating-advanced-data-visualizations-on-top-of-the-ggplot2-package-2a935763a4b/,https://github.com/Ringomed/ggvanced/,1900-01-01,,FALSE
 ggvenn,geoms,FALSE,NA,https://github.com/yanlinlin82/ggvenn/,1900-01-01,,FALSE
 ggview,finishing_touches,FALSE,NA,https://github.com/idmn/ggview/,1900-01-01,,FALSE
