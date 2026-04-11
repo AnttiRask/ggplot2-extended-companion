@@ -91,7 +91,7 @@ ggResidpanel,stats,FALSE,https://goodekat.github.io/ggResidpanel/,https://github
 ggRtsy,scales_and_guides,FALSE,NA,https://github.com/katelyndiaz/ggRtsy/,1900-01-01,,FALSE
 ggThemeAssist,interactive_tools,FALSE,NA,https://github.com/calligross/ggthemeassist/,1900-01-01,,FALSE
 ggTimeSeries,geoms,FALSE,NA,https://github.com/AtherEnergy/ggTimeSeries/,1900-01-01,,FALSE
-ggVennDiagram,networks,FALSE,https://gaospecial.github.io/ggVennDiagram/,https://github.com/gaospecial/ggVennDiagram/,1900-01-01,,FALSE
+ggVennDiagram,geoms|networks,TRUE,https://gaospecial.github.io/ggVennDiagram/,https://github.com/gaospecial/ggVennDiagram/,1900-01-01,,FALSE
 ggalign,arranging_plots,FALSE,https://yunuuuu.github.io/ggalign/,https://github.com/Yunuuuu/ggalign,1900-01-01,,FALSE
 ggalignment,geoms,FALSE,NA,https://github.com/aftonsteps/ggalignment/,1900-01-01,,FALSE
 ggallin,geoms|stats,FALSE,NA,https://github.com/shabbychef/ggallin/,1900-01-01,,FALSE
@@ -118,7 +118,7 @@ ggbranding,finishing_touches,FALSE,https://gnoblet.github.io/ggbranding/,https:/
 ggbreak,scales_and_guides,FALSE,https://www.frontiersin.org/articles/10.3389/fgene.2021.774846/full/,https://github.com/YuLab-SMU/ggbreak/,1900-01-01,,FALSE
 ggbrick,geoms,FALSE,NA,https://github.com/abikoushi/ggbrick/,1900-01-01,,FALSE
 ggbuildr,finishing_touches,FALSE,NA,https://github.com/cran/ggbuildr/,1900-01-01,,FALSE
-ggbump,geoms,FALSE,NA,https://github.com/davidsjoberg/ggbump/,1900-01-01,,FALSE
+ggbump,geoms,TRUE,NA,https://github.com/davidsjoberg/ggbump/,1900-01-01,,FALSE
 ggcall,helpers,FALSE,https://polkas.github.io/posts/ggcall/,https://github.com/Polkas/ggcall/,1900-01-01,,FALSE
 ggcats,geoms,FALSE,https://r-charts.com/miscellaneous/ggcats/,https://github.com/R-CoderDotCom/ggcats/,1900-01-01,,FALSE
 ggcharts,themes,FALSE,https://thomas-neitmann.github.io/ggcharts/,https://github.com/thomas-neitmann/ggcharts/,1900-01-01,,FALSE
