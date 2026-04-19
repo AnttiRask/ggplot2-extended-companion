@@ -221,7 +221,22 @@ build_header_card <- function(pkg) {
     build_category_badge(cat)
   })
 
-  # Featured-in-the-book badge (v1.2 §5.9 renamed the legacy label text)
+  # Featured-in-the-book badge (v1.2 §5.9 renamed the legacy label text).
+  #
+  # The badge text is sentence case ("Featured in the book") intentionally —
+  # it is a phrase embedded in UI chrome. The sidebar's form-label sibling
+  # uses Title Case ("Featured in the Book") to match its neighbours
+  # ("Category", "License", ...). Keep both casings as SPEC-v1.2 §3.2
+  # specifies — do not unify.
+  #
+  # The visual treatment (full Bootstrap warning pill with badge text) is
+  # deliberately heavier than the browse-table version (compact amber star
+  # glyph only). Rationale: on the detail view a single package is read in
+  # depth, so a prominent pill reinforces "notable package" and balances
+  # the "Archived Package" pill beside it. The browse table renders dozens
+  # of rows at once; a pill on every featured row would steal attention
+  # from the package name and title. Keep the two treatments — SPEC-v1.2
+  # §5.9 shows both patterns verbatim.
   featured_badge <- if (isTRUE(pkg$is_featured)) {
     htmltools::span(
       class = "badge bg-warning text-dark ms-2",

@@ -137,6 +137,12 @@ build_package_table <- function(data, ns) {
           # v1.2 (SPEC §5.9): the star carries a tooltip + aria-label so that
           # sighted mouse users and screen-reader users both see the same
           # explanation of what the glyph means.
+          #
+          # The compact amber star is intentionally lighter than the detail
+          # view's full Bootstrap pill — a pill on every featured browse row
+          # would steal attention from the package name and title. Density
+          # matters: inline glyph here, prominent pill on detail. SPEC-v1.2
+          # §5.9 shows both patterns verbatim — do not unify.
           featured_badge <- if (isTRUE(is_featured)) {
             htmltools::span(
               class = "badge-featured",

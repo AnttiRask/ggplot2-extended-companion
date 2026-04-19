@@ -66,7 +66,12 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
       selected = "All"
     ),
 
-    # Featured-in-the-book checkbox (v1.2 renamed the legacy input ID/label)
+    # Featured-in-the-book checkbox (v1.2 renamed the legacy input ID/label).
+    # The label uses Title Case intentionally — matches sibling sidebar labels
+    # ("Category", "CRAN Status", "License", "Recently Added"). The detail-card
+    # badge and the browse-table tooltip use sentence case ("Featured in the
+    # book") because they are phrases embedded in UI chrome, not form labels.
+    # Keep all three casings as specified by SPEC-v1.2 §3.2 — do not unify.
     shiny::checkboxInput(
       ns("featured_only"),
       label = "Featured in the Book",
