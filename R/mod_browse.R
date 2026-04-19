@@ -143,6 +143,15 @@ build_package_table <- function(data, ns) {
           # would steal attention from the package name and title. Density
           # matters: inline glyph here, prominent pill on detail. SPEC-v1.2
           # §5.9 shows both patterns verbatim — do not unify.
+          #
+          # Two-surface scope for the book-disambiguating body: the sidebar
+          # checkbox (R/mod_sidebar.R) and detail-view badge (R/mod_detail.R)
+          # carry the longer "[Packages ]featured in the companion book
+          # 'ggplot2 extended'" tooltip body. The browse-table star
+          # intentionally carries only the short "Featured in the book"
+          # label because the cell is width-constrained and the user has
+          # already passed the sidebar where the long body lives. See
+          # Designer round-01 LEAVE-IT #3 and round-02 finding #1.
           featured_badge <- if (isTRUE(is_featured)) {
             htmltools::span(
               class = "badge-featured",
