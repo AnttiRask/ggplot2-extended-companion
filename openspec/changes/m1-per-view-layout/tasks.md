@@ -46,9 +46,10 @@
 
 ## 7. PR prep
 
-- [ ] 7.1 `git push -u origin feature/m1-per-view-layout`.
-- [ ] 7.2 Open PR via `gh pr create --base main` with a body that: (a) summarises scope, (b) links this change folder, (c) lists the §9 M1 DoD items as a test-plan checklist, (d) explicitly calls out the two deferrals (`mod_reconnect_ui` → M2; §5.4 theme toggle → later).
+- [x] 7.1 `git push -u origin feature/m1-per-view-layout`.
+- [x] 7.2 Open PR via `gh pr create --base main` with a body that: (a) summarises scope, (b) links this change folder, (c) lists the §9 M1 DoD items as a test-plan checklist, (d) explicitly calls out the two deferrals (`mod_reconnect_ui` → M2; §5.4 theme toggle → later). → PR #6.
 - [ ] 7.3 Await stakeholder review. On request-changes: commit fixes to the same branch; request re-review.
+  - Round 01 reviews received 2026-04-19. Code Reviewer verdict: APPROVED (0 must-fix, 3 suggestions). UX/UI Designer verdict: NEEDS WORK (1 must-fix, 2 should-fix, 1 polish, 4 leave-it). Fix commit addresses: Designer Fix #1 (missing navbar on detail), #2 (stray window_title attr), #3 (dark-mode toggle placement divergence); Code Review Suggestion #5 (strengthen main_page slot count assertion), #6 (assert bslib_page class), #8 (tags$div consistency). Designer [POLISH] #4 (reactable state loss) explicitly deferred — acknowledged in design.md Risks §2 and awaiting manual DoD verdict.
 - [ ] 7.4 On explicit merge go-ahead: `gh pr merge <n> --merge --delete-branch`.
 
 ## 8. Post-merge housekeeping

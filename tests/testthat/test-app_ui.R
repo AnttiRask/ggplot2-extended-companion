@@ -163,6 +163,75 @@ test_that("render_detail_page renders detail UI with no sidebar", {
   )
 })
 
+# --- page-helper class + shared navbar ---------------------------------------
+
+test_that("both page helpers return bslib_page objects", {
+
+  # Spec delta requires both helpers to return *complete* page objects,
+  # not fragments. bslib labels complete pages with the "bslib_page"
+  # class — asserting on it here catches a future "let's factor out
+  # the page shell to app_ui()" regression that the HTML-shape tests
+  # might not flag. (Code Review round 01, Suggestion #6.)
+  expect_s3_class(render_browse_page(), "bslib_page")
+  expect_s3_class(render_detail_page(), "bslib_page")
+})
+
+test_that("both page helpers render the shared brand navbar", {
+
+  # Regression guard: the M1 round-01 design review caught that
+  # render_detail_page() shipped without a visible app title (bslib's
+  # page_fillable does not auto-emit a navbar from `title`). The fix
+  # adds an explicit app_navbar() as the first body child of both
+  # helpers. These assertions pin the contract so the regression
+  # cannot quietly come back. (DESIGN review round 01, Fix #1.)
+
+  for (helper in list(
+    list(name = "render_browse_page", page = render_browse_page()),
+    list(name = "render_detail_page", page = render_detail_page())
+  )) {
+    html <- htmltools::renderTags(helper$page)$html
+
+    expect_true(
+      grepl("navbar-brand", html, fixed = TRUE),
+      info = paste0(
+        helper$name, " must emit an <h1 class=\"... navbar-brand\">"
+      )
+    )
+    expect_true(
+      grepl("ggplot2 extended (companion)", html, fixed = TRUE),
+      info = paste0(
+        helper$name, " must render the app brand text in the navbar"
+      )
+    )
+    # The dark-mode toggle must now live inside the shared navbar so
+    # it sits in the same top-right slot on both views.
+    expect_true(
+      grepl(
+        "<div class=\"navbar[^\"]*\"[\\s\\S]*?id=\"colour_mode\"",
+        html,
+        perl = TRUE
+      ),
+      info = paste0(
+        helper$name, " must place input_dark_mode inside the navbar"
+      )
+    )
+  }
+})
+
+test_that("render_detail_page does not leak window_title as a body attribute", {
+
+  # page_fillable() has no window_title formal; passing it would
+  # silently forward the arg into ... and emit a raw
+  # window_title="..." attribute on <body>. (DESIGN review round 01,
+  # Fix #2.)
+  html <- htmltools::renderTags(render_detail_page())$html
+
+  expect_false(
+    grepl("window_title=\"", html, fixed = TRUE),
+    info = "render_detail_page must not emit a stray window_title attribute"
+  )
+})
+
 # --- app_ui() top-level shape ------------------------------------------------
 
 test_that("app_ui returns a tagList with a single uiOutput('main_page') slot", {
@@ -176,12 +245,18 @@ test_that("app_ui returns a tagList with a single uiOutput('main_page') slot", {
   rendered <- htmltools::renderTags(ui)
   html <- rendered$html
 
-  # The uiOutput("main_page") slot must be present. Check only for the
-  # id="main_page" marker — shiny's uiOutput class name has been stable for
-  # years, but we avoid pinning to it for version-drift resilience.
-  expect_true(
-    grepl("id=\"main_page\"", html, fixed = TRUE),
-    info = "app_ui must render the uiOutput('main_page') slot"
+  # The uiOutput("main_page") slot must be present EXACTLY ONCE. The
+  # spec delta's first scenario says "SHALL contain exactly one element
+  # with id='main_page'" — asserting on the count (not just presence)
+  # catches a future regression where the slot is duplicated via
+  # accidental paste or a server-side uiOutput() duplication.
+  # (Code Review round 01, Suggestion #5.)
+  matches <- gregexpr("id=\"main_page\"", html, fixed = TRUE)[[1]]
+  match_count <- if (length(matches) == 1L && matches[[1]] == -1L) 0L else length(matches)
+  expect_equal(
+    match_count,
+    1L,
+    info = "app_ui must render exactly one uiOutput('main_page') slot"
   )
 
   # No top-level bslib page wrapper — app_ui itself must NOT embed a

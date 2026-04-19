@@ -11,6 +11,12 @@
 # selected_package(). The two helpers below return complete pages,
 # not fragments — see design.md Decision §3.
 #
+# v1.2 (M1 review round 01): both helpers emit an explicit app_navbar()
+# as their first body child, replacing page_sidebar()'s auto-navbar on
+# browse and adding a previously-missing navbar on detail. page_fillable()
+# has no `window_title` formal (title = "..." sets the browser tab) so
+# that leak-through argument is also gone.
+#
 # Part of Milestone 0: Project Scaffold (original)
 #   + Milestone 1 v1.2: Per-view layout + sidebar defaults
 # =============================================================================
@@ -42,6 +48,48 @@ app_ui <- function(request) {
   )
 }
 
+#' Render the shared brand navbar
+#'
+#' Returns the `<div class="navbar navbar-static-top">` block with the
+#' app brand (`<h1 class="bslib-page-title navbar-brand">`) and the
+#' dark-mode toggle inside. Used as the first body child of both
+#' `render_browse_page()` and `render_detail_page()` so the two views
+#' present an identical top bar.
+#'
+#' bslib's `page_sidebar()` auto-emits this same markup when given a
+#' non-NULL `title`, but `page_fillable()` has no such behaviour.
+#' Emitting the navbar explicitly on both helpers lets the two views
+#' share one visual top-bar shape and keeps the dark-mode toggle in
+#' a consistent top-right position across view swaps (SPEC-v1.2 §5.1
+#' implies this by saying both pages share the same title and
+#' dark-mode toggle in the navbar).
+#'
+#' The markup mirrors exactly what bslib 0.10 emits for
+#' `page_sidebar(title = ...)` so that the two navbars are visually
+#' identical. The dark-mode toggle is placed at the end so bootstrap's
+#' navbar flex layout pushes it to the right.
+#'
+#' @return A `<div>` tag containing the navbar markup.
+#'
+#' @importFrom bslib input_dark_mode
+#' @noRd
+app_navbar <- function() {
+  htmltools::tags$div(
+    class = "navbar navbar-static-top",
+    htmltools::tags$div(
+      class = "container-fluid",
+      htmltools::tags$h1(
+        class = "bslib-page-title navbar-brand",
+        "ggplot2 extended (companion)"
+      ),
+      # Dark/light mode toggle in the navbar. SPEC-v1.2 §5.4 changes
+      # (remove mode = "dark", OS-sync JS) are deferred per OpenSpec
+      # design.md §2.
+      bslib::input_dark_mode(id = "colour_mode", mode = "dark")
+    )
+  )
+}
+
 #' Render the browse-view page wrapper
 #'
 #' Returns a complete `bslib::page_sidebar()` for the browse view: the
@@ -59,14 +107,17 @@ app_ui <- function(request) {
 #' @importFrom bslib page_sidebar sidebar input_dark_mode
 #' @noRd
 render_browse_page <- function() {
+  # title = NULL on page_sidebar() suppresses bslib's auto-emitted
+  # navbar; we emit one explicitly via app_navbar() so the browse and
+  # detail views share identical top-bar markup (see DESIGN review
+  # round 01, Fix #1 and #3). window_title sets the browser-tab title.
   bslib::page_sidebar(
-    title = "ggplot2 extended (companion)",
+    title = NULL,
     window_title = "ggplot2 extended (companion)",
     theme = app_theme(),
 
-    # Dark/light mode toggle in the navbar (SPEC-v1.2 §5.4 changes
-    # deferred to a later milestone per OpenSpec design.md §2).
-    bslib::input_dark_mode(id = "colour_mode", mode = "dark"),
+    # Shared brand navbar (app title + dark-mode toggle).
+    app_navbar(),
 
     # Filters sidebar -- open on desktop, closed on mobile with a
     # bslib-provided hamburger toggle (SPEC-v1.2 §5.3).
@@ -81,7 +132,7 @@ render_browse_page <- function() {
     ),
 
     # Main content area
-    tags$div(
+    htmltools::tags$div(
       class = "container-fluid",
 
       # Header: intro accordion
@@ -116,17 +167,19 @@ render_browse_page <- function() {
 #' @importFrom bslib page_fillable input_dark_mode
 #' @noRd
 render_detail_page <- function() {
+  # page_fillable() has no visible-navbar behaviour and no window_title
+  # formal. title = "..." sets the browser-tab title. The visible
+  # brand is emitted by app_navbar() so both views share one top bar
+  # (see DESIGN review round 01, Fix #1/#2/#3).
   bslib::page_fillable(
     title = "ggplot2 extended (companion)",
-    window_title = "ggplot2 extended (companion)",
     theme = app_theme(),
 
-    # Dark/light mode toggle in the navbar (same as browse view —
-    # SPEC-v1.2 §5.4 changes deferred per OpenSpec design.md §2).
-    bslib::input_dark_mode(id = "colour_mode", mode = "dark"),
+    # Shared brand navbar (app title + dark-mode toggle).
+    app_navbar(),
 
     # Main content area -- no sidebar slot.
-    tags$div(
+    htmltools::tags$div(
       class = "container-fluid",
 
       # Header: intro accordion
