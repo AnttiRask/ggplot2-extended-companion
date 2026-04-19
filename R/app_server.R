@@ -71,7 +71,7 @@ app_server <- function(input, output, session) {
     category         <- sidebar_values$category()         %||% "All"
     cran_status      <- sidebar_values$cran_status()      %||% "All"
     license_filter   <- sidebar_values$license()          %||% "All"
-    essential_only   <- sidebar_values$essential_only()    %||% FALSE
+    featured_only    <- sidebar_values$featured_only()     %||% FALSE
     recently_added   <- sidebar_values$recently_added()    %||% FALSE
     recently_updated <- sidebar_values$recently_updated()  %||% FALSE
     show_archived    <- sidebar_values$show_archived()     %||% FALSE
@@ -82,7 +82,7 @@ app_server <- function(input, output, session) {
       category         = category,
       cran_status      = cran_status,
       license_filter   = license_filter,
-      essential_only   = essential_only,
+      featured_only    = featured_only,
       recently_added   = recently_added,
       recently_updated = recently_updated,
       show_archived    = show_archived
