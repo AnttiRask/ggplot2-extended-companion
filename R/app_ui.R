@@ -132,6 +132,51 @@ render_browse_page <- function() {
   )
 }
 
+#' Render the detail-view page wrapper
+#'
+#' Returns a complete `bslib::page_fillable()` for the detail view: no
+#' sidebar, full-width content (header, detail card stack, footer).
+#' Dispatched by `output$main_page` in `app_server()` when a package
+#' is selected. See SPEC-v1.2 §5.1 for the per-view layout contract.
+#'
+#' The detail view intentionally drops the sidebar entirely — unlike
+#' the v1.1 baseline, no sidebar element is present in the DOM when
+#' a package is selected. The full viewport width is available for
+#' the detail card stack (SPEC-v1.2 §9 M1 DoD).
+#'
+#' @return A complete bslib page object (not a fragment).
+#'
+#' @importFrom bslib page_fillable input_dark_mode
+#' @noRd
+render_detail_page <- function() {
+  bslib::page_fillable(
+    title = "ggplot2 extended (companion)",
+    window_title = "ggplot2 extended (companion)",
+    theme = app_theme(),
+
+    # Dark/light mode toggle in the navbar (same as browse view —
+    # SPEC-v1.2 §5.4 changes deferred per OpenSpec design.md §2).
+    bslib::input_dark_mode(id = "colour_mode", mode = "dark"),
+
+    # Main content area -- no sidebar slot.
+    tags$div(
+      class = "container-fluid",
+
+      # Header: intro accordion
+      mod_header_ui("header"),
+
+      # Spacer between header and content
+      htmltools::tags$div(class = "mb-3"),
+
+      # Detail view: full package info
+      mod_detail_ui("detail"),
+
+      # Footer: disclaimer, credits, links
+      mod_footer_ui("footer")
+    )
+  )
+}
+
 #' Create the bslib theme
 #'
 #' Builds a Bootstrap 5 theme using bslib::bs_theme() with the colour palette
