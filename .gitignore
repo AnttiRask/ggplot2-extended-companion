@@ -48,6 +48,7 @@ data-raw/notion_export_*.csv
 
 # Internal review and workflow documents (kept locally, not in public repo)
 COMMENTS.md
+comments/
 DESIGN_FIXES.md
 BUGS.md
 DESIGNER.md
