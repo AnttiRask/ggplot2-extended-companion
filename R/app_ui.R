@@ -1,26 +1,33 @@
 # =============================================================================
 # app_ui.R
 #
-# Main UI function for the ggplot2 Extended Companion app. Defines the bslib
-# page_sidebar() layout with Bootstrap 5 dark theme, sidebar placeholder,
-# and main content area placeholder.
+# Main UI function for the ggplot2 extended (companion) app.
 #
-# Part of Milestone 0: Project Scaffold
+# v1.2 (M1): per-view layout swap (SPEC-v1.2 §5.1). app_ui() no longer
+# renders a bslib page wrapper directly. Instead, it exposes a single
+# uiOutput("main_page") slot, and the server-side output$main_page
+# dispatches either render_browse_page() (page_sidebar with filters)
+# or render_detail_page() (page_fillable, no sidebar) based on
+# selected_package(). The two helpers below return complete pages,
+# not fragments — see design.md Decision §3.
+#
+# Part of Milestone 0: Project Scaffold (original)
+#   + Milestone 1 v1.2: Per-view layout + sidebar defaults
 # =============================================================================
 
 #' The application User-Interface
 #'
-#' Builds the main UI for the ggplot2 Extended Companion app using bslib's
-#' page_sidebar() layout. Sets up the Bootstrap 5 dark theme with custom
-#' colours and typography, a sidebar for filters (placeholder in M0), and
-#' a main content area (placeholder in M0).
+#' Returns the top-level tag list: external resources (CSS, favicon, meta
+#' tags) plus a single uiOutput("main_page") slot. The server dispatches
+#' render_browse_page() or render_detail_page() into that slot based on
+#' whether a package is selected. See SPEC-v1.2 §5.1.
 #'
 #' @param request Internal parameter for `{shiny}`.
 #'
 #' @return A shiny tagList containing the app UI.
 #'
 #' @import shiny
-#' @importFrom bslib bs_theme page_sidebar sidebar input_dark_mode font_google font_collection
+#' @importFrom bslib bs_theme page_sidebar page_fillable sidebar input_dark_mode font_google font_collection
 #' @importFrom htmltools tags tagList
 #' @noRd
 app_ui <- function(request) {
@@ -28,50 +35,10 @@ app_ui <- function(request) {
     # Add external resources (CSS, favicon, meta tags)
     golem_add_external_resources(),
 
-    # Main page layout
-    bslib::page_sidebar(
-      title = "ggplot2 extended (companion)",
-      theme = app_theme(),
-      window_title = "ggplot2 extended (companion)",
-
-      # Dark/light mode toggle in the navbar
-      bslib::input_dark_mode(id = "colour_mode", mode = "dark"),
-
-      # Sidebar with filter controls (M4)
-      sidebar = bslib::sidebar(
-        title = "Filters",
-        width = 300,
-        # Dynamic sidebar content -- populated with data-driven choices
-        # by the server via mod_sidebar_ui
-        shiny::uiOutput("sidebar_controls")
-      ),
-
-      # Main content area
-      tags$div(
-        class = "container-fluid",
-
-        # Header: collapsible intro accordion (M7)
-        mod_header_ui("header"),
-
-        # Spacer between header and content
-        htmltools::tags$div(class = "mb-3"),
-
-        # Browse view: package table (M3)
-        shiny::conditionalPanel(
-          condition = "!output.show_detail",
-          mod_browse_ui("browse")
-        ),
-
-        # Detail view: full package info (M5)
-        shiny::conditionalPanel(
-          condition = "output.show_detail",
-          mod_detail_ui("detail")
-        ),
-
-        # Footer: disclaimer, credits, links (M7)
-        mod_footer_ui("footer")
-      )
-    )
+    # Main page slot -- filled by output$main_page, which dispatches
+    # render_browse_page() or render_detail_page() based on
+    # selected_package(). See app_server.R and SPEC-v1.2 §5.1.
+    shiny::uiOutput("main_page")
   )
 }
 
