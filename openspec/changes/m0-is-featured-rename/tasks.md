@@ -90,5 +90,11 @@ same branch before merge.
 
 ## 14. Re-review hand-off — round 03
 
-- [ ] 14.1 Push round-02 fixes to `feature/m0-is-featured-rename`
-- [ ] 14.2 Request round-03 review (expecting `comments/COMMENTS-m0-is-featured-rename-03.md` and optionally `comments/DESIGN_FIXES-m0-is-featured-rename-03.md`)
+- [x] 14.1 Push round-02 fixes to `feature/m0-is-featured-rename`
+- [x] 14.2 Request round-03 review (received `comments/COMMENTS-m0-is-featured-rename-03.md` — APPROVED, 0 MUST FIX / 0 SHOULD FIX — and `comments/DESIGN_FIXES-m0-is-featured-rename-03.md` — READY TO SHIP, "nothing more from the Designer seat"). Both reviewers explicitly closed their loops; no round-04 needed.
+
+## 15. Merge and close out
+
+- [ ] 15.1 Merge `feature/m0-is-featured-rename` into `main` with a milestone-closing merge commit
+- [ ] 15.2 Archive this openspec change to `openspec/changes/archive/m0-is-featured-rename/` cross-referencing the merge commit
+- [ ] 15.3 Delete the local feature branch (keep the remote ref for history)
