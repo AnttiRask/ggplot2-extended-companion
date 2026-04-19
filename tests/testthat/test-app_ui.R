@@ -22,6 +22,61 @@ skip_if(
   "bslib >= 0.7.0 required for list-form sidebar `open` argument"
 )
 
+# --- render_browse_page() ----------------------------------------------------
+
+test_that("render_browse_page renders a sidebar with Filters and browse module", {
+
+  page <- render_browse_page()
+
+  # Returns a shiny.tag (bslib page constructors return a tag, optionally
+  # wrapped in a tagList — accept either).
+  expect_true(inherits(page, "shiny.tag") || inherits(page, "shiny.tag.list"))
+
+  html <- htmltools::renderTags(page)$html
+
+  # Sidebar present — use the <aside> HTML5 semantic element, which bslib
+  # has emitted stably across versions for page_sidebar.
+  expect_true(
+    grepl("<aside", html, fixed = TRUE),
+    info = "render_browse_page must include a sidebar <aside>"
+  )
+
+  # Sidebar title "Filters" (our own literal, not a bslib internal token).
+  expect_true(
+    grepl("Filters", html, fixed = TRUE),
+    info = "render_browse_page sidebar must carry the 'Filters' title"
+  )
+
+  # sidebar_controls uiOutput slot — this is where the server renders the
+  # data-driven filter inputs. Matches the v1.1 baseline behaviour.
+  expect_true(
+    grepl("id=\"sidebar_controls\"", html, fixed = TRUE),
+    info = "render_browse_page sidebar must mount output$sidebar_controls"
+  )
+
+  # Browse module UI present (namespace-stable marker).
+  expect_true(
+    grepl("id=\"browse-package_table\"", html, fixed = TRUE),
+    info = "render_browse_page must mount mod_browse_ui('browse')"
+  )
+
+  # Header and footer module UIs present.
+  expect_true(
+    grepl("id=\"header-intro_accordion\"", html, fixed = TRUE),
+    info = "render_browse_page must mount mod_header_ui('header')"
+  )
+  expect_true(
+    grepl("<footer", html, fixed = TRUE),
+    info = "render_browse_page must mount mod_footer_ui('footer')"
+  )
+
+  # Detail module UI must NOT be rendered by the browse helper.
+  expect_false(
+    grepl("id=\"detail-detail_content\"", html, fixed = TRUE),
+    info = "render_browse_page must not mount mod_detail_ui('detail')"
+  )
+})
+
 # --- app_ui() top-level shape ------------------------------------------------
 
 test_that("app_ui returns a tagList with a single uiOutput('main_page') slot", {
