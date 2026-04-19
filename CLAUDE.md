@@ -128,7 +128,32 @@ This project ecosystem primarily uses R/Shiny, CSS, YAML, and Markdown. When mak
 
 ## Git Workflow
 
-When reviewing code or fixing bugs, always use feature branches — never commit directly to main. Follow the pattern: create branch, make changes, push, open PR.
+Every change — feature, fix, or review-fix iteration — lands on `main` via a GitHub pull request. No direct commits to `main`.
+
+**Branch naming**: `feature/<milestone>-<slug>` (e.g. `feature/m1-per-view-layout`), `fix/<slug>`, `chore/<slug>`. Milestone slugs track SPEC-v1.2 §9 (`m1-`, `m2-`, …).
+
+**The flow:**
+1. Branch off latest `main`: `git checkout main && git pull && git checkout -b feature/<slug>`.
+2. Work in small TDD increments (RED → GREEN → REFACTOR → commit). Follow the agent rules in the session system prompt for commit cadence and types.
+3. Before opening the PR: run `devtools::test()` and `openspec validate <change-id>` locally; both must be green.
+4. Push the branch: `git push -u origin <branch>`.
+5. Open the PR via `gh pr create --base main` with a title like `feat: M1 per-view layout (v1.2)` and a body that summarises scope, links the OpenSpec change folder, and lists the Definition-of-Done items from SPEC-v1.2 §9.
+6. Stakeholder (@AnttiRask) reviews on GitHub. Review-fix loop: requested changes go as new commits on the **same** branch — never a new branch, never `--amend`. Push, request re-review.
+7. When the stakeholder approves, Claude asks for explicit permission to merge ("ready to merge PR #N — OK to go?"). On a clear go-ahead, Claude runs `gh pr merge <n> --merge --delete-branch` — **standard merge commit, not squash, not rebase**. Without explicit permission: do not merge.
+8. After the merge lands on `main`:
+   - Verify: `git log --oneline -5 origin/main` shows the merge commit, or `gh pr view <n>` reports `state: MERGED`.
+   - `git checkout main && git pull` locally.
+   - Delete the local branch: `git branch -d <branch>` (the remote branch is already gone from step 7).
+   - Mark the OpenSpec change complete: check off task boxes as you merge, and after the feature PR is merged, open a small follow-up `chore/archive-<id>` PR that runs `openspec archive <change-id>` and commits the moved folder (see M0 → PRs #3 feature, #4 archive for the canonical pattern).
+
+**What NOT to do without explicit stakeholder instruction:**
+- Merge a PR without an explicit go-ahead from the stakeholder for that specific PR.
+- Squash or rebase-merge (the house style is merge commits).
+- Force-push to a branch under review.
+- Skip hooks or GPG signing.
+- Leave an OpenSpec change "in progress" after its PR has merged, or mark it complete before the PR has merged.
+
+**Verify before moving on**: after any merge, run `git log --oneline -5` and/or check `gh pr view <n>` to confirm the merge commit exists on `main` before updating OpenSpec or starting the next milestone.
 
 ## Debugging Guidelines
 
