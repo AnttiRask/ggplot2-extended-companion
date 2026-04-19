@@ -5,13 +5,15 @@
 # server-side when sidebar controls change, then the filtered/sorted data
 # is passed to the reactable for rendering.
 #
+# v1.2 (M0): essential_only → featured_only (filters on is_featured column).
+#
 # Part of Milestone 4: Sidebar Filters & Sorting
 # =============================================================================
 
 #' Filter packages by sidebar criteria
 #'
 #' Applies archived visibility, category, CRAN status, license,
-#' essential-only, and recently added/updated filters to the package dataset.
+#' featured-only, and recently added/updated filters to the package dataset.
 #' All filters default to "show everything" so they compose cleanly via AND
 #' logic. The recently added and recently updated filters use OR logic
 #' between themselves (union), but AND with all other filters.
@@ -20,7 +22,8 @@
 #' @param category Category to filter by, or "All" for no category filter.
 #' @param cran_status One of "All", "On CRAN", "Not on CRAN".
 #' @param license_filter License to filter by, or "All" for no license filter.
-#' @param essential_only Logical. If TRUE, show only essential packages.
+#' @param featured_only Logical. If TRUE, show only packages featured in the
+#'   book (is_featured == TRUE).
 #' @param recently_added Logical. If TRUE, include recently added packages.
 #' @param recently_updated Logical. If TRUE, include recently updated packages.
 #' @param show_archived Logical. If FALSE (default), hide archived packages.
@@ -33,7 +36,7 @@ filter_packages <- function(
   category = "All",
   cran_status = "All",
   license_filter = "All",
-  essential_only = FALSE,
+  featured_only = FALSE,
   recently_added = FALSE,
   recently_updated = FALSE,
   show_archived = FALSE
@@ -72,10 +75,10 @@ filter_packages <- function(
       dplyr::filter(.data$license == license_filter)
   }
 
-  # Filter essential only
-  if (isTRUE(essential_only)) {
+  # Filter featured only (packages covered in the companion book)
+  if (isTRUE(featured_only)) {
     result <- result |>
-      dplyr::filter(.data$is_essential == TRUE)
+      dplyr::filter(.data$is_featured == TRUE)
   }
 
 
