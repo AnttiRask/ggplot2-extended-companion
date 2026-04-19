@@ -113,7 +113,7 @@ cat("Building packages_curated.csv...\n")
 curated <- data.frame(
   package_name = notion$Name,
   categories   = converted_categories,
-  is_essential = FALSE,
+  is_featured  = FALSE,
   website_url  = ifelse(
     is.na(notion$Website) | notion$Website == "" | notion$Website == "NA" |
       grepl("^\\[", notion$Website),

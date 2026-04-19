@@ -19,7 +19,7 @@ test_that("load_packages returns a tibble with expected columns", {
   expect_gte(nrow(result), 400)
 
   expected_cols <- c(
-    "package_name", "description", "maintainer", "categories", "is_essential",
+    "package_name", "description", "maintainer", "categories", "is_featured",
     "on_cran", "license", "cran_version", "cran_published", "github_updated"
   )
   expect_true(all(expected_cols %in% names(result)))
