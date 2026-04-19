@@ -9,6 +9,13 @@
 # the v1.1 legacy accessor; filter_packages() is called with featured_only per
 # SPEC-v1.2 §3.2.
 #
+# v1.2 (M1): per-view layout swap (SPEC-v1.2 §5.1). output$main_page renders
+# render_browse_page() or render_detail_page() based on selected_package();
+# outputOptions(..., "main_page", suspendWhenHidden = FALSE) keeps the
+# rendered UI alive across view switches to avoid flicker. output$show_detail
+# and its outputOptions call are removed (no longer consumed — the v1.1
+# conditionalPanel guards went with the app_ui() rewrite).
+#
 # Part of Milestone 4: Sidebar Filters & Sorting
 # =============================================================================
 
@@ -135,15 +142,27 @@ app_server <- function(input, output, session) {
   )
 
   # -------------------------------------------------------------------------
-  # Browse/Detail toggle (M5) & URL routing
+  # Main page dispatch (M1 v1.2) & URL routing
   # -------------------------------------------------------------------------
 
-  # Output flag for conditionalPanel -- TRUE when a package is selected
-  output$show_detail <- reactive({
-    !is.null(selected_package())
+  # Per-view layout swap per SPEC-v1.2 §5.1: dispatch render_browse_page()
+  # (page_sidebar with filters) or render_detail_page() (page_fillable, no
+  # sidebar) based on whether a package is selected. The module server
+  # calls above stay at the top level of app_server() and run exactly
+  # once per session -- do NOT move them inside this renderUI, or they
+  # will re-register observers on every view switch and drop reactive
+  # state (the "Critical -- module server lifecycle" warning in §5.1).
+  output$main_page <- shiny::renderUI({
+    if (is.null(selected_package())) {
+      render_browse_page()
+    } else {
+      render_detail_page()
+    }
   })
-  # Allow conditionalPanel to access this output
-  outputOptions(output, "show_detail", suspendWhenHidden = FALSE)
+  # Keep the output rendered even when hidden so the #main_page DOM node
+  # persists across view switches without flicker (SPEC-v1.2 §12 risk
+  # mitigation).
+  shiny::outputOptions(output, "main_page", suspendWhenHidden = FALSE)
 
   # Parse URL query parameter on startup: ?package={name}
   shiny::observe({
