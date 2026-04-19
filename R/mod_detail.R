@@ -238,16 +238,22 @@ build_header_card <- function(pkg) {
   # from the package name and title. Keep the two treatments — SPEC-v1.2
   # §5.9 shows both patterns verbatim.
   #
-  # Tooltip (Designer Fix #6) mirrors the sidebar-checkbox tooltip so the
-  # "featured in *what* book?" clarification is consistent across every
-  # surface the user might first encounter it on.
+  # Tooltip (Designer Fix #6) mirrors the disambiguating body of the
+  # sidebar-checkbox tooltip so the answer to "featured in *what* book?" is
+  # consistent across every surface the user might first encounter it on.
+  # The framing is singular ("Featured in…") rather than plural ("Packages
+  # featured in…") because the detail view is about one package at a time —
+  # plural framing here would create a mild cognitive stutter (Designer
+  # round-02 finding #1). The core disambiguating phrase
+  # ("companion book 'ggplot2 extended'") is identical between the two
+  # tooltip bodies; the framing adapts to context.
   featured_badge <- if (isTRUE(pkg$is_featured)) {
     bslib::tooltip(
       htmltools::span(
         class = "badge bg-warning text-dark ms-2",
         "\u2B50 Featured in the book"
       ),
-      "Packages featured in the companion book 'ggplot2 extended'"
+      FEATURED_TOOLTIP_BODY_DETAIL
     )
   }
 

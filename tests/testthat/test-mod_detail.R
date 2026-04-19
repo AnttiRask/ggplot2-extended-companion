@@ -99,18 +99,31 @@ test_that("build_header_card hides featured badge when is_featured is FALSE", {
 })
 
 test_that("build_header_card featured badge carries the book-disambiguating tooltip", {
-  # v1.2 Designer Fix #6: the detail badge is wrapped in bslib::tooltip()
-  # with the same text as the sidebar-checkbox tooltip, so the phrase
-  # "featured in *what* book?" is answered consistently everywhere the
-  # user might first encounter it. bslib renders the tooltip body into a
-  # `data-bs-title` attribute on the sibling wrapper.
+  # v1.2 Designer Fix #6: the detail badge is wrapped in bslib::tooltip() so
+  # the "featured in *what* book?" clarification is reachable on hover/focus.
+  # The framing is singular ("Featured in the companion book…") for the
+  # detail view, where the user is reading one package — contrast with the
+  # sidebar's plural "Packages featured…" which fits a collection-filter
+  # control. Both share the core "companion book 'ggplot2 extended'" phrase
+  # so the answer to "which book?" is stable across surfaces. See the
+  # FEATURED_TOOLTIP_BODY_* constants in R/fct_constants.R.
+  #
+  # Rendering note: bslib 0.10 renders `tooltip()` as a `<bslib-tooltip>`
+  # Web Component whose `<template>` child holds the body text. The
+  # runtime Bootstrap JS hydrates it into a `data-bs-title` attribute and
+  # an `aria-describedby` link on activation — those attributes are not
+  # present in the static HTML. The `grepl(..., fixed = TRUE)` below
+  # locates the literal body string anywhere in the rendered HTML, which
+  # is enough to verify the tooltip is wired up. The `fixed = TRUE` flag
+  # sidesteps regex interpretation of the single-quote characters in the
+  # body text.
   pkg <- make_test_pkg(is_featured = TRUE)
 
   result <- build_header_card(pkg)
   html <- as.character(result)
 
   expect_true(grepl(
-    "Packages featured in the companion book 'ggplot2 extended'",
+    FEATURED_TOOLTIP_BODY_DETAIL,
     html,
     fixed = TRUE
   ))

@@ -76,14 +76,18 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
     # Tooltip (Designer Fix #2) disambiguates "featured in *what* book?" for
     # first-time visitors who have not opened the intro accordion. bslib's
     # tooltip attaches aria-describedby wiring so assistive tech announces
-    # the clarification too, not just sighted mouse users.
+    # the clarification too, not just sighted mouse users. The body is
+    # plural-framed ("Packages featured…") because this control filters a
+    # collection — contrast with the singular-framed detail-view tooltip.
+    # Both share the "companion book 'ggplot2 extended'" tail so the
+    # answer to "which book?" is stable across surfaces.
     bslib::tooltip(
       shiny::checkboxInput(
         ns("featured_only"),
         label = "Featured in the Book",
         value = FALSE
       ),
-      "Packages featured in the companion book 'ggplot2 extended'"
+      FEATURED_TOOLTIP_BODY_SIDEBAR
     ),
 
     # Recently Added checkbox
