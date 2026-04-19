@@ -1,26 +1,39 @@
 # =============================================================================
 # app_ui.R
 #
-# Main UI function for the ggplot2 Extended Companion app. Defines the bslib
-# page_sidebar() layout with Bootstrap 5 dark theme, sidebar placeholder,
-# and main content area placeholder.
+# Main UI function for the ggplot2 extended (companion) app.
 #
-# Part of Milestone 0: Project Scaffold
+# v1.2 (M1): per-view layout swap (SPEC-v1.2 §5.1). app_ui() no longer
+# renders a bslib page wrapper directly. Instead, it exposes a single
+# uiOutput("main_page") slot, and the server-side output$main_page
+# dispatches either render_browse_page() (page_sidebar with filters)
+# or render_detail_page() (page_fillable, no sidebar) based on
+# selected_package(). The two helpers below return complete pages,
+# not fragments — see design.md Decision §3.
+#
+# v1.2 (M1 review round 01): both helpers emit an explicit app_navbar()
+# as their first body child, replacing page_sidebar()'s auto-navbar on
+# browse and adding a previously-missing navbar on detail. page_fillable()
+# has no `window_title` formal (title = "..." sets the browser tab) so
+# that leak-through argument is also gone.
+#
+# Part of Milestone 0: Project Scaffold (original)
+#   + Milestone 1 v1.2: Per-view layout + sidebar defaults
 # =============================================================================
 
 #' The application User-Interface
 #'
-#' Builds the main UI for the ggplot2 Extended Companion app using bslib's
-#' page_sidebar() layout. Sets up the Bootstrap 5 dark theme with custom
-#' colours and typography, a sidebar for filters (placeholder in M0), and
-#' a main content area (placeholder in M0).
+#' Returns the top-level tag list: external resources (CSS, favicon, meta
+#' tags) plus a single uiOutput("main_page") slot. The server dispatches
+#' render_browse_page() or render_detail_page() into that slot based on
+#' whether a package is selected. See SPEC-v1.2 §5.1.
 #'
 #' @param request Internal parameter for `{shiny}`.
 #'
 #' @return A shiny tagList containing the app UI.
 #'
 #' @import shiny
-#' @importFrom bslib bs_theme page_sidebar sidebar input_dark_mode font_google font_collection
+#' @importFrom bslib bs_theme page_sidebar page_fillable sidebar input_dark_mode font_google font_collection
 #' @importFrom htmltools tags tagList
 #' @noRd
 app_ui <- function(request) {
@@ -28,49 +41,158 @@ app_ui <- function(request) {
     # Add external resources (CSS, favicon, meta tags)
     golem_add_external_resources(),
 
-    # Main page layout
-    bslib::page_sidebar(
-      title = "ggplot2 extended (companion)",
-      theme = app_theme(),
-      window_title = "ggplot2 extended (companion)",
+    # Main page slot -- filled by output$main_page, which dispatches
+    # render_browse_page() or render_detail_page() based on
+    # selected_package(). See app_server.R and SPEC-v1.2 §5.1.
+    shiny::uiOutput("main_page")
+  )
+}
 
-      # Dark/light mode toggle in the navbar
-      bslib::input_dark_mode(id = "colour_mode", mode = "dark"),
-
-      # Sidebar with filter controls (M4)
-      sidebar = bslib::sidebar(
-        title = "Filters",
-        width = 300,
-        # Dynamic sidebar content -- populated with data-driven choices
-        # by the server via mod_sidebar_ui
-        shiny::uiOutput("sidebar_controls")
+#' Render the shared brand navbar
+#'
+#' Returns the `<div class="navbar navbar-static-top">` block with the
+#' app brand (`<h1 class="bslib-page-title navbar-brand">`) and the
+#' dark-mode toggle inside. Used as the first body child of both
+#' `render_browse_page()` and `render_detail_page()` so the two views
+#' present an identical top bar.
+#'
+#' bslib's `page_sidebar()` auto-emits this same markup when given a
+#' non-NULL `title`, but `page_fillable()` has no such behaviour.
+#' Emitting the navbar explicitly on both helpers lets the two views
+#' share one visual top-bar shape and keeps the dark-mode toggle in
+#' a consistent top-right position across view swaps (SPEC-v1.2 §5.1
+#' implies this by saying both pages share the same title and
+#' dark-mode toggle in the navbar).
+#'
+#' The markup mirrors exactly what bslib 0.10 emits for
+#' `page_sidebar(title = ...)` so that the two navbars are visually
+#' identical. The dark-mode toggle is placed at the end so bootstrap's
+#' navbar flex layout pushes it to the right.
+#'
+#' @return A `<div>` tag containing the navbar markup.
+#'
+#' @importFrom bslib input_dark_mode
+#' @noRd
+app_navbar <- function() {
+  htmltools::tags$div(
+    class = "navbar navbar-static-top",
+    htmltools::tags$div(
+      class = "container-fluid",
+      htmltools::tags$h1(
+        class = "bslib-page-title navbar-brand",
+        "ggplot2 extended (companion)"
       ),
+      # Dark/light mode toggle in the navbar. SPEC-v1.2 §5.4 changes
+      # (remove mode = "dark", OS-sync JS) are deferred per OpenSpec
+      # design.md §2.
+      bslib::input_dark_mode(id = "colour_mode", mode = "dark")
+    )
+  )
+}
 
-      # Main content area
-      tags$div(
-        class = "container-fluid",
+#' Render the browse-view page wrapper
+#'
+#' Returns a complete `bslib::page_sidebar()` for the browse view: the
+#' filters sidebar (left), the header accordion, the package table, and
+#' the footer. Dispatched by `output$main_page` in `app_server()` when
+#' no package is selected. See SPEC-v1.2 §5.1 for the per-view layout
+#' contract.
+#'
+#' The sidebar opens by default on desktop (≥992 px) and closes by
+#' default on mobile (<992 px). bslib auto-inserts a hamburger toggle
+#' on mobile when the breakpoint is "closed" (SPEC-v1.2 §5.3).
+#'
+#' @return A complete bslib page object (not a fragment).
+#'
+#' @importFrom bslib page_sidebar sidebar input_dark_mode
+#' @noRd
+render_browse_page <- function() {
+  # title = NULL on page_sidebar() suppresses bslib's auto-emitted
+  # navbar; we emit one explicitly via app_navbar() so the browse and
+  # detail views share identical top-bar markup (see DESIGN review
+  # round 01, Fix #1 and #3). window_title sets the browser-tab title.
+  bslib::page_sidebar(
+    title = NULL,
+    window_title = "ggplot2 extended (companion)",
+    theme = app_theme(),
 
-        # Header: collapsible intro accordion (M7)
-        mod_header_ui("header"),
+    # Shared brand navbar (app title + dark-mode toggle).
+    app_navbar(),
 
-        # Spacer between header and content
-        htmltools::tags$div(class = "mb-3"),
+    # Filters sidebar -- open on desktop, closed on mobile with a
+    # bslib-provided hamburger toggle (SPEC-v1.2 §5.3).
+    sidebar = bslib::sidebar(
+      id = "filters_sidebar",
+      title = "Filters",
+      width = 300,
+      open = list(desktop = "open", mobile = "closed"),
+      # Dynamic sidebar content -- populated with data-driven choices
+      # by the server via mod_sidebar_ui.
+      shiny::uiOutput("sidebar_controls")
+    ),
 
-        # Browse view: package table (M3)
-        shiny::conditionalPanel(
-          condition = "!output.show_detail",
-          mod_browse_ui("browse")
-        ),
+    # Main content area
+    htmltools::tags$div(
+      class = "container-fluid",
 
-        # Detail view: full package info (M5)
-        shiny::conditionalPanel(
-          condition = "output.show_detail",
-          mod_detail_ui("detail")
-        ),
+      # Header: intro accordion
+      mod_header_ui("header"),
 
-        # Footer: disclaimer, credits, links (M7)
-        mod_footer_ui("footer")
-      )
+      # Spacer between header and content
+      htmltools::tags$div(class = "mb-3"),
+
+      # Browse view: package table
+      mod_browse_ui("browse"),
+
+      # Footer: disclaimer, credits, links
+      mod_footer_ui("footer")
+    )
+  )
+}
+
+#' Render the detail-view page wrapper
+#'
+#' Returns a complete `bslib::page_fillable()` for the detail view: no
+#' sidebar, full-width content (header, detail card stack, footer).
+#' Dispatched by `output$main_page` in `app_server()` when a package
+#' is selected. See SPEC-v1.2 §5.1 for the per-view layout contract.
+#'
+#' The detail view intentionally drops the sidebar entirely — unlike
+#' the v1.1 baseline, no sidebar element is present in the DOM when
+#' a package is selected. The full viewport width is available for
+#' the detail card stack (SPEC-v1.2 §9 M1 DoD).
+#'
+#' @return A complete bslib page object (not a fragment).
+#'
+#' @importFrom bslib page_fillable input_dark_mode
+#' @noRd
+render_detail_page <- function() {
+  # page_fillable() has no visible-navbar behaviour and no window_title
+  # formal. title = "..." sets the browser-tab title. The visible
+  # brand is emitted by app_navbar() so both views share one top bar
+  # (see DESIGN review round 01, Fix #1/#2/#3).
+  bslib::page_fillable(
+    title = "ggplot2 extended (companion)",
+    theme = app_theme(),
+
+    # Shared brand navbar (app title + dark-mode toggle).
+    app_navbar(),
+
+    # Main content area -- no sidebar slot.
+    htmltools::tags$div(
+      class = "container-fluid",
+
+      # Header: intro accordion
+      mod_header_ui("header"),
+
+      # Spacer between header and content
+      htmltools::tags$div(class = "mb-3"),
+
+      # Detail view: full package info
+      mod_detail_ui("detail"),
+
+      # Footer: disclaimer, credits, links
+      mod_footer_ui("footer")
     )
   )
 }
