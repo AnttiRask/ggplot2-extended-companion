@@ -111,6 +111,58 @@ test_that("render_browse_page sidebar opens on desktop, closes on mobile", {
   )
 })
 
+# --- render_detail_page() ----------------------------------------------------
+
+test_that("render_detail_page renders detail UI with no sidebar", {
+
+  page <- render_detail_page()
+
+  expect_true(inherits(page, "shiny.tag") || inherits(page, "shiny.tag.list"))
+
+  html <- htmltools::renderTags(page)$html
+
+  # Detail module UI present (namespace-stable marker).
+  expect_true(
+    grepl("id=\"detail-detail_content\"", html, fixed = TRUE),
+    info = "render_detail_page must mount mod_detail_ui('detail')"
+  )
+
+  # Header and footer still mount on the detail page.
+  expect_true(
+    grepl("id=\"header-intro_accordion\"", html, fixed = TRUE),
+    info = "render_detail_page must mount mod_header_ui('header')"
+  )
+  expect_true(
+    grepl("<footer", html, fixed = TRUE),
+    info = "render_detail_page must mount mod_footer_ui('footer')"
+  )
+
+  # No sidebar anywhere in the detail view — the whole point of the
+  # per-view layout swap (SPEC-v1.2 §5.1, §9 M1 DoD).
+  expect_false(
+    grepl("<aside", html, fixed = TRUE),
+    info = "render_detail_page must not render a sidebar <aside>"
+  )
+  expect_false(
+    grepl("Filters", html, fixed = TRUE),
+    info = "render_detail_page must not render the 'Filters' title"
+  )
+  expect_false(
+    grepl("id=\"sidebar_controls\"", html, fixed = TRUE),
+    info = "render_detail_page must not mount output$sidebar_controls"
+  )
+  expect_false(
+    grepl("id=\"filters_sidebar\"", html, fixed = TRUE),
+    info = "render_detail_page must not include the browse filters_sidebar"
+  )
+
+  # Browse module UI must NOT be rendered by the detail helper.
+  expect_false(
+    grepl("id=\"browse-package_table\"", html, fixed = TRUE),
+    info = "render_detail_page must not mount mod_browse_ui('browse')"
+  )
+})
+
 # --- app_ui() top-level shape ------------------------------------------------
 
 test_that("app_ui returns a tagList with a single uiOutput('main_page') slot", {
