@@ -71,5 +71,24 @@ is addressed on the same branch before re-review.
 
 ## 12. Re-review hand-off
 
-- [ ] 12.1 Push round-01 fixes to `feature/m0-is-featured-rename`
-- [ ] 12.2 Request re-review (expecting `comments/COMMENTS-m0-is-featured-rename-02.md` and optionally a Designer re-pass)
+- [x] 12.1 Push round-01 fixes to `feature/m0-is-featured-rename`
+- [x] 12.2 Request re-review (received `comments/COMMENTS-m0-is-featured-rename-02.md` — APPROVED with two follow-ups — and `comments/DESIGN_FIXES-m0-is-featured-rename-02.md` — READY TO SHIP with one SHOULD FIX)
+
+## 13. Address review feedback — round 02
+
+From `comments/COMMENTS-m0-is-featured-rename-02.md` (Reviewer, APPROVED) and
+`comments/DESIGN_FIXES-m0-is-featured-rename-02.md` (Designer, READY TO SHIP).
+Per the stakeholder's working rule, every actionable item is addressed on the
+same branch before merge.
+
+- [x] 13.1 Designer round-02 finding #1 [SHOULD FIX] + Reviewer §7 [SUGGESTION]: extract tooltip bodies to constants in `R/fct_constants.R`, differentiate sidebar (plural framing) from detail (singular framing). Preserves the shared "companion book 'ggplot2 extended'" phrase so "which book?" stays stable across surfaces.
+- [x] 13.2 Reviewer §5 [SHOULD FIX]: fix comment rot in `tests/testthat/test-mod_detail.R:102-106` — bslib 0.10 renders tooltip as a `<bslib-tooltip>` Web Component with a `<template>` child, not a `data-bs-title` attribute (that's hydrated at runtime). Rewrote the block to match reality.
+- [x] 13.3 Reviewer §8 [SUGGESTION]: create `tests/testthat/test-mod_sidebar.R` with five assertions — smoke test, Title Case label, sidebar tooltip body present, detail tooltip body NOT leaking into sidebar, namespaced input ID. Closes the coverage asymmetry between the two tooltip surfaces.
+- [x] 13.4 Reviewer §6 [QUESTION] answered: two-surface scope (long body on sidebar + detail only) was deliberate per Designer round-01 LEAVE-IT #3 and round-02 finding #1. Added an inline comment in `R/mod_browse.R` documenting this so a future maintainer does not re-litigate.
+- [ ] 13.5 Designer round-02 finding #2 [POLISH]: keyboard reachability of the detail-badge tooltip — **deferred to M6** (accessibility floor) per Designer's own scoping note: "an M6 question, not an M0 question."
+- [x] 13.6 Re-run DoD: grep sweep still zero matches; `devtools::test()` = 473 PASS / 0 FAIL / 3 SKIP; `validate_curated_csv()` on real CSV = valid/0 errors; `openspec validate m0-is-featured-rename` = valid.
+
+## 14. Re-review hand-off — round 03
+
+- [ ] 14.1 Push round-02 fixes to `feature/m0-is-featured-rename`
+- [ ] 14.2 Request round-03 review (expecting `comments/COMMENTS-m0-is-featured-rename-03.md` and optionally `comments/DESIGN_FIXES-m0-is-featured-rename-03.md`)
