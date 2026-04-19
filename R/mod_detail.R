@@ -6,6 +6,10 @@
 # (value boxes), and version info. Replaces the browse table when a
 # package is selected.
 #
+# v1.2 (M0): the header-card badge reads "⭐ Featured in the book" (renamed
+# from the v1.1 legacy label) and is driven by pkg$is_featured per
+# SPEC-v1.2 §5.9.
+#
 # Part of Milestone 5: Package Detail View
 # =============================================================================
 

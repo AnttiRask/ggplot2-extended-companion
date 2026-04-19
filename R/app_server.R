@@ -5,6 +5,10 @@
 # data at startup, renders sidebar controls with data-driven choices, applies
 # sidebar filters/sorts to the data, and passes the result to the browse module.
 #
+# v1.2 (M0): sidebar reactive renamed — sidebar_values$featured_only() replaces
+# the v1.1 legacy accessor; filter_packages() is called with featured_only per
+# SPEC-v1.2 §3.2.
+#
 # Part of Milestone 4: Sidebar Filters & Sorting
 # =============================================================================
 

@@ -5,6 +5,12 @@
 # reactable table of all ggplot2 extension packages with columns for name,
 # description, category, license, downloads, version, and dates.
 #
+# v1.2 (M0): featured-badge rename (.badge-featured) and a new accessibility
+# affordance — the featured star glyph carries both `title` (mouse tooltip)
+# and `aria-label` (assistive tech) set to "Featured in the book" per
+# SPEC-v1.2 §5.9. The hidden colDef entry now keys on is_featured (the v1.1
+# legacy name is retired). See the Name column cell renderer below.
+#
 # Part of Milestone 3: Data Loading & Browse Table
 # =============================================================================
 

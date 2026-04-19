@@ -6,6 +6,10 @@
 # GitHub activity (gh). Handles per-package errors gracefully -- logs warnings
 # and continues with NA values.
 #
+# v1.2 (M0): export_json() writes the `is_featured` key; the v1.1 legacy key
+# is retired (hard break, no dual-key transitional period per SPEC-v1.2 §3.2).
+# read_curated_csv() doc references the renamed column.
+#
 # Part of Milestone 2: Data Pipeline (Core) / Milestone 6: Code Examples
 # =============================================================================
 
