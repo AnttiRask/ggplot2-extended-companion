@@ -75,6 +75,63 @@ app_ui <- function(request) {
   )
 }
 
+#' Render the browse-view page wrapper
+#'
+#' Returns a complete `bslib::page_sidebar()` for the browse view: the
+#' filters sidebar (left), the header accordion, the package table, and
+#' the footer. Dispatched by `output$main_page` in `app_server()` when
+#' no package is selected. See SPEC-v1.2 §5.1 for the per-view layout
+#' contract.
+#'
+#' The sidebar opens by default on desktop (≥992 px) and closes by
+#' default on mobile (<992 px). bslib auto-inserts a hamburger toggle
+#' on mobile when the breakpoint is "closed" (SPEC-v1.2 §5.3).
+#'
+#' @return A complete bslib page object (not a fragment).
+#'
+#' @importFrom bslib page_sidebar sidebar input_dark_mode
+#' @noRd
+render_browse_page <- function() {
+  bslib::page_sidebar(
+    title = "ggplot2 extended (companion)",
+    window_title = "ggplot2 extended (companion)",
+    theme = app_theme(),
+
+    # Dark/light mode toggle in the navbar (SPEC-v1.2 §5.4 changes
+    # deferred to a later milestone per OpenSpec design.md §2).
+    bslib::input_dark_mode(id = "colour_mode", mode = "dark"),
+
+    # Filters sidebar -- open on desktop, closed on mobile with a
+    # bslib-provided hamburger toggle (SPEC-v1.2 §5.3).
+    sidebar = bslib::sidebar(
+      id = "filters_sidebar",
+      title = "Filters",
+      width = 300,
+      open = list(desktop = "open", mobile = "closed"),
+      # Dynamic sidebar content -- populated with data-driven choices
+      # by the server via mod_sidebar_ui.
+      shiny::uiOutput("sidebar_controls")
+    ),
+
+    # Main content area
+    tags$div(
+      class = "container-fluid",
+
+      # Header: intro accordion
+      mod_header_ui("header"),
+
+      # Spacer between header and content
+      htmltools::tags$div(class = "mb-3"),
+
+      # Browse view: package table
+      mod_browse_ui("browse"),
+
+      # Footer: disclaimer, credits, links
+      mod_footer_ui("footer")
+    )
+  )
+}
+
 #' Create the bslib theme
 #'
 #' Builds a Bootstrap 5 theme using bslib::bs_theme() with the colour palette
