@@ -15,7 +15,7 @@ make_test_pkg <- function(
   description = "Provides geoms for ggplot2 to repel overlapping text labels.",
   maintainer = "Kamil Slowikowski",
   categories = "annotations",
-  is_essential = TRUE,
+  is_featured = TRUE,
   on_cran = TRUE,
   has_vignettes = TRUE,
   license = "GPL-3",
@@ -44,7 +44,7 @@ make_test_pkg <- function(
     has_vignettes = has_vignettes,
     maintainer = maintainer,
     categories = categories,
-    is_essential = is_essential,
+    is_featured = is_featured,
     on_cran = on_cran,
     license = license,
     cran_version = cran_version,
@@ -80,22 +80,22 @@ test_that("build_header_card includes package name and title", {
   expect_true(grepl("Non-Overlapping Text Labels", html))
 })
 
-test_that("build_header_card shows essential badge when is_essential is TRUE", {
-  pkg <- make_test_pkg(is_essential = TRUE)
+test_that("build_header_card shows featured badge when is_featured is TRUE", {
+  pkg <- make_test_pkg(is_featured = TRUE)
 
   result <- build_header_card(pkg)
   html <- as.character(result)
 
-  expect_true(grepl("Essential Extension", html))
+  expect_true(grepl("Featured in the book", html))
 })
 
-test_that("build_header_card hides essential badge when is_essential is FALSE", {
-  pkg <- make_test_pkg(is_essential = FALSE)
+test_that("build_header_card hides featured badge when is_featured is FALSE", {
+  pkg <- make_test_pkg(is_featured = FALSE)
 
   result <- build_header_card(pkg)
   html <- as.character(result)
 
-  expect_false(grepl("Essential Extension", html))
+  expect_false(grepl("Featured in the book", html))
 })
 
 test_that("build_header_card shows all category badges for multi-category package", {
