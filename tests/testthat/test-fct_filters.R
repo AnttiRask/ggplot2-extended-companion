@@ -2,7 +2,9 @@
 # test-fct_filters.R
 #
 # Tests for package filtering logic used by the sidebar module.
-# Verifies category, CRAN status, license, and essential filters.
+# Verifies category, CRAN status, license, and featured filters.
+#
+# v1.2 (M0): is_essential → is_featured, essential_only → featured_only.
 #
 # Part of Milestone 4: Sidebar Filters & Sorting
 # =============================================================================
@@ -12,7 +14,7 @@ make_test_data <- function() {
   tibble::tibble(
     package_name   = c("ggrepel", "patchwork", "bbplot", "gganimate", "ggthemes"),
     categories     = c("annotations", "arranging_plots", "themes", "animation|interactive_plots", "themes"),
-    is_essential   = c(TRUE, TRUE, FALSE, FALSE, FALSE),
+    is_featured    = c(TRUE, TRUE, FALSE, FALSE, FALSE),
     is_archived    = c(FALSE, FALSE, FALSE, FALSE, TRUE),
     on_cran        = c(TRUE, TRUE, FALSE, TRUE, TRUE),
     license        = c("GPL-3", "MIT", NA, "MIT", "GPL-2"),
@@ -102,21 +104,21 @@ test_that("filter_packages with license 'All' returns all non-archived", {
   expect_equal(nrow(result), 4)
 })
 
-# --- filter by essential only ------------------------------------------------
+# --- filter by featured only -------------------------------------------------
 
-test_that("filter_packages filters essential only", {
+test_that("filter_packages filters featured only", {
   data <- make_test_data()
 
-  result <- filter_packages(data, essential_only = TRUE)
+  result <- filter_packages(data, featured_only = TRUE)
 
   expect_equal(nrow(result), 2)
   expect_true(all(c("ggrepel", "patchwork") %in% result$package_name))
 })
 
-test_that("filter_packages with essential_only FALSE returns all non-archived", {
+test_that("filter_packages with featured_only FALSE returns all non-archived", {
   data <- make_test_data()
 
-  result <- filter_packages(data, essential_only = FALSE)
+  result <- filter_packages(data, featured_only = FALSE)
 
   expect_equal(nrow(result), 4)
 })
@@ -136,13 +138,13 @@ test_that("filter_packages combines multiple filters", {
 test_that("filter_packages with all filters returns correct subset", {
   data <- make_test_data()
 
-  # Essential + On CRAN + any category + any license
+  # Featured + On CRAN + any category + any license
   result <- filter_packages(
     data,
     category = "All",
     cran_status = "On CRAN",
     license_filter = "All",
-    essential_only = TRUE
+    featured_only = TRUE
   )
 
   expect_equal(nrow(result), 2)
