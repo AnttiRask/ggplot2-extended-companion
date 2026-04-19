@@ -95,6 +95,6 @@ same branch before merge.
 
 ## 15. Merge and close out
 
-- [ ] 15.1 Merge `feature/m0-is-featured-rename` into `main` with a milestone-closing merge commit
-- [ ] 15.2 Archive this openspec change to `openspec/changes/archive/m0-is-featured-rename/` cross-referencing the merge commit
+- [x] 15.1 Merged `feature/m0-is-featured-rename` → `main` via GitHub PR #3 with a no-ff merge commit (`969e6e5`). 24 commits preserved so the RED→GREEN TDD narrative remains on main as a template for M1–M7.
+- [x] 15.2 Archived this openspec change to `openspec/changes/archive/2026-04-19-m0-is-featured-rename/` via `openspec archive m0-is-featured-rename --skip-specs` (the `--skip-specs` flag because this project does not maintain a rolling capability spec in `openspec/specs/`).
 - [ ] 15.3 Delete the local feature branch (keep the remote ref for history)
