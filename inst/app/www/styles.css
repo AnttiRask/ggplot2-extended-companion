@@ -64,9 +64,9 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Essential extension badge
+ * Featured-in-the-book badge (v1.2 renamed the legacy class)
  * --------------------------------------------------------------------------- */
-.badge-essential {
+.badge-featured {
   color: #f59e0b;
   font-size: 0.9rem;
 }
