@@ -5,8 +5,9 @@
 # Validates packages_curated.csv integrity: no duplicates, valid categories,
 # required fields, boolean is_featured, well-formed pipe-separated categories.
 #
-# v1.2 (M0): is_essential → is_featured rename. validate_is_featured() now
-# also detects a missing is_featured column (parallel to validate_is_archived).
+# v1.2 (M0): the "featured in the book" column replaces the v1.1 legacy name.
+# validate_is_featured() now also detects a missing is_featured column
+# (parallel to validate_is_archived).
 #
 # Part of Milestone 1: Notion Migration & Curated Data
 # =============================================================================

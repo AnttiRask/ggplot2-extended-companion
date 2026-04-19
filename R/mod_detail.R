@@ -217,11 +217,11 @@ build_header_card <- function(pkg) {
     build_category_badge(cat)
   })
 
-  # Essential badge
-  essential_badge <- if (isTRUE(pkg$is_essential)) {
+  # Featured-in-the-book badge (v1.2 §5.9 renamed the legacy label text)
+  featured_badge <- if (isTRUE(pkg$is_featured)) {
     htmltools::span(
       class = "badge bg-warning text-dark ms-2",
-      "\u2B50 Essential Extension"
+      "\u2B50 Featured in the book"
     )
   }
 
@@ -282,7 +282,7 @@ build_header_card <- function(pkg) {
       # Package name heading
       htmltools::tags$h2(
         pkg$package_name,
-        essential_badge,
+        featured_badge,
         archived_badge
       ),
 

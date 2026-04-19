@@ -5,8 +5,9 @@
 # rules defined in SPEC section 4.4: no duplicates, valid categories, required
 # fields, boolean is_featured, well-formed pipe-separated categories.
 # v1.1: Added validate_is_archived() per SPEC-v1.1 §9.1.
-# v1.2 (M0): Renamed is_essential → is_featured (validate_is_featured);
-# added missing-column branch parallel to validate_is_archived.
+# v1.2 (M0): The "featured in the book" flag replaces the v1.1 legacy name.
+# validate_is_featured() gains a missing-column branch parallel to
+# validate_is_archived().
 #
 # These functions are used by the migration script (data-raw/migrate_notion.R)
 # and can be called in CI (e.g., GitHub Actions check.yml) to validate the
@@ -89,7 +90,7 @@ validate_required_fields <- function(df) {
 #' or FALSE values (not strings, not NA). Returns early with a single error
 #' if the column is missing, mirroring `validate_is_archived()`.
 #' SPEC section 4.4: "is_featured is TRUE or FALSE."
-#' SPEC-v1.2 §3.2: renamed from `validate_is_essential()`.
+#' SPEC-v1.2 §3.2: v1.2 renames the legacy validator to `validate_is_featured()`.
 #'
 #' @param df A data frame with an `is_featured` column.
 #'

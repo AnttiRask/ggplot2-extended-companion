@@ -5,7 +5,8 @@
 # server-side when sidebar controls change, then the filtered/sorted data
 # is passed to the reactable for rendering.
 #
-# v1.2 (M0): essential_only → featured_only (filters on is_featured column).
+# v1.2 (M0): the "featured in the book" filter replaces the v1.1 legacy name;
+# filters on the is_featured column.
 #
 # Part of Milestone 4: Sidebar Filters & Sorting
 # =============================================================================

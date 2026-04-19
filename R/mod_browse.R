@@ -124,12 +124,20 @@ build_package_table <- function(data, ns) {
         minWidth = 150,
         cell = function(value, index) {
           # Bold text, styled as clickable link
-          # Essential packages get a star badge, archived get a folder badge
-          is_essential <- data$is_essential[index]
+          # Featured packages get a star badge, archived get a folder badge
+          is_featured <- data$is_featured[index]
           is_archived <- if ("is_archived" %in% names(data)) data$is_archived[index] else FALSE
 
-          essential_badge <- if (isTRUE(is_essential)) {
-            htmltools::span(class = "badge-essential", "\u2B50 ")
+          # v1.2 (SPEC §5.9): the star carries a tooltip + aria-label so that
+          # sighted mouse users and screen-reader users both see the same
+          # explanation of what the glyph means.
+          featured_badge <- if (isTRUE(is_featured)) {
+            htmltools::span(
+              class = "badge-featured",
+              title = "Featured in the book",
+              `aria-label` = "Featured in the book",
+              "\u2B50 "
+            )
           } else {
             NULL
           }
@@ -141,7 +149,7 @@ build_package_table <- function(data, ns) {
           }
 
           htmltools::tagList(
-            essential_badge,
+            featured_badge,
             archived_badge,
             htmltools::tags$a(
               class = "package-link",
@@ -265,7 +273,7 @@ build_package_table <- function(data, ns) {
 
       # Hidden columns -- present in data but not displayed in table
       description = reactable::colDef(show = FALSE),
-      is_essential = reactable::colDef(show = FALSE),
+      is_featured = reactable::colDef(show = FALSE),
       is_archived = reactable::colDef(show = FALSE),
       github_title = reactable::colDef(show = FALSE),
       github_description = reactable::colDef(show = FALSE),

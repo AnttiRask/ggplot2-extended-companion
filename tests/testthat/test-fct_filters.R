@@ -4,7 +4,8 @@
 # Tests for package filtering logic used by the sidebar module.
 # Verifies category, CRAN status, license, and featured filters.
 #
-# v1.2 (M0): is_essential → is_featured, essential_only → featured_only.
+# v1.2 (M0): the "featured in the book" column and featured_only filter
+# replace the v1.1 legacy names.
 #
 # Part of Milestone 4: Sidebar Filters & Sorting
 # =============================================================================
