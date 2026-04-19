@@ -77,6 +77,40 @@ test_that("render_browse_page renders a sidebar with Filters and browse module",
   )
 })
 
+test_that("render_browse_page sidebar opens on desktop, closes on mobile", {
+
+  html <- htmltools::renderTags(render_browse_page())$html
+
+  # bslib reflects the `open = list(desktop = ..., mobile = ...)` argument
+  # as data attributes on the sidebar container. These attributes are part
+  # of bslib's public contract for its JS to pick up at runtime.
+  #
+  # If these attribute names change in a future bslib release, these two
+  # assertions will need updating — but the design.md §4 guidance is to
+  # pin to the observable contract, not to avoid it entirely.
+  expect_true(
+    grepl("data-open-desktop=\"open\"", html, fixed = TRUE),
+    info = "sidebar must carry data-open-desktop=\"open\""
+  )
+  expect_true(
+    grepl("data-open-mobile=\"closed\"", html, fixed = TRUE),
+    info = "sidebar must carry data-open-mobile=\"closed\""
+  )
+
+  # Resilience cross-check: even if the attribute names drift, the
+  # semantics must hold — the sidebar must never declare itself
+  # mobile-open on render, because that would defeat the off-canvas
+  # drawer behaviour on small viewports.
+  expect_false(
+    grepl("data-open-mobile=\"open\"", html, fixed = TRUE),
+    info = "sidebar must not open by default on mobile"
+  )
+  expect_false(
+    grepl("data-open-mobile=\"always\"", html, fixed = TRUE),
+    info = "sidebar must not be forced-open on mobile"
+  )
+})
+
 # --- app_ui() top-level shape ------------------------------------------------
 
 test_that("app_ui returns a tagList with a single uiOutput('main_page') slot", {
