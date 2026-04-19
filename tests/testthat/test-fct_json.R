@@ -11,7 +11,7 @@ test_that("export_json produces valid JSON with correct top-level structure", {
     package_name = c("ggrepel", "patchwork"),
     description = c("Text labels", "Combine plots"),
     categories = c("annotations", "arranging_plots"),
-    is_essential = c(TRUE, FALSE),
+    is_featured = c(TRUE, FALSE),
     on_cran = c(TRUE, TRUE),
     license = c("GPL-3", "MIT"),
     cran_version = c("0.9.6", "1.3.0"),
@@ -48,7 +48,7 @@ test_that("export_json packages have correct field names", {
     package_name = "ggrepel",
     description = "Text labels",
     categories = "annotations",
-    is_essential = TRUE,
+    is_featured = TRUE,
     on_cran = TRUE,
     license = "GPL-3",
     cran_version = "0.9.6",
@@ -74,7 +74,7 @@ test_that("export_json packages have correct field names", {
   # Spec §8 field names
   expect_equal(pkg$name, "ggrepel")
   expect_equal(pkg$description, "Text labels")
-  expect_true(pkg$is_essential)
+  expect_true(pkg$is_featured)
   expect_true(pkg$on_cran)
   expect_equal(pkg$downloads_30d, 20000)
   expect_equal(pkg$downloads_all, 1500000)
@@ -85,7 +85,7 @@ test_that("export_json converts pipe-separated categories to arrays", {
     package_name = "gganimate",
     description = "Animate",
     categories = "animation|interactive_plots",
-    is_essential = FALSE,
+    is_featured = FALSE,
     on_cran = TRUE,
     license = "MIT",
     cran_version = "1.0.9",
@@ -119,7 +119,7 @@ test_that("export_json includes is_archived and version fields", {
     package_name = c("ggrepel", "archived_pkg"),
     description = c("Text labels", "Old package"),
     categories = c("annotations", "themes"),
-    is_essential = c(TRUE, FALSE),
+    is_featured = c(TRUE, FALSE),
     is_archived = c(FALSE, TRUE),
     on_cran = c(TRUE, FALSE),
     license = c("GPL-3", NA),
@@ -160,7 +160,7 @@ test_that("export_json handles NA values correctly", {
     package_name = "bbplot",
     description = NA_character_,
     categories = "themes",
-    is_essential = FALSE,
+    is_featured = FALSE,
     on_cran = FALSE,
     license = NA_character_,
     cran_version = NA_character_,

@@ -18,7 +18,7 @@ test_that("read_curated_csv returns a tibble with expected columns", {
 
   expect_true(tibble::is_tibble(result))
   expect_true(all(
-    c("package_name", "categories", "is_essential", "website_url", "repo_url", "date_added")
+    c("package_name", "categories", "is_featured", "website_url", "repo_url", "date_added")
     %in% names(result)
   ))
   # Use lower bound instead of exact count — exact count validated by M1 integration test
@@ -279,7 +279,7 @@ test_that("merge_package_data joins all data sources", {
   curated <- tibble::tibble(
     package_name = c("ggrepel", "bbplot"),
     categories = c("annotations", "themes"),
-    is_essential = c(TRUE, FALSE),
+    is_featured = c(TRUE, FALSE),
     website_url = c("https://ggrepel.slowkow.com/", NA),
     repo_url = c("https://github.com/slowkow/ggrepel", NA),
     date_added = c("2026-03-17", "2026-03-17")
@@ -318,7 +318,7 @@ test_that("merge_package_data joins all data sources", {
   # Check all expected columns are present (no download columns)
   expected_cols <- c(
     "package_name", "title", "description", "maintainer", "categories",
-    "is_essential", "on_cran", "has_vignettes", "license", "cran_version",
+    "is_featured", "on_cran", "has_vignettes", "license", "cran_version",
     "cran_published", "github_updated", "cran_url", "website_url", "repo_url",
     "manual_url", "vignettes_url", "date_added", "last_checked"
   )
@@ -342,7 +342,7 @@ test_that("merge_package_data joins github_desc and derives version field", {
   curated <- tibble::tibble(
     package_name = c("ggrepel", "fakepkg"),
     categories = c("annotations", "themes"),
-    is_essential = c(TRUE, FALSE),
+    is_featured = c(TRUE, FALSE),
     is_archived = c(FALSE, FALSE),
     website_url = c("https://ggrepel.slowkow.com/", NA),
     repo_url = c("https://github.com/slowkow/ggrepel", "https://github.com/user/fakepkg"),
@@ -404,7 +404,7 @@ test_that("merge_package_data loads cached github_desc when NULL", {
   curated <- tibble::tibble(
     package_name = "ggrepel",
     categories = "annotations",
-    is_essential = TRUE,
+    is_featured = TRUE,
     is_archived = FALSE,
     website_url = "https://ggrepel.slowkow.com/",
     repo_url = "https://github.com/slowkow/ggrepel",
@@ -462,7 +462,7 @@ test_that("merge_package_data works without cache file", {
   curated <- tibble::tibble(
     package_name = "ggrepel",
     categories = "annotations",
-    is_essential = TRUE,
+    is_featured = TRUE,
     is_archived = FALSE,
     website_url = "https://ggrepel.slowkow.com/",
     repo_url = "https://github.com/slowkow/ggrepel",
