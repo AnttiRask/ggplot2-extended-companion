@@ -82,7 +82,6 @@ filter_packages <- function(
       dplyr::filter(.data$is_featured == TRUE)
   }
 
-
   # Filter by recently added / recently updated.
   # When BOTH are checked: show union (OR) — packages matching either flag.
   # When only one is checked: show only that flag's matches.
