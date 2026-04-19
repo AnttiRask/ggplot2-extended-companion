@@ -6,6 +6,10 @@
 # (value boxes), and version info. Replaces the browse table when a
 # package is selected.
 #
+# v1.2 (M0): the header-card badge reads "⭐ Featured in the book" (renamed
+# from the v1.1 legacy label) and is driven by pkg$is_featured per
+# SPEC-v1.2 §5.9.
+#
 # Part of Milestone 5: Package Detail View
 # =============================================================================
 
@@ -217,11 +221,39 @@ build_header_card <- function(pkg) {
     build_category_badge(cat)
   })
 
-  # Essential badge
-  essential_badge <- if (isTRUE(pkg$is_essential)) {
-    htmltools::span(
-      class = "badge bg-warning text-dark ms-2",
-      "\u2B50 Essential Extension"
+  # Featured-in-the-book badge (v1.2 §5.9 renamed the legacy label text).
+  #
+  # The badge text is sentence case ("Featured in the book") intentionally —
+  # it is a phrase embedded in UI chrome. The sidebar's form-label sibling
+  # uses Title Case ("Featured in the Book") to match its neighbours
+  # ("Category", "License", ...). Keep both casings as SPEC-v1.2 §3.2
+  # specifies — do not unify.
+  #
+  # The visual treatment (full Bootstrap warning pill with badge text) is
+  # deliberately heavier than the browse-table version (compact amber star
+  # glyph only). Rationale: on the detail view a single package is read in
+  # depth, so a prominent pill reinforces "notable package" and balances
+  # the "Archived Package" pill beside it. The browse table renders dozens
+  # of rows at once; a pill on every featured row would steal attention
+  # from the package name and title. Keep the two treatments — SPEC-v1.2
+  # §5.9 shows both patterns verbatim.
+  #
+  # Tooltip (Designer Fix #6) mirrors the disambiguating body of the
+  # sidebar-checkbox tooltip so the answer to "featured in *what* book?" is
+  # consistent across every surface the user might first encounter it on.
+  # The framing is singular ("Featured in…") rather than plural ("Packages
+  # featured in…") because the detail view is about one package at a time —
+  # plural framing here would create a mild cognitive stutter (Designer
+  # round-02 finding #1). The core disambiguating phrase
+  # ("companion book 'ggplot2 extended'") is identical between the two
+  # tooltip bodies; the framing adapts to context.
+  featured_badge <- if (isTRUE(pkg$is_featured)) {
+    bslib::tooltip(
+      htmltools::span(
+        class = "badge bg-warning text-dark ms-2",
+        "\u2B50 Featured in the book"
+      ),
+      FEATURED_TOOLTIP_BODY_DETAIL
     )
   }
 
@@ -282,7 +314,7 @@ build_header_card <- function(pkg) {
       # Package name heading
       htmltools::tags$h2(
         pkg$package_name,
-        essential_badge,
+        featured_badge,
         archived_badge
       ),
 

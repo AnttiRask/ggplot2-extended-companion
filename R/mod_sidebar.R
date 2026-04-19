@@ -3,8 +3,11 @@
 #
 # Shiny module for the sidebar filter controls. Provides category dropdown
 # (with display names), CRAN status radio buttons, license dropdown,
-# essential-only checkbox, recently added/updated checkboxes, and package
+# featured-only checkbox, recently added/updated checkboxes, and package
 # submission link.
+#
+# v1.2 (M0): featured_only input replaces the v1.1 legacy-name input; label
+# reads "Featured in the Book" per SPEC-v1.2 §3.2, §5.7.
 #
 # Part of production-fix-polish: Sidebar Overhaul
 # =============================================================================
@@ -63,11 +66,28 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
       selected = "All"
     ),
 
-    # Essential only checkbox (capitalized "Only")
-    shiny::checkboxInput(
-      ns("essential_only"),
-      label = "Essential Extensions Only",
-      value = FALSE
+    # Featured-in-the-book checkbox (v1.2 renamed the legacy input ID/label).
+    # The label uses Title Case intentionally — matches sibling sidebar labels
+    # ("Category", "CRAN Status", "License", "Recently Added"). The detail-card
+    # badge and the browse-table tooltip use sentence case ("Featured in the
+    # book") because they are phrases embedded in UI chrome, not form labels.
+    # Keep all three casings as specified by SPEC-v1.2 §3.2 — do not unify.
+    #
+    # Tooltip (Designer Fix #2) disambiguates "featured in *what* book?" for
+    # first-time visitors who have not opened the intro accordion. bslib's
+    # tooltip attaches aria-describedby wiring so assistive tech announces
+    # the clarification too, not just sighted mouse users. The body is
+    # plural-framed ("Packages featured…") because this control filters a
+    # collection — contrast with the singular-framed detail-view tooltip.
+    # Both share the "companion book 'ggplot2 extended'" tail so the
+    # answer to "which book?" is stable across surfaces.
+    bslib::tooltip(
+      shiny::checkboxInput(
+        ns("featured_only"),
+        label = "Featured in the Book",
+        value = FALSE
+      ),
+      FEATURED_TOOLTIP_BODY_SIDEBAR
     ),
 
     # Recently Added checkbox
@@ -117,7 +137,7 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
 #'   - `category`: selected category technical name (or "All")
 #'   - `cran_status`: selected CRAN status (or "All")
 #'   - `license`: selected license (or "All")
-#'   - `essential_only`: logical
+#'   - `featured_only`: logical (v1.2 renamed the legacy reactive name)
 #'   - `recently_added`: logical
 #'   - `recently_updated`: logical
 #'   - `show_archived`: logical
@@ -130,7 +150,7 @@ mod_sidebar_server <- function(id) {
       category         = shiny::reactive(input$category),
       cran_status      = shiny::reactive(input$cran_status),
       license          = shiny::reactive(input$license),
-      essential_only   = shiny::reactive(input$essential_only),
+      featured_only    = shiny::reactive(input$featured_only),
       recently_added   = shiny::reactive(input$recently_added),
       recently_updated = shiny::reactive(input$recently_updated),
       show_archived    = shiny::reactive(input$show_archived)

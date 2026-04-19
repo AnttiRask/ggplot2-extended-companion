@@ -15,7 +15,7 @@ make_test_pkg <- function(
   description = "Provides geoms for ggplot2 to repel overlapping text labels.",
   maintainer = "Kamil Slowikowski",
   categories = "annotations",
-  is_essential = TRUE,
+  is_featured = TRUE,
   on_cran = TRUE,
   has_vignettes = TRUE,
   license = "GPL-3",
@@ -44,7 +44,7 @@ make_test_pkg <- function(
     has_vignettes = has_vignettes,
     maintainer = maintainer,
     categories = categories,
-    is_essential = is_essential,
+    is_featured = is_featured,
     on_cran = on_cran,
     license = license,
     cran_version = cran_version,
@@ -80,22 +80,53 @@ test_that("build_header_card includes package name and title", {
   expect_true(grepl("Non-Overlapping Text Labels", html))
 })
 
-test_that("build_header_card shows essential badge when is_essential is TRUE", {
-  pkg <- make_test_pkg(is_essential = TRUE)
+test_that("build_header_card shows featured badge when is_featured is TRUE", {
+  pkg <- make_test_pkg(is_featured = TRUE)
 
   result <- build_header_card(pkg)
   html <- as.character(result)
 
-  expect_true(grepl("Essential Extension", html))
+  expect_true(grepl("Featured in the book", html))
 })
 
-test_that("build_header_card hides essential badge when is_essential is FALSE", {
-  pkg <- make_test_pkg(is_essential = FALSE)
+test_that("build_header_card hides featured badge when is_featured is FALSE", {
+  pkg <- make_test_pkg(is_featured = FALSE)
 
   result <- build_header_card(pkg)
   html <- as.character(result)
 
-  expect_false(grepl("Essential Extension", html))
+  expect_false(grepl("Featured in the book", html))
+})
+
+test_that("build_header_card featured badge carries the book-disambiguating tooltip", {
+  # v1.2 Designer Fix #6: the detail badge is wrapped in bslib::tooltip() so
+  # the "featured in *what* book?" clarification is reachable on hover/focus.
+  # The framing is singular ("Featured in the companion book…") for the
+  # detail view, where the user is reading one package — contrast with the
+  # sidebar's plural "Packages featured…" which fits a collection-filter
+  # control. Both share the core "companion book 'ggplot2 extended'" phrase
+  # so the answer to "which book?" is stable across surfaces. See the
+  # FEATURED_TOOLTIP_BODY_* constants in R/fct_constants.R.
+  #
+  # Rendering note: bslib 0.10 renders `tooltip()` as a `<bslib-tooltip>`
+  # Web Component whose `<template>` child holds the body text. The
+  # runtime Bootstrap JS hydrates it into a `data-bs-title` attribute and
+  # an `aria-describedby` link on activation — those attributes are not
+  # present in the static HTML. The `grepl(..., fixed = TRUE)` below
+  # locates the literal body string anywhere in the rendered HTML, which
+  # is enough to verify the tooltip is wired up. The `fixed = TRUE` flag
+  # sidesteps regex interpretation of the single-quote characters in the
+  # body text.
+  pkg <- make_test_pkg(is_featured = TRUE)
+
+  result <- build_header_card(pkg)
+  html <- as.character(result)
+
+  expect_true(grepl(
+    FEATURED_TOOLTIP_BODY_DETAIL,
+    html,
+    fixed = TRUE
+  ))
 })
 
 test_that("build_header_card shows all category badges for multi-category package", {

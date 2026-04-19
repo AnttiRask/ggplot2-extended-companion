@@ -3,8 +3,11 @@
 #
 # CSV validation functions for packages_curated.csv. Enforces data integrity
 # rules defined in SPEC section 4.4: no duplicates, valid categories, required
-# fields, boolean is_essential, well-formed pipe-separated categories.
+# fields, boolean is_featured, well-formed pipe-separated categories.
 # v1.1: Added validate_is_archived() per SPEC-v1.1 §9.1.
+# v1.2 (M0): The "featured in the book" flag replaces the v1.1 legacy name.
+# validate_is_featured() gains a missing-column branch parallel to
+# validate_is_archived().
 #
 # These functions are used by the migration script (data-raw/migrate_notion.R)
 # and can be called in CI (e.g., GitHub Actions check.yml) to validate the
@@ -81,27 +84,35 @@ validate_required_fields <- function(df) {
   validation_result(valid = length(errors) == 0, errors = errors)
 }
 
-#' Validate is_essential contains only TRUE/FALSE
+#' Validate is_featured contains only TRUE/FALSE
 #'
-#' Checks that the `is_essential` column contains only logical TRUE or FALSE
-#' values (not strings, not NA).
-#' SPEC section 4.4: "is_essential is TRUE or FALSE."
+#' Checks that the `is_featured` column exists and contains only logical TRUE
+#' or FALSE values (not strings, not NA). Returns early with a single error
+#' if the column is missing, mirroring `validate_is_archived()`.
+#' SPEC section 4.4: "is_featured is TRUE or FALSE."
+#' SPEC-v1.2 §3.2: v1.2 renames the legacy validator to `validate_is_featured()`.
 #'
-#' @param df A data frame with an `is_essential` column.
+#' @param df A data frame with an `is_featured` column.
 #'
 #' @return A validation result list with `valid` and `errors`.
 #'
 #' @noRd
-validate_is_essential <- function(df) {
+validate_is_featured <- function(df) {
   errors <- character(0)
 
+  # Check that the column exists (added in v1.2 — parallel to validate_is_archived)
+  if (!"is_featured" %in% names(df)) {
+    errors <- c(errors, "Missing required column: is_featured")
+    return(validation_result(valid = FALSE, errors = errors))
+  }
+
   # Must be logical type with no NAs
-  invalid_rows <- which(is.na(df$is_essential) | !is.logical(df$is_essential))
+  invalid_rows <- which(is.na(df$is_featured) | !is.logical(df$is_featured))
 
   if (length(invalid_rows) > 0) {
     bad_pkgs <- df$package_name[invalid_rows]
     errors <- paste0(
-      "Invalid is_essential value for package '", bad_pkgs,
+      "Invalid is_featured value for package '", bad_pkgs,
       "' (must be TRUE or FALSE)"
     )
   }
@@ -247,7 +258,7 @@ validate_curated_csv <- function(df, valid_categories) {
   checks <- list(
     validate_no_duplicates(df),
     validate_required_fields(df),
-    validate_is_essential(df),
+    validate_is_featured(df),
     validate_is_archived(df),
     validate_category_format(df),
     validate_categories(df, valid_categories)

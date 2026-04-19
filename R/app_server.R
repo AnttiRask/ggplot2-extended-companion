@@ -5,6 +5,10 @@
 # data at startup, renders sidebar controls with data-driven choices, applies
 # sidebar filters/sorts to the data, and passes the result to the browse module.
 #
+# v1.2 (M0): sidebar reactive renamed — sidebar_values$featured_only() replaces
+# the v1.1 legacy accessor; filter_packages() is called with featured_only per
+# SPEC-v1.2 §3.2.
+#
 # Part of Milestone 4: Sidebar Filters & Sorting
 # =============================================================================
 
@@ -71,7 +75,7 @@ app_server <- function(input, output, session) {
     category         <- sidebar_values$category()         %||% "All"
     cran_status      <- sidebar_values$cran_status()      %||% "All"
     license_filter   <- sidebar_values$license()          %||% "All"
-    essential_only   <- sidebar_values$essential_only()    %||% FALSE
+    featured_only    <- sidebar_values$featured_only()     %||% FALSE
     recently_added   <- sidebar_values$recently_added()    %||% FALSE
     recently_updated <- sidebar_values$recently_updated()  %||% FALSE
     show_archived    <- sidebar_values$show_archived()     %||% FALSE
@@ -82,7 +86,7 @@ app_server <- function(input, output, session) {
       category         = category,
       cran_status      = cran_status,
       license_filter   = license_filter,
-      essential_only   = essential_only,
+      featured_only    = featured_only,
       recently_added   = recently_added,
       recently_updated = recently_updated,
       show_archived    = show_archived

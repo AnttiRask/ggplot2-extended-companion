@@ -1,4 +1,4 @@
-package_name,categories,is_essential,website_url,repo_url,date_added,notes,is_archived
+package_name,categories,is_featured,website_url,repo_url,date_added,notes,is_archived
 ButterflyColors,scales_and_guides,FALSE,https://junqueiragaabi.github.io/ButterflyColors/,https://github.com/junqueiragaabi/ButterflyColors/,1900-01-01,,FALSE
 CGPfunctions,geoms|stats,FALSE,https://ibecav.github.io/CGPfunctions/,https://github.com/ibecav/CGPfunctions/,1900-01-01,,FALSE
 ComplexUpset,geoms,FALSE,https://krassowski.github.io/complex-upset/,https://github.com/krassowski/complex-upset/,1900-01-01,,FALSE

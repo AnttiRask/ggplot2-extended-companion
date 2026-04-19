@@ -3,7 +3,11 @@
 #
 # Tests for CSV validation functions in R/fct_validation.R.
 # Validates packages_curated.csv integrity: no duplicates, valid categories,
-# required fields, boolean is_essential, well-formed pipe-separated categories.
+# required fields, boolean is_featured, well-formed pipe-separated categories.
+#
+# v1.2 (M0): the "featured in the book" column replaces the v1.1 legacy name.
+# validate_is_featured() now also detects a missing is_featured column
+# (parallel to validate_is_archived).
 #
 # Part of Milestone 1: Notion Migration & Curated Data
 # =============================================================================
@@ -108,42 +112,55 @@ test_that("validate_required_fields detects empty date_added", {
   expect_true(any(grepl("date_added", result$errors)))
 })
 
-# --- validate_is_essential() -------------------------------------------------
+# --- validate_is_featured() --------------------------------------------------
 
-test_that("validate_is_essential returns no errors for valid booleans", {
+test_that("validate_is_featured returns no errors for valid booleans", {
   df <- data.frame(
     package_name = c("ggrepel", "patchwork"),
-    is_essential = c(TRUE, FALSE),
+    is_featured = c(TRUE, FALSE),
     stringsAsFactors = FALSE
   )
 
-  result <- validate_is_essential(df)
+  result <- validate_is_featured(df)
 
   expect_true(result$valid)
   expect_length(result$errors, 0)
 })
 
-test_that("validate_is_essential detects invalid values", {
+test_that("validate_is_featured detects missing column", {
   df <- data.frame(
     package_name = c("ggrepel", "patchwork"),
-    is_essential = c("TRUE", "yes"),
     stringsAsFactors = FALSE
   )
 
-  result <- validate_is_essential(df)
+  result <- validate_is_featured(df)
+
+  expect_false(result$valid)
+  expect_length(result$errors, 1)
+  expect_true(grepl("Missing required column: is_featured", result$errors[[1]]))
+})
+
+test_that("validate_is_featured detects invalid values", {
+  df <- data.frame(
+    package_name = c("ggrepel", "patchwork"),
+    is_featured = c("TRUE", "yes"),
+    stringsAsFactors = FALSE
+  )
+
+  result <- validate_is_featured(df)
 
   expect_false(result$valid)
   expect_true(any(grepl("patchwork", result$errors)))
 })
 
-test_that("validate_is_essential detects NA values", {
+test_that("validate_is_featured detects NA values", {
   df <- data.frame(
     package_name = c("ggrepel", "patchwork"),
-    is_essential = c(TRUE, NA),
+    is_featured = c(TRUE, NA),
     stringsAsFactors = FALSE
   )
 
-  result <- validate_is_essential(df)
+  result <- validate_is_featured(df)
 
   expect_false(result$valid)
 })
@@ -340,7 +357,7 @@ test_that("validate_curated_csv passes for a valid data frame", {
   df <- data.frame(
     package_name = c("ggrepel", "patchwork"),
     categories = c("annotations", "geoms|stats"),
-    is_essential = c(TRUE, FALSE),
+    is_featured = c(TRUE, FALSE),
     is_archived = c(FALSE, FALSE),
     website_url = c("https://example.com", NA),
     repo_url = c("https://github.com/a/b", "https://github.com/c/d"),
@@ -362,7 +379,7 @@ test_that("validate_curated_csv collects errors from all checks", {
   df <- data.frame(
     package_name = c("ggrepel", "ggrepel", "pkg3"),
     categories = c("animation", "geoms", "bad_cat|"),
-    is_essential = c(TRUE, FALSE, FALSE),
+    is_featured = c(TRUE, FALSE, FALSE),
     is_archived = c(FALSE, FALSE, FALSE),
     website_url = c(NA, NA, NA),
     repo_url = c(NA, NA, NA),
@@ -385,7 +402,7 @@ test_that("validate_curated_csv catches missing is_archived column", {
   df <- data.frame(
     package_name = c("ggrepel", "patchwork"),
     categories = c("animation", "geoms"),
-    is_essential = c(TRUE, FALSE),
+    is_featured = c(TRUE, FALSE),
     website_url = c(NA, NA),
     repo_url = c(NA, NA),
     date_added = c("2026-03-17", "2026-03-17"),
@@ -397,6 +414,27 @@ test_that("validate_curated_csv catches missing is_archived column", {
 
   expect_false(result$valid)
   expect_true(any(grepl("is_archived", result$errors)))
+})
+
+test_that("validate_curated_csv catches missing is_featured column", {
+  valid_cats <- c("animation", "geoms")
+
+  # Valid data but missing is_featured column entirely
+  df <- data.frame(
+    package_name = c("ggrepel", "patchwork"),
+    categories = c("animation", "geoms"),
+    is_archived = c(FALSE, FALSE),
+    website_url = c(NA, NA),
+    repo_url = c(NA, NA),
+    date_added = c("2026-03-17", "2026-03-17"),
+    notes = c("", ""),
+    stringsAsFactors = FALSE
+  )
+
+  result <- validate_curated_csv(df, valid_cats)
+
+  expect_false(result$valid)
+  expect_true(any(grepl("is_featured", result$errors)))
 })
 
 # --- Integration test: real packages_curated.csv ----------------------------
@@ -414,6 +452,20 @@ test_that("packages_curated.csv has valid is_archived column", {
   expect_true(is.logical(df$is_archived))
   # Verify no NAs
   expect_false(any(is.na(df$is_archived)))
+})
+
+test_that("packages_curated.csv has valid is_featured column", {
+  csv_path <- file.path(testthat::test_path(), "..", "..", "data-raw", "packages_curated.csv")
+  skip_if_not(file.exists(csv_path), "packages_curated.csv not found")
+
+  df <- read.csv(csv_path, stringsAsFactors = FALSE)
+  result <- validate_is_featured(df)
+
+  expect_true(result$valid, info = paste(result$errors, collapse = "\n"))
+  # Verify column is logical type
+  expect_true(is.logical(df$is_featured))
+  # Verify no NAs
+  expect_false(any(is.na(df$is_featured)))
 })
 
 test_that("packages_curated.csv passes all validation checks", {

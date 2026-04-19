@@ -5,6 +5,12 @@
 # reactable table of all ggplot2 extension packages with columns for name,
 # description, category, license, downloads, version, and dates.
 #
+# v1.2 (M0): featured-badge rename (.badge-featured) and a new accessibility
+# affordance — the featured star glyph carries both `title` (mouse tooltip)
+# and `aria-label` (assistive tech) set to "Featured in the book" per
+# SPEC-v1.2 §5.9. The hidden colDef entry now keys on is_featured (the v1.1
+# legacy name is retired). See the Name column cell renderer below.
+#
 # Part of Milestone 3: Data Loading & Browse Table
 # =============================================================================
 
@@ -124,12 +130,35 @@ build_package_table <- function(data, ns) {
         minWidth = 150,
         cell = function(value, index) {
           # Bold text, styled as clickable link
-          # Essential packages get a star badge, archived get a folder badge
-          is_essential <- data$is_essential[index]
+          # Featured packages get a star badge, archived get a folder badge
+          is_featured <- data$is_featured[index]
           is_archived <- if ("is_archived" %in% names(data)) data$is_archived[index] else FALSE
 
-          essential_badge <- if (isTRUE(is_essential)) {
-            htmltools::span(class = "badge-essential", "\u2B50 ")
+          # v1.2 (SPEC §5.9): the star carries a tooltip + aria-label so that
+          # sighted mouse users and screen-reader users both see the same
+          # explanation of what the glyph means.
+          #
+          # The compact amber star is intentionally lighter than the detail
+          # view's full Bootstrap pill — a pill on every featured browse row
+          # would steal attention from the package name and title. Density
+          # matters: inline glyph here, prominent pill on detail. SPEC-v1.2
+          # §5.9 shows both patterns verbatim — do not unify.
+          #
+          # Two-surface scope for the book-disambiguating body: the sidebar
+          # checkbox (R/mod_sidebar.R) and detail-view badge (R/mod_detail.R)
+          # carry the longer "[Packages ]featured in the companion book
+          # 'ggplot2 extended'" tooltip body. The browse-table star
+          # intentionally carries only the short "Featured in the book"
+          # label because the cell is width-constrained and the user has
+          # already passed the sidebar where the long body lives. See
+          # Designer round-01 LEAVE-IT #3 and round-02 finding #1.
+          featured_badge <- if (isTRUE(is_featured)) {
+            htmltools::span(
+              class = "badge-featured",
+              title = "Featured in the book",
+              `aria-label` = "Featured in the book",
+              "\u2B50 "
+            )
           } else {
             NULL
           }
@@ -141,7 +170,7 @@ build_package_table <- function(data, ns) {
           }
 
           htmltools::tagList(
-            essential_badge,
+            featured_badge,
             archived_badge,
             htmltools::tags$a(
               class = "package-link",
@@ -265,7 +294,7 @@ build_package_table <- function(data, ns) {
 
       # Hidden columns -- present in data but not displayed in table
       description = reactable::colDef(show = FALSE),
-      is_essential = reactable::colDef(show = FALSE),
+      is_featured = reactable::colDef(show = FALSE),
       is_archived = reactable::colDef(show = FALSE),
       github_title = reactable::colDef(show = FALSE),
       github_description = reactable::colDef(show = FALSE),
