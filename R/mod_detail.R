@@ -237,10 +237,17 @@ build_header_card <- function(pkg) {
   # of rows at once; a pill on every featured row would steal attention
   # from the package name and title. Keep the two treatments — SPEC-v1.2
   # §5.9 shows both patterns verbatim.
+  #
+  # Tooltip (Designer Fix #6) mirrors the sidebar-checkbox tooltip so the
+  # "featured in *what* book?" clarification is consistent across every
+  # surface the user might first encounter it on.
   featured_badge <- if (isTRUE(pkg$is_featured)) {
-    htmltools::span(
-      class = "badge bg-warning text-dark ms-2",
-      "\u2B50 Featured in the book"
+    bslib::tooltip(
+      htmltools::span(
+        class = "badge bg-warning text-dark ms-2",
+        "\u2B50 Featured in the book"
+      ),
+      "Packages featured in the companion book 'ggplot2 extended'"
     )
   }
 

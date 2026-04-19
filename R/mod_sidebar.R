@@ -72,10 +72,18 @@ mod_sidebar_ui <- function(id, categories = character(0), licenses = character(0
     # badge and the browse-table tooltip use sentence case ("Featured in the
     # book") because they are phrases embedded in UI chrome, not form labels.
     # Keep all three casings as specified by SPEC-v1.2 §3.2 — do not unify.
-    shiny::checkboxInput(
-      ns("featured_only"),
-      label = "Featured in the Book",
-      value = FALSE
+    #
+    # Tooltip (Designer Fix #2) disambiguates "featured in *what* book?" for
+    # first-time visitors who have not opened the intro accordion. bslib's
+    # tooltip attaches aria-describedby wiring so assistive tech announces
+    # the clarification too, not just sighted mouse users.
+    bslib::tooltip(
+      shiny::checkboxInput(
+        ns("featured_only"),
+        label = "Featured in the Book",
+        value = FALSE
+      ),
+      "Packages featured in the companion book 'ggplot2 extended'"
     ),
 
     # Recently Added checkbox

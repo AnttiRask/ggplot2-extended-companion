@@ -98,6 +98,24 @@ test_that("build_header_card hides featured badge when is_featured is FALSE", {
   expect_false(grepl("Featured in the book", html))
 })
 
+test_that("build_header_card featured badge carries the book-disambiguating tooltip", {
+  # v1.2 Designer Fix #6: the detail badge is wrapped in bslib::tooltip()
+  # with the same text as the sidebar-checkbox tooltip, so the phrase
+  # "featured in *what* book?" is answered consistently everywhere the
+  # user might first encounter it. bslib renders the tooltip body into a
+  # `data-bs-title` attribute on the sibling wrapper.
+  pkg <- make_test_pkg(is_featured = TRUE)
+
+  result <- build_header_card(pkg)
+  html <- as.character(result)
+
+  expect_true(grepl(
+    "Packages featured in the companion book 'ggplot2 extended'",
+    html,
+    fixed = TRUE
+  ))
+})
+
 test_that("build_header_card shows all category badges for multi-category package", {
   pkg <- make_test_pkg(categories = "geoms|stats|themes")
 
