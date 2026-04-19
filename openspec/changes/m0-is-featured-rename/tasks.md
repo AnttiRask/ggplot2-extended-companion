@@ -50,5 +50,26 @@
 
 ## 10. Review hand-off
 
-- [ ] 10.1 Push branch `feature/m0-is-featured-rename`
-- [ ] 10.2 Request review (Reviewer for code; UX/UI Designer for label and badge text changes)
+- [x] 10.1 Push branch `feature/m0-is-featured-rename`
+- [x] 10.2 Request review (Reviewer for code; UX/UI Designer for label and badge text changes)
+
+## 11. Address review feedback — round 01
+
+From `comments/COMMENTS-m0-is-featured-rename-01.md` (Reviewer, APPROVED)
+and `DESIGN_FIXES.md` (Designer, READY TO SHIP). Per the stakeholder's
+working rule, every actionable item — SHOULD FIX, SUGGESTION, POLISH —
+is addressed on the same branch before re-review.
+
+- [x] 11.1 Reviewer §6 [SHOULD FIX]: add v1.2 (M0) header notes to `R/fct_pipeline.R`, `R/app_server.R`, `R/mod_browse.R`, `R/mod_detail.R`
+- [x] 11.2 Reviewer §7 [SHOULD FIX]: create `openspec/changes/m0-is-featured-rename/design.md` matching sibling folders' format
+- [x] 11.3 Reviewer §8 [SUGGESTION]: document the deliberate visual split between the detail pill and the browse star glyph (inline comments in `mod_detail.R` and `mod_browse.R`)
+- [x] 11.4 Reviewer §9 [SUGGESTION]: drop the pre-existing double blank line in `R/fct_filters.R:84-85`
+- [x] 11.5 Designer Fix #1 [SHOULD FIX]: add inline comments in `mod_sidebar.R` and `mod_detail.R` documenting the intentional Title Case vs sentence case split
+- [x] 11.6 Designer Fix #2 [POLISH]: wrap the sidebar "Featured in the Book" checkbox in `bslib::tooltip()` with body `"Packages featured in the companion book 'ggplot2 extended'"`
+- [x] 11.7 Designer Fix #6 [POLISH]: wrap the detail-view featured badge in `bslib::tooltip()` with the same body; add regression test asserting the tooltip body renders into the HTML
+- [x] 11.8 Re-run DoD: grep sweep still zero matches; `devtools::test()` = 467 PASS / 0 FAIL / 3 SKIP; `validate_curated_csv()` on real CSV = valid/0 errors
+
+## 12. Re-review hand-off
+
+- [ ] 12.1 Push round-01 fixes to `feature/m0-is-featured-rename`
+- [ ] 12.2 Request re-review (expecting `comments/COMMENTS-m0-is-featured-rename-02.md` and optionally a Designer re-pass)
