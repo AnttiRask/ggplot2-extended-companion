@@ -41,7 +41,7 @@ check_cran_vignettes <- function(package_name) {
 #'
 #' Reads `data-raw/packages_curated.csv` and returns it as a tibble.
 #' This is the source of truth for curated fields (package_name, categories,
-#' is_essential, website_url, repo_url, date_added).
+#' is_featured, website_url, repo_url, date_added).
 #'
 #' @param path Path to the curated CSV file.
 #'
@@ -720,7 +720,7 @@ export_json <- function(packages, downloads, output_path = "inst/app/www/data/pa
       title          = if ("title" %in% names(row) && !is.na(row$title)) row$title else NULL,
       description    = if (is.na(row$description)) NULL else row$description,
       categories     = strsplit(row$categories, "\\|")[[1]],
-      is_essential   = row$is_essential,
+      is_featured    = row$is_featured,
       is_archived    = if ("is_archived" %in% names(row)) row$is_archived else FALSE,
       on_cran        = row$on_cran,
       license        = if (is.na(row$license)) NULL else row$license,
